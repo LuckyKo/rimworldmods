@@ -9,10 +9,13 @@ namespace SocialInteractions
     [StaticConstructorOnStartup]
     public static class SocialInteractions
     {
+        public static SocialInteractionsModSettings Settings;
+
         static SocialInteractions()
         {
             var harmony = new Harmony("com.gemini.socialinteractions");
             harmony.PatchAll();
+            Settings = LoadedModManager.GetMod<SocialInteractionsMod>().GetSettings<SocialInteractionsModSettings>();
         }
     }
 
@@ -22,7 +25,7 @@ namespace SocialInteractions
         public static void Postfix(bool __result, Pawn_InteractionsTracker __instance, Pawn recipient)
         {
             Pawn initiator = (Pawn)AccessTools.Field(typeof(Pawn_InteractionsTracker), "pawn").GetValue(__instance);
-            if (__result && initiator != null && recipient != null)
+            if (__result && initiator != null && recipient != null && SocialInteractions.Settings.pawnsStopOnInteractionEnabled)
             {
                 // Pawn stopping logic
                 int waitTicks = 120; // 2 seconds

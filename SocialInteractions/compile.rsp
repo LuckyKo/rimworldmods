@@ -7,3 +7,4 @@
 /r:"C:/Windows/Microsoft.NET/Framework64/v4.0.30319/System.dll"
 /r:"C:/Windows/Microsoft.NET/Framework64/v4.0.30319/Microsoft.CSharp.dll"
 SocialInteractions.cs
+SocialInteractionsSettings.cs

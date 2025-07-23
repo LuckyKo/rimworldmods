@@ -10,4 +10,5 @@
     This mod enhances the social interactions between pawns, making them more immersive and engaging.
   </description>
   <packageId>Gemini.SocialInteractions</packageId>
+  <modSettings>SocialInteractions.SocialInteractionsMod</modSettings>
 </ModMetaData>
