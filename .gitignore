@@ -1,0 +1,34 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+bin/
+obj/
+[Xx]64/
+[Aa]rm64/
+[Aa]rm/
+
+# Packages
+*.nupkg
+*.snupkg
+*.vsix
+.nuget/
+packages/
+
+# Rider
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# RimWorld Mod specific
+*.dll
+*.pdb
+debug.txt
+console.txt

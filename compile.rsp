@@ -1,0 +1,6 @@
+/target:library
+/out:n:/work/stuff/mine/RimWorldMods/SocialInteractions/1.5/Assemblies/SocialInteractions.dll
+/r:n:/work/stuff/mine/RimWorldMods/Assembly-CSharp.dll
+/r:m:/Games/Rimworld.v1.6.4518/Rimworld/Mods/harmony/1.5/Assemblies/0Harmony.dll
+/r:m:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/Managed/UnityEngine.CoreModule.dll
+n:/work/stuff/mine/RimWorldMods/SocialInteractions/SocialInteractions.cs

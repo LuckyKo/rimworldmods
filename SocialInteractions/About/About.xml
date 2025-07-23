@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Social Interactions</name>
+  <author>Gemini</author>
+  <supportedVersions>
+    <li>1.5</li>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>
+    This mod enhances the social interactions between pawns, making them more immersive and engaging.
+  </description>
+  <packageId>Gemini.SocialInteractions</packageId>
+</ModMetaData>
