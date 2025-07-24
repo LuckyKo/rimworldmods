@@ -24,22 +24,15 @@ namespace SocialInteractions
 
         public static async void HandleDeepTalkInteraction(Pawn initiator, Pawn recipient)
         {
-            Log.Message("HandleDeepTalkInteraction called.");
-
             if (!Settings.llmInteractionsEnabled)
             {
-                Log.Message("LLM Interactions are disabled in settings.");
                 return;
             }
 
             if (string.IsNullOrEmpty(Settings.llmApiUrl) || string.IsNullOrEmpty(Settings.llmPromptTemplate))
             {
-                Log.Warning("SocialInteractions: LLM API URL or Prompt Template not configured.");
                 return;
             }
-
-            Log.Message("LLM API URL: " + Settings.llmApiUrl);
-            Log.Message("LLM Prompt Template: " + Settings.llmPromptTemplate);
 
             KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
 
@@ -52,27 +45,15 @@ namespace SocialInteractions
             string pawn1Traits = "";
             if (initiator.story != null)
             {
-                Log.Message("Initiator story is not null.");
                 if (initiator.story.traits != null)
                 {
-                    Log.Message("Initiator traits is not null.");
                     List<string> traitsList = new List<string>();
                     foreach (Trait trait in initiator.story.traits.allTraits)
                     {
                         traitsList.Add(trait.Label);
-                        Log.Message("Initiator trait found: " + trait.Label);
                     }
                     pawn1Traits = string.Join(", ", traitsList.ToArray());
-                    Log.Message("Final pawn1Traits: " + pawn1Traits);
                 }
-                else
-                {
-                    Log.Message("Initiator traits is null.");
-                }
-            }
-            else
-            {
-                Log.Message("Initiator story is null.");
             }
             string pawn1Mood = (initiator.needs != null && initiator.needs.mood != null) ? (initiator.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
 
@@ -82,27 +63,15 @@ namespace SocialInteractions
             string pawn2Traits = "";
             if (recipient.story != null)
             {
-                Log.Message("Recipient story is not null.");
                 if (recipient.story.traits != null)
                 {
-                    Log.Message("Recipient traits is not null.");
                     List<string> traitsList = new List<string>();
                     foreach (Trait trait in recipient.story.traits.allTraits)
                     {
                         traitsList.Add(trait.Label);
-                        Log.Message("Recipient trait found: " + trait.Label);
                     }
                     pawn2Traits = string.Join(", ", traitsList.ToArray());
-                    Log.Message("Final pawn2Traits: " + pawn2Traits);
                 }
-                else
-                {
-                    Log.Message("Recipient traits is null.");
-                }
-            }
-            else
-            {
-                Log.Message("Recipient story is null.");
             }
             string pawn2Mood = (recipient.needs != null && recipient.needs.mood != null) ? (recipient.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
 
@@ -126,62 +95,43 @@ namespace SocialInteractions
             prompt = prompt.Replace("[time]", currentTime);
             prompt = prompt.Replace("[weather]", currentWeather);
 
-            Log.Message("Sending prompt to LLM: " + prompt);
             string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature);
-            Log.Message("Received response from LLM (or null if failed).");
 
             if (!string.IsNullOrEmpty(llmResponse))
             {
-                Log.Message("LLM Response: " + llmResponse);
                 // Split response into alternating messages (simple split for now)
                 string[] messages = llmResponse.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (string message in messages)
                 {
-                    Log.Message("Processing message: '" + message + "'");
                     Pawn speaker = null;
                     string cleanedMessage = message.Trim();
-                    Log.Message("Cleaned message: '" + cleanedMessage + "'");
 
                     string initiatorPrefix = initiator.Name.ToStringShort + ":";
                     string recipientPrefix = recipient.Name.ToStringShort + ":";
-
-                    Log.Message("Checking for initiator prefix: '" + initiatorPrefix + "' (Result: " + cleanedMessage.StartsWith(initiatorPrefix) + ")");
-                    Log.Message("Checking for recipient prefix: '" + recipientPrefix + "' (Result: " + cleanedMessage.StartsWith(recipientPrefix) + ")");
 
                     if (cleanedMessage.StartsWith(initiatorPrefix))
                     {
                         speaker = initiator;
                         cleanedMessage = cleanedMessage.Substring(initiatorPrefix.Length).Trim();
-                        Log.Message("Identified speaker as initiator. Cleaned message after prefix removal: '" + cleanedMessage + "'");
                     }
                     else if (cleanedMessage.StartsWith(recipientPrefix))
                     {
                         speaker = recipient;
                         cleanedMessage = cleanedMessage.Substring(recipientPrefix.Length).Trim();
-                        Log.Message("Identified speaker as recipient. Cleaned message after prefix removal: '" + cleanedMessage + "'");
                     }
                     else
                     {
                         // If no specific speaker is identified, default to initiator or handle as a general narration
                         speaker = initiator;
-                        Log.Message("No specific speaker identified. Defaulting to initiator.");
                     }
 
                     if (speaker != null && !string.IsNullOrEmpty(cleanedMessage))
                     {
                         string wrappedMessage = WrapText(cleanedMessage, Settings.wordsPerLineLimit);
-                        MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, wrappedMessage, SocialInteractions.Settings.speechBubbleDurationSeconds);
+                        MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, wrappedMessage, SocialInteractions.EstimateReadingTime(cleanedMessage) / 1000f);
                         await Task.Delay(EstimateReadingTime(cleanedMessage));
                     }
-                    else
-                    {
-                        Log.Warning("Skipping empty or speaker-less message: '" + cleanedMessage + "'");
-                    }
                 }
-            }
-            else
-            {
-                Log.Warning("SocialInteractions: LLM returned empty response.");
             }
         }
 
@@ -211,7 +161,7 @@ namespace SocialInteractions
             return wrappedText.ToString();
         }
 
-        private static int EstimateReadingTime(string text)
+        public static int EstimateReadingTime(string text)
         {
             // Simple estimate: words per second from settings.
             int wordCount = text.Split(new string[] { " ", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Length;
@@ -257,30 +207,17 @@ namespace SocialInteractions
                 var recipientField = entry.GetType().GetField("recipient", BindingFlags.NonPublic | BindingFlags.Instance);
                 Pawn recipient = recipientField.GetValue(entry) as Pawn;
 
-                Log.Message("PlayLog_Add_Patch.Postfix called. Entry type: " + entry.GetType().Name);
-
                 if (initiator != null && recipient != null)
                 {
-                    Log.Message("Initiator: " + initiator.Name.ToStringShort + ", Recipient: " + recipient.Name.ToStringShort);
                     if (interactionDef != null)
                     {
-                        Log.Message("InteractionDef: " + interactionDef.defName);
-                        Log.Message("Interaction detected. Calling HandleDeepTalkInteraction for any interaction type.");
                         SocialInteractions.HandleDeepTalkInteraction(initiator, recipient);
                         string text = entry.ToGameStringFromPOV(initiator);
                         if (!string.IsNullOrEmpty(text))
                         {
-                            MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, text, SocialInteractions.Settings.speechBubbleDurationSeconds);
+                            MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, text, SocialInteractions.EstimateReadingTime(text) / 1000f);
                         }
                     }
-                    else
-                    {
-                        Log.Warning("InteractionDef is null for PlayLogEntry_Interaction.");
-                    }
-                }
-                else
-                {
-                    
                 }
             }
         }

@@ -14,7 +14,7 @@ namespace SocialInteractions
         public float wordsPerSecond = 5.0f; // Default to 5 words per second
         public float llmTemperature = 0.7f; // Default temperature
         public int llmMaxTokens = 200; // Default max tokens
-        public float speechBubbleDurationSeconds = 5.0f;
+        
 
         public override void ExposeData()
         {
@@ -25,10 +25,10 @@ namespace SocialInteractions
             Scribe_Values.Look(ref llmPromptTemplate, "llmPromptTemplate", "");
             Scribe_Values.Look(ref llmInteractionsEnabled, "llmInteractionsEnabled", false);
             Scribe_Values.Look(ref wordsPerLineLimit, "wordsPerLineLimit", 10);
-            Scribe_Values.Look(ref wordsPerSecond, "wordsPerSecond", 5.0f);
+            
             Scribe_Values.Look(ref llmTemperature, "llmTemperature", 0.7f);
             Scribe_Values.Look(ref llmMaxTokens, "llmMaxTokens", 200);
-            Scribe_Values.Look(ref speechBubbleDurationSeconds, "speechBubbleDurationSeconds", 5.0f);
+            
         }
     }
 
@@ -89,10 +89,7 @@ namespace SocialInteractions
             string maxTokensBuffer = settings.llmMaxTokens.ToString();
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref settings.llmMaxTokens, ref maxTokensBuffer, 1, 2000);
 
-            listingStandard.Gap();
-            listingStandard.Label("Speech Bubble Duration (seconds):");
-            string speechBubbleDurationBuffer = settings.speechBubbleDurationSeconds.ToString();
-            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref settings.speechBubbleDurationSeconds, ref speechBubbleDurationBuffer, 0.1f, 10.0f);
+            
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable LLM Interactions", ref settings.llmInteractionsEnabled, "If enabled, Deep Talk interactions will use the configured LLM API.");

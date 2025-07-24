@@ -76,18 +76,12 @@ namespace SocialInteractions
                 StreamReader reader = new StreamReader(stream);
                 string jsonContent = reader.ReadToEnd();
 
-                Log.Message("Serializing request to JSON.");
-                Log.Message("JSON content: " + jsonContent);
                 var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-                Log.Message("Attempting to send HTTP POST request to: " + _apiUrl + "/api/v1/generate");
                 var response = await _httpClient.PostAsync(_apiUrl + "/api/v1/generate", httpContent);
-                Log.Message("Received HTTP response. Status Code: " + response.StatusCode);
                 response.EnsureSuccessStatusCode(); // Throws an exception if the HTTP response status is an error code
-                Log.Message("HTTP request successful. Reading response body.");
 
                 var responseBody = await response.Content.ReadAsStringAsync();
-                Log.Message("Raw LLM response body: " + responseBody);
 
                 DataContractJsonSerializer deserializer = new DataContractJsonSerializer(typeof(KoboldApiResponse));
                 MemoryStream responseStream = new MemoryStream(Encoding.UTF8.GetBytes(responseBody));
@@ -95,19 +89,16 @@ namespace SocialInteractions
 
                 if (apiResponse != null && apiResponse.Results != null && apiResponse.Results.Length > 0)
                 {
-                    Log.Message("Successfully parsed text from JSON: " + apiResponse.Results[0].Text);
                     return apiResponse.Results[0].Text;
                 }
                 return null;
             }
             catch (HttpRequestException e)
             {
-                Log.Error(string.Format("HTTP Request Error: {0}", e.Message));
                 return null;
             }
             catch (Exception e)
             {
-                Log.Error(string.Format("An unexpected error occurred: {0}", e.Message));
                 return null;
             }
         }
