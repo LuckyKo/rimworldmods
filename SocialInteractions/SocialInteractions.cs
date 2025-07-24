@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
 using System.Text;
+using UnityEngine;
 
 namespace SocialInteractions
 {
@@ -56,6 +57,23 @@ namespace SocialInteractions
                 }
             }
             string pawn1Mood = (initiator.needs != null && initiator.needs.mood != null) ? (initiator.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
+            string pawn1Genes = "";
+            if (initiator.genes != null)
+            {
+                pawn1Genes = initiator.genes.XenotypeLabel;
+                List<string> geneList = new List<string>();
+                foreach (Gene gene in initiator.genes.GenesListForReading)
+                {
+                    if (!gene.def.skinColorBase.HasValue)
+                    {
+                        geneList.Add(gene.def.label);
+                    }
+                }
+                if (geneList.Count > 0)
+                {
+                    pawn1Genes += " (" + string.Join(", ", geneList.ToArray()) + ")";
+                }
+            }
 
             // Pawn 2 (Recipient) attributes
             string pawn2Age = recipient.ageTracker.AgeBiologicalYears.ToString();
@@ -74,10 +92,30 @@ namespace SocialInteractions
                 }
             }
             string pawn2Mood = (recipient.needs != null && recipient.needs.mood != null) ? (recipient.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
+            string pawn2Genes = "";
+            if (recipient.genes != null)
+            {
+                pawn2Genes = recipient.genes.XenotypeLabel;
+                List<string> geneList = new List<string>();
+                foreach (Gene gene in recipient.genes.GenesListForReading)
+                {
+                    if (!gene.def.skinColorBase.HasValue)
+                    {
+                        geneList.Add(gene.def.label);
+                    }
+                }
+                if (geneList.Count > 0)
+                {
+                    pawn2Genes += " (" + string.Join(", ", geneList.ToArray()) + ")";
+                }
+            }
 
             // World info attributes
-            string currentDate = GenDate.DateReadoutStringAt(Find.TickManager.TicksGame, Find.WorldGrid.LongLatOf(initiator.Tile));
-            string currentTime = GenDate.HourOfDay(Find.TickManager.TicksGame, Find.WorldGrid.LongLatOf(initiator.Tile).x).ToString("D2") + ":00";
+            long absTicks = Find.TickManager.TicksAbs;
+            float longitude = Find.WorldGrid.LongLatOf(initiator.Tile).x;
+            string currentDate = GenDate.DateFullStringAt(absTicks, Find.WorldGrid.LongLatOf(initiator.Tile));
+            int hour = (int)(GenDate.DayPercent(absTicks, longitude) * 24f);
+            string currentTime = hour.ToString("D2") + ":00";
             string currentWeather = Find.CurrentMap.weatherManager.curWeather.label;
 
             // Replace placeholders
@@ -87,10 +125,12 @@ namespace SocialInteractions
             prompt = prompt.Replace("[pawn1_sex]", pawn1Sex);
             prompt = prompt.Replace("[pawn1_traits]", pawn1Traits);
             prompt = prompt.Replace("[pawn1_mood]", pawn1Mood);
+            prompt = prompt.Replace("[pawn1_genes]", pawn1Genes);
             prompt = prompt.Replace("[pawn2_age]", pawn2Age);
             prompt = prompt.Replace("[pawn2_sex]", pawn2Sex);
             prompt = prompt.Replace("[pawn2_traits]", pawn2Traits);
             prompt = prompt.Replace("[pawn2_mood]", pawn2Mood);
+            prompt = prompt.Replace("[pawn2_genes]", pawn2Genes);
             prompt = prompt.Replace("[date]", currentDate);
             prompt = prompt.Replace("[time]", currentTime);
             prompt = prompt.Replace("[weather]", currentWeather);
