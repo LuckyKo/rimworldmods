@@ -11,8 +11,10 @@ namespace SocialInteractions
         public string llmPromptTemplate = "";
         public bool llmInteractionsEnabled = false;
         public int wordsPerLineLimit = 10; // Default to 10 words per line
+        public float wordsPerSecond = 5.0f; // Default to 5 words per second
         public float llmTemperature = 0.7f; // Default temperature
         public int llmMaxTokens = 200; // Default max tokens
+        public float speechBubbleDurationSeconds = 5.0f;
 
         public override void ExposeData()
         {
@@ -23,14 +25,17 @@ namespace SocialInteractions
             Scribe_Values.Look(ref llmPromptTemplate, "llmPromptTemplate", "");
             Scribe_Values.Look(ref llmInteractionsEnabled, "llmInteractionsEnabled", false);
             Scribe_Values.Look(ref wordsPerLineLimit, "wordsPerLineLimit", 10);
+            Scribe_Values.Look(ref wordsPerSecond, "wordsPerSecond", 5.0f);
             Scribe_Values.Look(ref llmTemperature, "llmTemperature", 0.7f);
             Scribe_Values.Look(ref llmMaxTokens, "llmMaxTokens", 200);
+            Scribe_Values.Look(ref speechBubbleDurationSeconds, "speechBubbleDurationSeconds", 5.0f);
         }
     }
 
     public class SocialInteractionsMod : Mod
     {
         SocialInteractionsModSettings settings;
+        private Vector2 scrollPosition = Vector2.zero;
 
         public SocialInteractionsMod(ModContentPack content)
             : base(content)
@@ -45,8 +50,11 @@ namespace SocialInteractions
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
+            Rect viewRect = new Rect(inRect.x, inRect.y, inRect.width - 16f, inRect.height * 2); // Adjust height as needed
+            Widgets.BeginScrollView(inRect, ref scrollPosition, viewRect);
+
             Listing_Standard listingStandard = new Listing_Standard();
-            listingStandard.Begin(inRect);
+            listingStandard.Begin(viewRect);
             listingStandard.CheckboxLabeled("Pawns stop on interaction", ref settings.pawnsStopOnInteractionEnabled, "If enabled, pawns will stop their current activities during social interactions.");
 
             listingStandard.Gap();
@@ -67,6 +75,11 @@ namespace SocialInteractions
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref settings.wordsPerLineLimit, ref wordsPerLineBuffer, 1, 50);
 
             listingStandard.Gap();
+            listingStandard.Label("Words per second (for speech bubble duration):");
+            string wordsPerSecondBuffer = settings.wordsPerSecond.ToString();
+            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref settings.wordsPerSecond, ref wordsPerSecondBuffer, 1.0f, 20.0f);
+
+            listingStandard.Gap();
             listingStandard.Label("LLM Temperature (0.1 - 2.0):");
             string temperatureBuffer = settings.llmTemperature.ToString();
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref settings.llmTemperature, ref temperatureBuffer, 0.1f, 2.0f);
@@ -77,9 +90,16 @@ namespace SocialInteractions
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref settings.llmMaxTokens, ref maxTokensBuffer, 1, 2000);
 
             listingStandard.Gap();
+            listingStandard.Label("Speech Bubble Duration (seconds):");
+            string speechBubbleDurationBuffer = settings.speechBubbleDurationSeconds.ToString();
+            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref settings.speechBubbleDurationSeconds, ref speechBubbleDurationBuffer, 0.1f, 10.0f);
+
+            listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable LLM Interactions", ref settings.llmInteractionsEnabled, "If enabled, Deep Talk interactions will use the configured LLM API.");
 
             listingStandard.End();
+
+            Widgets.EndScrollView();
             base.DoSettingsWindowContents(inRect);
         }
     }

@@ -5,6 +5,8 @@ using Verse.AI;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System;
+using System.Text;
 
 namespace SocialInteractions
 {
@@ -43,9 +45,86 @@ namespace SocialInteractions
 
             // Placeholder replacement (initial version, will expand later)
             string prompt = Settings.llmPromptTemplate;
+
+            // Pawn 1 (Initiator) attributes
+            string pawn1Age = initiator.ageTracker.AgeBiologicalYears.ToString();
+            string pawn1Sex = initiator.gender.ToString();
+            string pawn1Traits = "";
+            if (initiator.story != null)
+            {
+                Log.Message("Initiator story is not null.");
+                if (initiator.story.traits != null)
+                {
+                    Log.Message("Initiator traits is not null.");
+                    List<string> traitsList = new List<string>();
+                    foreach (Trait trait in initiator.story.traits.allTraits)
+                    {
+                        traitsList.Add(trait.Label);
+                        Log.Message("Initiator trait found: " + trait.Label);
+                    }
+                    pawn1Traits = string.Join(", ", traitsList.ToArray());
+                    Log.Message("Final pawn1Traits: " + pawn1Traits);
+                }
+                else
+                {
+                    Log.Message("Initiator traits is null.");
+                }
+            }
+            else
+            {
+                Log.Message("Initiator story is null.");
+            }
+            string pawn1Mood = (initiator.needs != null && initiator.needs.mood != null) ? (initiator.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
+
+            // Pawn 2 (Recipient) attributes
+            string pawn2Age = recipient.ageTracker.AgeBiologicalYears.ToString();
+            string pawn2Sex = recipient.gender.ToString();
+            string pawn2Traits = "";
+            if (recipient.story != null)
+            {
+                Log.Message("Recipient story is not null.");
+                if (recipient.story.traits != null)
+                {
+                    Log.Message("Recipient traits is not null.");
+                    List<string> traitsList = new List<string>();
+                    foreach (Trait trait in recipient.story.traits.allTraits)
+                    {
+                        traitsList.Add(trait.Label);
+                        Log.Message("Recipient trait found: " + trait.Label);
+                    }
+                    pawn2Traits = string.Join(", ", traitsList.ToArray());
+                    Log.Message("Final pawn2Traits: " + pawn2Traits);
+                }
+                else
+                {
+                    Log.Message("Recipient traits is null.");
+                }
+            }
+            else
+            {
+                Log.Message("Recipient story is null.");
+            }
+            string pawn2Mood = (recipient.needs != null && recipient.needs.mood != null) ? (recipient.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
+
+            // World info attributes
+            string currentDate = GenDate.DateReadoutStringAt(Find.TickManager.TicksGame, Find.WorldGrid.LongLatOf(initiator.Tile));
+            string currentTime = GenDate.HourOfDay(Find.TickManager.TicksGame, Find.WorldGrid.LongLatOf(initiator.Tile).x).ToString("D2") + ":00";
+            string currentWeather = Find.CurrentMap.weatherManager.curWeather.label;
+
+            // Replace placeholders
             prompt = prompt.Replace("[pawn1]", initiator.Name.ToStringShort);
             prompt = prompt.Replace("[pawn2]", recipient.Name.ToStringShort);
-            // Add more placeholders as needed
+            prompt = prompt.Replace("[pawn1_age]", pawn1Age);
+            prompt = prompt.Replace("[pawn1_sex]", pawn1Sex);
+            prompt = prompt.Replace("[pawn1_traits]", pawn1Traits);
+            prompt = prompt.Replace("[pawn1_mood]", pawn1Mood);
+            prompt = prompt.Replace("[pawn2_age]", pawn2Age);
+            prompt = prompt.Replace("[pawn2_sex]", pawn2Sex);
+            prompt = prompt.Replace("[pawn2_traits]", pawn2Traits);
+            prompt = prompt.Replace("[pawn2_mood]", pawn2Mood);
+            prompt = prompt.Replace("[date]", currentDate);
+            prompt = prompt.Replace("[time]", currentTime);
+            prompt = prompt.Replace("[weather]", currentWeather);
 
             Log.Message("Sending prompt to LLM: " + prompt);
             string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature);
@@ -55,7 +134,7 @@ namespace SocialInteractions
             {
                 Log.Message("LLM Response: " + llmResponse);
                 // Split response into alternating messages (simple split for now)
-                string[] messages = llmResponse.Split(new string[] { "\n" }, System.StringSplitOptions.RemoveEmptyEntries);
+                string[] messages = llmResponse.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (string message in messages)
                 {
                     Log.Message("Processing message: '" + message + "'");
@@ -91,8 +170,8 @@ namespace SocialInteractions
                     if (speaker != null && !string.IsNullOrEmpty(cleanedMessage))
                     {
                         string wrappedMessage = WrapText(cleanedMessage, Settings.wordsPerLineLimit);
-                        MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, wrappedMessage);
-                        await Task.Delay(1000); // Small delay between messages
+                        MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, wrappedMessage, SocialInteractions.Settings.speechBubbleDurationSeconds);
+                        await Task.Delay(EstimateReadingTime(cleanedMessage));
                     }
                     else
                     {
@@ -130,6 +209,14 @@ namespace SocialInteractions
                 }
             }
             return wrappedText.ToString();
+        }
+
+        private static int EstimateReadingTime(string text)
+        {
+            // Simple estimate: words per second from settings.
+            int wordCount = text.Split(new string[] { " ", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Length;
+            if (SocialInteractions.Settings.wordsPerSecond <= 0) return wordCount * 300; // Fallback if setting is zero or negative
+            return (int)(wordCount / SocialInteractions.Settings.wordsPerSecond * 1000); // Milliseconds
         }
     }
 
@@ -183,7 +270,7 @@ namespace SocialInteractions
                         string text = entry.ToGameStringFromPOV(initiator);
                         if (!string.IsNullOrEmpty(text))
                         {
-                            MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, text);
+                            MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, text, SocialInteractions.Settings.speechBubbleDurationSeconds);
                         }
                     }
                     else
@@ -193,7 +280,7 @@ namespace SocialInteractions
                 }
                 else
                 {
-                    Log.Warning("Initiator or Recipient is null in PlayLog_Add_Patch.Postfix.");
+                    
                 }
             }
         }
