@@ -14,7 +14,15 @@ namespace SocialInteractions
         public float wordsPerSecond = 5.0f; // Default to 5 words per second
         public float llmTemperature = 0.7f; // Default temperature
         public int llmMaxTokens = 200; // Default max tokens
-        
+
+        public bool enableChitchat = true;
+        public bool enableDeepTalk = true;
+        public bool enableInsult = true;
+        public bool enableRomanceAttempt = true;
+        public bool enableMarriageProposal = true;
+        public bool enableReassure = true;
+        public bool enableDisturbingChat = true;
+
 
         public override void ExposeData()
         {
@@ -28,7 +36,14 @@ namespace SocialInteractions
             
             Scribe_Values.Look(ref llmTemperature, "llmTemperature", 0.7f);
             Scribe_Values.Look(ref llmMaxTokens, "llmMaxTokens", 200);
-            
+
+            Scribe_Values.Look(ref enableChitchat, "enableChitchat", true);
+            Scribe_Values.Look(ref enableDeepTalk, "enableDeepTalk", true);
+            Scribe_Values.Look(ref enableInsult, "enableInsult", true);
+            Scribe_Values.Look(ref enableRomanceAttempt, "enableRomanceAttempt", true);
+            Scribe_Values.Look(ref enableMarriageProposal, "enableMarriageProposal", true);
+            Scribe_Values.Look(ref enableReassure, "enableReassure", true);
+            Scribe_Values.Look(ref enableDisturbingChat, "enableDisturbingChat", true);
         }
     }
 
@@ -93,6 +108,16 @@ namespace SocialInteractions
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable LLM Interactions", ref settings.llmInteractionsEnabled, "If enabled, Deep Talk interactions will use the configured LLM API.");
+
+            listingStandard.Gap();
+            listingStandard.Label("Enabled LLM Interaction Types:");
+            listingStandard.CheckboxLabeled("Chitchat", ref settings.enableChitchat);
+            listingStandard.CheckboxLabeled("DeepTalk", ref settings.enableDeepTalk);
+            listingStandard.CheckboxLabeled("Insult", ref settings.enableInsult);
+            listingStandard.CheckboxLabeled("RomanceAttempt", ref settings.enableRomanceAttempt);
+            listingStandard.CheckboxLabeled("MarriageProposal", ref settings.enableMarriageProposal);
+            listingStandard.CheckboxLabeled("Reassure", ref settings.enableReassure);
+            listingStandard.CheckboxLabeled("DisturbingChat", ref settings.enableDisturbingChat);
 
             listingStandard.End();
 

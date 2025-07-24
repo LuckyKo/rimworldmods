@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System;
 using System.Text;
 using UnityEngine;
+using System.Linq;
 
 namespace SocialInteractions
 {
@@ -23,9 +24,23 @@ namespace SocialInteractions
             Settings = LoadedModManager.GetMod<SocialInteractionsMod>().GetSettings<SocialInteractionsModSettings>();
         }
 
-        public static async void HandleDeepTalkInteraction(Pawn initiator, Pawn recipient)
+        public static async void HandleDeepTalkInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef)
         {
             if (!Settings.llmInteractionsEnabled)
+            {
+                return;
+            }
+
+            bool isEnabled = false;
+            if (interactionDef == InteractionDefOf.Chitchat && Settings.enableChitchat) isEnabled = true;
+            else if (interactionDef == InteractionDefOf.DeepTalk && Settings.enableDeepTalk) isEnabled = true;
+            else if (interactionDef == InteractionDefOf.Insult && Settings.enableInsult) isEnabled = true;
+            else if (interactionDef == InteractionDefOf.RomanceAttempt && Settings.enableRomanceAttempt) isEnabled = true;
+            else if (interactionDef == InteractionDefOf.MarriageProposal && Settings.enableMarriageProposal) isEnabled = true;
+            else if (interactionDef == InteractionDefOf.Reassure && Settings.enableReassure) isEnabled = true;
+            else if (interactionDef == InteractionDefOf.DisturbingChat && Settings.enableDisturbingChat) isEnabled = true;
+
+            if (!isEnabled)
             {
                 return;
             }
@@ -39,6 +54,11 @@ namespace SocialInteractions
 
             // Placeholder replacement (initial version, will expand later)
             string prompt = Settings.llmPromptTemplate;
+            prompt = prompt.Replace("[topic]", interactionDef.label);
+
+            // Get relationship
+            string relation = GetRelationship(initiator, recipient);
+            prompt = prompt.Replace("[relation]", relation);
 
             // Pawn 1 (Initiator) attributes
             string pawn1Age = initiator.ageTracker.AgeBiologicalYears.ToString();
@@ -57,6 +77,8 @@ namespace SocialInteractions
                 }
             }
             string pawn1Mood = (initiator.needs != null && initiator.needs.mood != null) ? (initiator.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
+            string pawn1Afflictions = GetAfflictions(initiator);
+            string pawn1Likes = GetLikes(initiator);
             string pawn1Genes = "";
             if (initiator.genes != null)
             {
@@ -64,7 +86,7 @@ namespace SocialInteractions
                 List<string> geneList = new List<string>();
                 foreach (Gene gene in initiator.genes.GenesListForReading)
                 {
-                    if (!gene.def.skinColorBase.HasValue)
+                    if (!gene.def.skinColorBase.HasValue && !gene.Overridden)
                     {
                         geneList.Add(gene.def.label);
                     }
@@ -92,6 +114,8 @@ namespace SocialInteractions
                 }
             }
             string pawn2Mood = (recipient.needs != null && recipient.needs.mood != null) ? (recipient.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
+            string pawn2Afflictions = GetAfflictions(recipient);
+            string pawn2Likes = GetLikes(recipient);
             string pawn2Genes = "";
             if (recipient.genes != null)
             {
@@ -99,7 +123,7 @@ namespace SocialInteractions
                 List<string> geneList = new List<string>();
                 foreach (Gene gene in recipient.genes.GenesListForReading)
                 {
-                    if (!gene.def.skinColorBase.HasValue)
+                    if (!gene.def.skinColorBase.HasValue && !gene.Overridden)
                     {
                         geneList.Add(gene.def.label);
                     }
@@ -125,11 +149,15 @@ namespace SocialInteractions
             prompt = prompt.Replace("[pawn1_sex]", pawn1Sex);
             prompt = prompt.Replace("[pawn1_traits]", pawn1Traits);
             prompt = prompt.Replace("[pawn1_mood]", pawn1Mood);
+            prompt = prompt.Replace("[pawn1_afflictions]", pawn1Afflictions);
+            prompt = prompt.Replace("[pawn1_likes]", pawn1Likes);
             prompt = prompt.Replace("[pawn1_genes]", pawn1Genes);
             prompt = prompt.Replace("[pawn2_age]", pawn2Age);
             prompt = prompt.Replace("[pawn2_sex]", pawn2Sex);
             prompt = prompt.Replace("[pawn2_traits]", pawn2Traits);
             prompt = prompt.Replace("[pawn2_mood]", pawn2Mood);
+            prompt = prompt.Replace("[pawn2_afflictions]", pawn2Afflictions);
+            prompt = prompt.Replace("[pawn2_likes]", pawn2Likes);
             prompt = prompt.Replace("[pawn2_genes]", pawn2Genes);
             prompt = prompt.Replace("[date]", currentDate);
             prompt = prompt.Replace("[time]", currentTime);
@@ -146,22 +174,16 @@ namespace SocialInteractions
                     Pawn speaker = null;
                     string cleanedMessage = message.Trim();
 
-                    string initiatorPrefix = initiator.Name.ToStringShort + ":";
-                    string recipientPrefix = recipient.Name.ToStringShort + ":";
-
-                    if (cleanedMessage.StartsWith(initiatorPrefix))
+                    if (cleanedMessage.StartsWith(initiator.Name.ToStringShort + ":"))
                     {
                         speaker = initiator;
-                        cleanedMessage = cleanedMessage.Substring(initiatorPrefix.Length).Trim();
                     }
-                    else if (cleanedMessage.StartsWith(recipientPrefix))
+                    else if (cleanedMessage.StartsWith(recipient.Name.ToStringShort + ":"))
                     {
                         speaker = recipient;
-                        cleanedMessage = cleanedMessage.Substring(recipientPrefix.Length).Trim();
                     }
                     else
                     {
-                        // If no specific speaker is identified, default to initiator or handle as a general narration
                         speaker = initiator;
                     }
 
@@ -208,6 +230,86 @@ namespace SocialInteractions
             if (SocialInteractions.Settings.wordsPerSecond <= 0) return wordCount * 300; // Fallback if setting is zero or negative
             return (int)(wordCount / SocialInteractions.Settings.wordsPerSecond * 1000); // Milliseconds
         }
+
+        private static string GetRelationship(Pawn initiator, Pawn recipient)
+        {
+            // Check for the most important direct relationships first
+            if (initiator.relations.DirectRelationExists(PawnRelationDefOf.Spouse, recipient)) return "Spouse";
+            if (initiator.relations.DirectRelationExists(PawnRelationDefOf.Lover, recipient)) return "Lover";
+            if (initiator.relations.DirectRelationExists(PawnRelationDefOf.Fiance, recipient)) return "Fiance";
+
+            // Check for family relationships
+            PawnRelationDef relationDef = initiator.GetRelations(recipient).FirstOrDefault();
+            if (relationDef != null) return relationDef.label;
+
+            // Check for bond
+            if (initiator.relations.DirectRelationExists(PawnRelationDefOf.Bond, recipient)) return "Bonded";
+
+            // Fallback to opinion-based relationship
+            int opinion = recipient.relations.OpinionOf(initiator);
+            if (opinion >= 20) return "Friend";
+            if (opinion <= -20) return "Rival";
+
+            return "Acquaintance";
+        }
+
+        private static string GetAfflictions(Pawn pawn)
+        {
+            if (pawn.needs == null || pawn.needs.mood == null)
+            {
+                return "None";
+            }
+
+            List<Thought> thoughts = new List<Thought>();
+            pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
+
+            List<string> negativeThoughts = new List<string>();
+            foreach (Thought thought in thoughts)
+            {
+                if (thought.MoodOffset() < 0)
+                {
+                    negativeThoughts.Add(thought.LabelCap);
+                }
+            }
+
+            if (negativeThoughts.Count == 0)
+            {
+                return "None";
+            }
+
+            return string.Join(", ", negativeThoughts.ToArray());
+        }
+
+        private static string GetLikes(Pawn pawn)
+        {
+            if (pawn.needs == null || pawn.needs.mood == null)
+            {
+                return "None";
+            }
+
+            List<Thought> thoughts = new List<Thought>();
+            pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
+
+            Thought bestThought = null;
+            float bestMoodEffect = 0;
+
+            foreach (Thought thought in thoughts)
+            {
+                float moodEffect = thought.MoodOffset();
+                if (moodEffect > bestMoodEffect)
+                {
+                    bestMoodEffect = moodEffect;
+                    bestThought = thought;
+                }
+            }
+
+            if (bestThought != null)
+            {
+                return bestThought.LabelCap;
+            }
+
+            return "None";
+        }
     }
 
 
@@ -251,7 +353,7 @@ namespace SocialInteractions
                 {
                     if (interactionDef != null)
                     {
-                        SocialInteractions.HandleDeepTalkInteraction(initiator, recipient);
+                        SocialInteractions.HandleDeepTalkInteraction(initiator, recipient, interactionDef);
                         string text = entry.ToGameStringFromPOV(initiator);
                         if (!string.IsNullOrEmpty(text))
                         {
