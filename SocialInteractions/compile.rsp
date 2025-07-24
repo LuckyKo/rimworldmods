@@ -6,5 +6,13 @@
 /r:m:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/Managed/netstandard.dll
 /r:"C:/Windows/Microsoft.NET/Framework64/v4.0.30319/System.dll"
 /r:"C:/Windows/Microsoft.NET/Framework64/v4.0.30319/Microsoft.CSharp.dll"
+/r:"C:/Windows/Microsoft.NET/Framework64/v4.0.30319/System.Net.Http.dll"
+/r:"C:/Windows/Microsoft.NET/Framework64/v4.0.30319/System.Runtime.Serialization.dll"
+
+
+
+
+
 SocialInteractions.cs
 SocialInteractionsSettings.cs
+KoboldApiClient.cs

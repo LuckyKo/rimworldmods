@@ -1,34 +1,35 @@
-# Visual Studio
+# Gitignore for RimWorldMods project
+
+# Binaries
+*.exe
+*.dll
+*.pdb
+
+# Visual Studio files
 .vs/
 *.suo
 *.user
-*.userosscache
-*.sln.docstates
+*.csproj.user
 
-# Build results
-[Dd]ebug/
-[Rr]elease/
-bin/
-obj/
-[Xx]64/
-[Aa]rm64/
-[Aa]rm/
+# Rider files
+.idea/
 
-# Packages
-*.nupkg
-*.snupkg
-*.vsix
-.nuget/
+# NuGet packages
 packages/
 
-# Rider
-.idea/
-*.iml
-*.ipr
-*.iws
+# Build artifacts
+bin/
+obj/
 
-# RimWorld Mod specific
-*.dll
-*.pdb
+# Logs and temporary files
+*.log
+*.tmp
+temp/
 debug.txt
-console.txt
+commit_message.txt
+geminilog.txt
+
+# Test files
+TestKoboldApi.cs
+TestKoboldApi.exe
+compile_test.rsp
