@@ -16,6 +16,7 @@ namespace SocialInteractions
     public static class SocialInteractions
     {
         public static SocialInteractionsModSettings Settings;
+        public static bool isShowingBubble = false;
 
         static SocialInteractions()
         {
@@ -26,6 +27,8 @@ namespace SocialInteractions
 
         public static async void HandleDeepTalkInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef)
         {
+            if (Settings.preventSpam && isShowingBubble) return;
+
             if (!Settings.llmInteractionsEnabled)
             {
                 return;
@@ -79,6 +82,7 @@ namespace SocialInteractions
             string pawn1Mood = (initiator.needs != null && initiator.needs.mood != null) ? (initiator.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
             string pawn1Afflictions = GetAfflictions(initiator);
             string pawn1Likes = GetLikes(initiator);
+            string pawn1Action = initiator.GetJobReport().CapitalizeFirst();
             string pawn1Genes = "";
             if (initiator.genes != null)
             {
@@ -116,6 +120,7 @@ namespace SocialInteractions
             string pawn2Mood = (recipient.needs != null && recipient.needs.mood != null) ? (recipient.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
             string pawn2Afflictions = GetAfflictions(recipient);
             string pawn2Likes = GetLikes(recipient);
+            string pawn2Action = recipient.GetJobReport().CapitalizeFirst();
             string pawn2Genes = "";
             if (recipient.genes != null)
             {
@@ -151,6 +156,7 @@ namespace SocialInteractions
             prompt = prompt.Replace("[pawn1_mood]", pawn1Mood);
             prompt = prompt.Replace("[pawn1_afflictions]", pawn1Afflictions);
             prompt = prompt.Replace("[pawn1_likes]", pawn1Likes);
+            prompt = prompt.Replace("[pawn1_action]", pawn1Action);
             prompt = prompt.Replace("[pawn1_genes]", pawn1Genes);
             prompt = prompt.Replace("[pawn2_age]", pawn2Age);
             prompt = prompt.Replace("[pawn2_sex]", pawn2Sex);
@@ -158,12 +164,16 @@ namespace SocialInteractions
             prompt = prompt.Replace("[pawn2_mood]", pawn2Mood);
             prompt = prompt.Replace("[pawn2_afflictions]", pawn2Afflictions);
             prompt = prompt.Replace("[pawn2_likes]", pawn2Likes);
+            prompt = prompt.Replace("[pawn2_action]", pawn2Action);
             prompt = prompt.Replace("[pawn2_genes]", pawn2Genes);
             prompt = prompt.Replace("[date]", currentDate);
             prompt = prompt.Replace("[time]", currentTime);
             prompt = prompt.Replace("[weather]", currentWeather);
 
-            string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature);
+            isShowingBubble = true;
+            List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
+
+            string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings);
 
             if (!string.IsNullOrEmpty(llmResponse))
             {
@@ -195,6 +205,7 @@ namespace SocialInteractions
                     }
                 }
             }
+            isShowingBubble = false;
         }
 
         private static string WrapText(string text, int wordsPerLine)
@@ -263,21 +274,14 @@ namespace SocialInteractions
             List<Thought> thoughts = new List<Thought>();
             pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
 
-            List<string> negativeThoughts = new List<string>();
-            foreach (Thought thought in thoughts)
+            var negativeThoughts = thoughts.Where(t => t.MoodOffset() < 0).OrderBy(t => t.MoodOffset()).Take(3).Select(t => t.LabelCap);
+
+            if (negativeThoughts.Any())
             {
-                if (thought.MoodOffset() < 0)
-                {
-                    negativeThoughts.Add(thought.LabelCap);
-                }
+                return string.Join(", ", negativeThoughts.ToArray());
             }
 
-            if (negativeThoughts.Count == 0)
-            {
-                return "None";
-            }
-
-            return string.Join(", ", negativeThoughts.ToArray());
+            return "None";
         }
 
         private static string GetLikes(Pawn pawn)
@@ -290,22 +294,11 @@ namespace SocialInteractions
             List<Thought> thoughts = new List<Thought>();
             pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
 
-            Thought bestThought = null;
-            float bestMoodEffect = 0;
+            var positiveThoughts = thoughts.Where(t => t.MoodOffset() > 0).OrderByDescending(t => t.MoodOffset()).Take(3).Select(t => t.LabelCap);
 
-            foreach (Thought thought in thoughts)
+            if (positiveThoughts.Any())
             {
-                float moodEffect = thought.MoodOffset();
-                if (moodEffect > bestMoodEffect)
-                {
-                    bestMoodEffect = moodEffect;
-                    bestThought = thought;
-                }
-            }
-
-            if (bestThought != null)
-            {
-                return bestThought.LabelCap;
+                return string.Join(", ", positiveThoughts.ToArray());
             }
 
             return "None";

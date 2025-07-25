@@ -22,6 +22,8 @@ namespace SocialInteractions
         public bool enableMarriageProposal = true;
         public bool enableReassure = true;
         public bool enableDisturbingChat = true;
+        public bool preventSpam = false;
+        public string llmStoppingStrings = "";
 
 
         public override void ExposeData()
@@ -44,6 +46,8 @@ namespace SocialInteractions
             Scribe_Values.Look(ref enableMarriageProposal, "enableMarriageProposal", true);
             Scribe_Values.Look(ref enableReassure, "enableReassure", true);
             Scribe_Values.Look(ref enableDisturbingChat, "enableDisturbingChat", true);
+            Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
+            Scribe_Values.Look(ref preventSpam, "preventSpam", false);
         }
     }
 
@@ -118,6 +122,13 @@ namespace SocialInteractions
             listingStandard.CheckboxLabeled("MarriageProposal", ref settings.enableMarriageProposal);
             listingStandard.CheckboxLabeled("Reassure", ref settings.enableReassure);
             listingStandard.CheckboxLabeled("DisturbingChat", ref settings.enableDisturbingChat);
+
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("Prevent Spam", ref settings.preventSpam, "If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.");
+
+            listingStandard.Gap();
+            listingStandard.Label("LLM Stopping Strings (one per line):");
+            settings.llmStoppingStrings = Widgets.TextArea(listingStandard.GetRect(100f), settings.llmStoppingStrings);
 
             listingStandard.End();
 

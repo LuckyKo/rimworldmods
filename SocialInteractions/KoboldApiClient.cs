@@ -6,6 +6,7 @@ using Verse;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.IO;
+using System.Collections.Generic;
 
 namespace SocialInteractions
 {
@@ -18,6 +19,8 @@ namespace SocialInteractions
         public int MaxLength { get; set; }
         [DataMember(Name = "temperature")]
         public float Temperature { get; set; }
+        [DataMember(Name = "stop_sequence")]
+        public List<string> StopSequence { get; set; }
 
         public KoboldApiRequest()
         {
@@ -58,7 +61,7 @@ namespace SocialInteractions
             }
         }
 
-        public async Task<string> GenerateText(string prompt, int maxLength, float temperature)
+        public async Task<string> GenerateText(string prompt, int maxLength, float temperature, List<string> stopSequence)
         {
             try
             {
@@ -66,7 +69,8 @@ namespace SocialInteractions
                 {
                     Prompt = prompt,
                     MaxLength = maxLength,
-                    Temperature = temperature
+                    Temperature = temperature,
+                    StopSequence = stopSequence
                 };
 
                 DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(KoboldApiRequest));

@@ -1,0 +1,17 @@
+The following is a [topic] interraction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 4-5 dialogue lines.
+
+[pawn1] is a [pawn1_age] yo [pawn1_sex], has the following traits: [pawn1_traits], [pawn1_genes]; [pawn1]'s mood is [pawn1_mood], positives:[pawn1_likes] / negatives: [pawn1_afflictions].
+
+[pawn2] is a [pawn2_age] yo [pawn2_sex], has the following traits: [pawn2_traits], [pawn2_genes]; [pawn2]'s mood is [pawn2_mood], positives:[pawn2_likes] / negatives: [pawn2_afflictions].
+
+[pawn2] is a [relation] to [pawn1].
+
+It's currently [time], on [date] and the weather is [weather].
+<start>
+[pawn1]:
+
+
+</s>
+</start>
+<end>
+<end>
