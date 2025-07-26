@@ -9,6 +9,7 @@ using System;
 using System.Text;
 using UnityEngine;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace SocialInteractions
 {
@@ -25,7 +26,7 @@ namespace SocialInteractions
             Settings = LoadedModManager.GetMod<SocialInteractionsMod>().GetSettings<SocialInteractionsModSettings>();
         }
 
-        public static async void HandleDeepTalkInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef)
+        public static async void HandleDeepTalkInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
             if (Settings.preventSpam && isShowingBubble) return;
 
@@ -58,6 +59,7 @@ namespace SocialInteractions
             // Placeholder replacement (initial version, will expand later)
             string prompt = Settings.llmPromptTemplate;
             prompt = prompt.Replace("[topic]", interactionDef.label);
+            prompt = prompt.Replace("[subject]", subject);
 
             // Get relationship
             string relation = GetRelationship(initiator, recipient);
@@ -67,6 +69,7 @@ namespace SocialInteractions
             string pawn1Age = initiator.ageTracker.AgeBiologicalYears.ToString();
             string pawn1Sex = initiator.gender.ToString();
             string pawn1Traits = "";
+            
             if (initiator.story != null)
             {
                 if (initiator.story.traits != null)
@@ -80,9 +83,11 @@ namespace SocialInteractions
                 }
             }
             string pawn1Mood = (initiator.needs != null && initiator.needs.mood != null) ? (initiator.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
+            string pawn1Dislikes = GetDislikes(initiator);
             string pawn1Afflictions = GetAfflictions(initiator);
             string pawn1Likes = GetLikes(initiator);
             string pawn1Action = initiator.GetJobReport().CapitalizeFirst();
+            string pawn1Proficiencies = GetProficiencies(initiator);
             string pawn1Genes = "";
             if (initiator.genes != null)
             {
@@ -118,9 +123,11 @@ namespace SocialInteractions
                 }
             }
             string pawn2Mood = (recipient.needs != null && recipient.needs.mood != null) ? (recipient.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
+            string pawn2Dislikes = GetDislikes(recipient);
             string pawn2Afflictions = GetAfflictions(recipient);
             string pawn2Likes = GetLikes(recipient);
             string pawn2Action = recipient.GetJobReport().CapitalizeFirst();
+            string pawn2Proficiencies = GetProficiencies(recipient);
             string pawn2Genes = "";
             if (recipient.genes != null)
             {
@@ -154,17 +161,21 @@ namespace SocialInteractions
             prompt = prompt.Replace("[pawn1_sex]", pawn1Sex);
             prompt = prompt.Replace("[pawn1_traits]", pawn1Traits);
             prompt = prompt.Replace("[pawn1_mood]", pawn1Mood);
+            prompt = prompt.Replace("[pawn1_dislikes]", pawn1Dislikes);
             prompt = prompt.Replace("[pawn1_afflictions]", pawn1Afflictions);
             prompt = prompt.Replace("[pawn1_likes]", pawn1Likes);
             prompt = prompt.Replace("[pawn1_action]", pawn1Action);
+            prompt = prompt.Replace("[pawn1_proficiencies]", pawn1Proficiencies);
             prompt = prompt.Replace("[pawn1_genes]", pawn1Genes);
             prompt = prompt.Replace("[pawn2_age]", pawn2Age);
             prompt = prompt.Replace("[pawn2_sex]", pawn2Sex);
             prompt = prompt.Replace("[pawn2_traits]", pawn2Traits);
             prompt = prompt.Replace("[pawn2_mood]", pawn2Mood);
+            prompt = prompt.Replace("[pawn2_dislikes]", pawn2Dislikes);
             prompt = prompt.Replace("[pawn2_afflictions]", pawn2Afflictions);
             prompt = prompt.Replace("[pawn2_likes]", pawn2Likes);
             prompt = prompt.Replace("[pawn2_action]", pawn2Action);
+            prompt = prompt.Replace("[pawn2_proficiencies]", pawn2Proficiencies);
             prompt = prompt.Replace("[pawn2_genes]", pawn2Genes);
             prompt = prompt.Replace("[date]", currentDate);
             prompt = prompt.Replace("[time]", currentTime);
@@ -264,7 +275,7 @@ namespace SocialInteractions
             return "Acquaintance";
         }
 
-        private static string GetAfflictions(Pawn pawn)
+        private static string GetDislikes(Pawn pawn)
         {
             if (pawn.needs == null || pawn.needs.mood == null)
             {
@@ -279,6 +290,27 @@ namespace SocialInteractions
             if (negativeThoughts.Any())
             {
                 return string.Join(", ", negativeThoughts.ToArray());
+            }
+
+            return "None";
+        }
+
+        private static string GetAfflictions(Pawn pawn)
+        {
+            if (pawn.health == null || pawn.health.hediffSet == null)
+            {
+                return "None";
+            }
+
+            var significantHediffs = pawn.health.hediffSet.hediffs
+                .Where(h => h.Visible && h.Severity >= 0.5f && !h.IsTended() && h.def.isBad && !(h is Hediff_MissingPart) && !h.IsPermanent())
+                .OrderByDescending(h => h.Severity)
+                .Take(3)
+                .Select(h => h.LabelCap);
+
+            if (significantHediffs.Any())
+            {
+                return string.Join(", ", significantHediffs.ToArray());
             }
 
             return "None";
@@ -302,6 +334,27 @@ namespace SocialInteractions
             }
 
             return "None";
+        }
+
+        private static string GetProficiencies(Pawn pawn)
+        {
+            if (pawn.skills == null)
+            {
+                return "None";
+            }
+
+            var topSkills = pawn.skills.skills.OrderByDescending(s => s.Level).Take(3);
+            List<string> skillLabels = new List<string>();
+            foreach (var skill in topSkills)
+            {
+                skillLabels.Add(skill.def.LabelCap);
+            }
+            return string.Join(", ", skillLabels);
+        }
+
+        public static string RemoveRichTextTags(string text)
+        {
+            return Regex.Replace(text, "<color=#.{8}>|</color>", "");
         }
     }
 
@@ -346,8 +399,9 @@ namespace SocialInteractions
                 {
                     if (interactionDef != null)
                     {
-                        SocialInteractions.HandleDeepTalkInteraction(initiator, recipient, interactionDef);
                         string text = entry.ToGameStringFromPOV(initiator);
+                        text = SocialInteractions.RemoveRichTextTags(text);
+                        SocialInteractions.HandleDeepTalkInteraction(initiator, recipient, interactionDef, text);
                         if (!string.IsNullOrEmpty(text))
                         {
                             MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, text, SocialInteractions.EstimateReadingTime(text) / 1000f);

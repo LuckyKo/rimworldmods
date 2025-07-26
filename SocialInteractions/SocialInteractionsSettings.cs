@@ -8,7 +8,20 @@ namespace SocialInteractions
         public bool pawnsStopOnInteractionEnabled = true;
         public string llmApiUrl = "";
         public string llmApiKey = "";
-        public string llmPromptTemplate = "";
+        public string llmPromptTemplate = @"The following is a [topic] interraction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
+
+[pawn1] is a [pawn1_age] yo [pawn1_sex], has the following traits: [pawn1_traits], [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes], [pawn1_afflictions]. [pawn1] is currently [pawn1_action]
+
+[pawn2] is a [pawn2_age] yo [pawn2_sex], has the following traits: [pawn2_traits], [pawn2_genes]; [pawn2] is proficient in: [pawn2_proficiencies]; [pawn2]'s mood is [pawn2_mood], positives: [pawn2_likes] / negatives: [pawn2_dislikes], [pawn2_afflictions]. [pawn2] is currently [pawn2_action]
+
+[pawn2] is a [relation] to [pawn1].
+
+It's currently [time], on [date] and the weather is [weather].
+
+[subject]
+
+<start>
+[pawn1]:";
         public bool llmInteractionsEnabled = false;
         public int wordsPerLineLimit = 10; // Default to 10 words per line
         public float wordsPerSecond = 5.0f; // Default to 5 words per second
@@ -23,7 +36,10 @@ namespace SocialInteractions
         public bool enableReassure = true;
         public bool enableDisturbingChat = true;
         public bool preventSpam = false;
-        public string llmStoppingStrings = "";
+        public string llmStoppingStrings = @"</s>
+<start>
+<end>
+<end>";
 
 
         public override void ExposeData()
