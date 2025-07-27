@@ -1,0 +1,6 @@
+n:\work\stuff\mine\RimWorldMods\SocialInteractions\obj\Debug\SocialInteractions.csproj.AssemblyReference.cache
+n:\work\stuff\mine\RimWorldMods\SocialInteractions\obj\Debug\SocialInteractions.GeneratedMSBuildEditorConfig.editorconfig
+n:\work\stuff\mine\RimWorldMods\SocialInteractions\obj\Debug\SocialInteractions.AssemblyInfoInputs.cache
+n:\work\stuff\mine\RimWorldMods\SocialInteractions\obj\Debug\SocialInteractions.AssemblyInfo.cs
+n:\work\stuff\mine\RimWorldMods\SocialInteractions\obj\Debug\SocialInteractions.csproj.CoreCompileInputs.cache
+n:\work\stuff\mine\RimWorldMods\SocialInteractions\obj\Debug\SocialInteractions.sourcelink.json

@@ -3,4 +3,12 @@
 /r:n:/work/stuff/mine/RimWorldMods/Assembly-CSharp.dll
 /r:m:/Games/Rimworld.v1.6.4518/Rimworld/Mods/harmony/1.5/Assemblies/0Harmony.dll
 /r:m:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/Managed/UnityEngine.CoreModule.dll
+/r:C:/Windows/Microsoft.NET/Framework64/v4.0.30319/System.Net.Http.dll
+/r:m:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/Managed/netstandard.dll
+/r:m:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/Managed/Unity.Mathematics.dll
 n:/work/stuff/mine/RimWorldMods/SocialInteractions/SocialInteractions.cs
+n:/work/stuff/mine/RimWorldMods/SocialInteractions/SocialInteractionsSettings.cs
+n:/work/stuff/mine/RimWorldMods/SocialInteractions/KoboldApiClient.cs
+n:/work/stuff/mine/RimWorldMods/SocialInteractions/JobDriver_HaveDeepTalk.cs
+n:/work/stuff/mine/RimWorldMods/SocialInteractions/JoyGiver_HaveDeepTalk.cs
+n:/work/stuff/mine/RimWorldMods/SocialInteractions/JobDriver_BeTalkedTo.cs

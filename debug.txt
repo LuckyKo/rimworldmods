@@ -1,0 +1,12 @@
+Hermine failed to interact with Sedgwick
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+Verse.Log:Error (string)
+RimWorld.Pawn_InteractionsTracker:TryInteractRandomly ()
+RimWorld.Pawn_InteractionsTracker:InteractionsTrackerTickInterval (int)
+Verse.Pawn:TickInterval (int)
+Verse.Thing:DoTick ()
+Verse.TickList:Tick ()
+Verse.TickManager:DoSingleTick ()
+Verse.TickManager:TickManagerUpdate ()
+Verse.Game:UpdatePlay ()
+Verse.Root_Play:Update ()

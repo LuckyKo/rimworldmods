@@ -26,13 +26,11 @@ namespace SocialInteractions
             Settings = LoadedModManager.GetMod<SocialInteractionsMod>().GetSettings<SocialInteractionsModSettings>();
         }
 
-        public static async void HandleDeepTalkInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
+        public static string GenerateDeepTalkPrompt(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
-            if (Settings.preventSpam && isShowingBubble) return;
-
             if (!Settings.llmInteractionsEnabled)
             {
-                return;
+                return null;
             }
 
             bool isEnabled = false;
@@ -46,15 +44,13 @@ namespace SocialInteractions
 
             if (!isEnabled)
             {
-                return;
+                return null;
             }
 
             if (string.IsNullOrEmpty(Settings.llmApiUrl) || string.IsNullOrEmpty(Settings.llmPromptTemplate))
             {
-                return;
+                return null;
             }
-
-            KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
 
             // Placeholder replacement (initial version, will expand later)
             string prompt = Settings.llmPromptTemplate;
@@ -181,45 +177,10 @@ namespace SocialInteractions
             prompt = prompt.Replace("[time]", currentTime);
             prompt = prompt.Replace("[weather]", currentWeather);
 
-            isShowingBubble = true;
-            List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
-
-            string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings);
-
-            if (!string.IsNullOrEmpty(llmResponse))
-            {
-                // Split response into alternating messages (simple split for now)
-                string[] messages = llmResponse.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (string message in messages)
-                {
-                    Pawn speaker = null;
-                    string cleanedMessage = message.Trim();
-
-                    if (cleanedMessage.StartsWith(initiator.Name.ToStringShort + ":"))
-                    {
-                        speaker = initiator;
-                    }
-                    else if (cleanedMessage.StartsWith(recipient.Name.ToStringShort + ":"))
-                    {
-                        speaker = recipient;
-                    }
-                    else
-                    {
-                        speaker = initiator;
-                    }
-
-                    if (speaker != null && !string.IsNullOrEmpty(cleanedMessage))
-                    {
-                        string wrappedMessage = WrapText(cleanedMessage, Settings.wordsPerLineLimit);
-                        MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, wrappedMessage, SocialInteractions.EstimateReadingTime(cleanedMessage) / 1000f);
-                        await Task.Delay(EstimateReadingTime(cleanedMessage));
-                    }
-                }
-            }
-            isShowingBubble = false;
+            return prompt;
         }
 
-        private static string WrapText(string text, int wordsPerLine)
+        public static string WrapText(string text, int wordsPerLine)
         {
             if (wordsPerLine <= 0) return text; // No wrapping if limit is zero or negative
 
@@ -362,20 +323,10 @@ namespace SocialInteractions
     [HarmonyPatch(typeof(Pawn_InteractionsTracker), "TryInteractWith")]
     public static class Pawn_InteractionsTracker_TryInteractWith_Patch
     {
-        public static void Postfix(bool __result, Pawn_InteractionsTracker __instance, Pawn recipient)
+        // This patch is now intentionally left blank.
+        // The logic for stopping pawns is now handled by the JobDriver_HaveDeepTalk.
+        public static void Postfix(bool __result, Pawn_InteractionsTracker __instance, Pawn recipient, InteractionDef intDef)
         {
-            Pawn initiator = (Pawn)AccessTools.Field(typeof(Pawn_InteractionsTracker), "pawn").GetValue(__instance);
-            if (__result && initiator != null && recipient != null && SocialInteractions.Settings.pawnsStopOnInteractionEnabled)
-            {
-                // Pawn stopping logic
-                int waitTicks = 120; // 2 seconds
-
-                Job initiatorJob = JobMaker.MakeJob(JobDefOf.Wait_MaintainPosture, waitTicks);
-                initiator.jobs.StartJob(initiatorJob, JobCondition.InterruptForced);
-
-                Job recipientJob = JobMaker.MakeJob(JobDefOf.Wait_MaintainPosture, waitTicks);
-                recipient.jobs.StartJob(recipientJob, JobCondition.InterruptForced);
-            }
         }
     }
 
@@ -395,13 +346,20 @@ namespace SocialInteractions
                 var recipientField = entry.GetType().GetField("recipient", BindingFlags.NonPublic | BindingFlags.Instance);
                 Pawn recipient = recipientField.GetValue(entry) as Pawn;
 
-                if (initiator != null && recipient != null)
+                if (initiator != null && recipient != null && interactionDef != null)
                 {
-                    if (interactionDef != null)
+                    if (interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt)
+                    {
+                        Job initiatorJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
+                        initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
+
+                        Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
+                        recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
+                    }
+                    else
                     {
                         string text = entry.ToGameStringFromPOV(initiator);
                         text = SocialInteractions.RemoveRichTextTags(text);
-                        SocialInteractions.HandleDeepTalkInteraction(initiator, recipient, interactionDef, text);
                         if (!string.IsNullOrEmpty(text))
                         {
                             MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, text, SocialInteractions.EstimateReadingTime(text) / 1000f);
