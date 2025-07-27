@@ -18,6 +18,7 @@ namespace SocialInteractions
     {
         public static SocialInteractionsModSettings Settings;
         public static bool isShowingBubble = false;
+        public static InteractionDef currentInteractionDefForJob;
 
         static SocialInteractions()
         {
@@ -323,10 +324,18 @@ namespace SocialInteractions
     [HarmonyPatch(typeof(Pawn_InteractionsTracker), "TryInteractWith")]
     public static class Pawn_InteractionsTracker_TryInteractWith_Patch
     {
-        // This patch is now intentionally left blank.
-        // The logic for stopping pawns is now handled by the JobDriver_HaveDeepTalk.
         public static void Postfix(bool __result, Pawn_InteractionsTracker __instance, Pawn recipient, InteractionDef intDef)
         {
+            Pawn initiator = (Pawn)AccessTools.Field(typeof(Pawn_InteractionsTracker), "pawn").GetValue(__instance);
+            if (__result && initiator != null && recipient != null && SocialInteractions.Settings.pawnsStopOnInteractionEnabled)
+            {
+                // Make both pawns wait for a long duration
+                Job initiatorJob = JobMaker.MakeJob(JobDefOf.Wait_MaintainPosture, recipient, 5000);
+                initiator.jobs.StartJob(initiatorJob, JobCondition.InterruptForced);
+
+                Job recipientJob = JobMaker.MakeJob(JobDefOf.Wait_MaintainPosture, initiator, 5000);
+                recipient.jobs.StartJob(recipientJob, JobCondition.InterruptForced);
+            }
         }
     }
 
@@ -350,11 +359,18 @@ namespace SocialInteractions
                 {
                     if (interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt)
                     {
+                        SocialInteractions.currentInteractionDefForJob = interactionDef; // Set the static field
                         Job initiatorJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
+
+                        string socialLogMessage = entry.ToGameStringFromPOV(initiator);
+                        socialLogMessage = SocialInteractions.RemoveRichTextTags(socialLogMessage);
+
+                        // Store the social log message in the job for later retrieval by the JobDriver
+                        initiatorJob.def.defName = socialLogMessage; 
+
                         initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
 
-                        Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
-                        recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
+                        // Recipient's job is already handled by TryInteractWith patch
                     }
                     else
                     {

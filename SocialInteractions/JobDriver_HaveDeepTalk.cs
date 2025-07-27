@@ -17,6 +17,8 @@ namespace SocialInteractions
         private int messageIndex = 0;
         private int currentMessageDurationTicks = 0;
 
+        
+
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             return pawn.Reserve(Recipient, job, 1, -1, null, errorOnFailed);
@@ -29,6 +31,15 @@ namespace SocialInteractions
 
             // Go to the recipient
             yield return Toils_Goto.GotoThing(TargetIndex.A, PathEndMode.Touch);
+
+            // Make recipient wait
+            Toil makeRecipientWaitToil = new Toil();
+            makeRecipientWaitToil.initAction = () => {
+                Job recipientWaitJob = JobMaker.MakeJob(JobDefOf.Wait_MaintainPosture, pawn, 5000);
+                Recipient.jobs.StartJob(recipientWaitJob, JobCondition.InterruptForced);
+            };
+            makeRecipientWaitToil.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return makeRecipientWaitToil;
 
             // Face each other
             Toil faceToil = new Toil();
@@ -43,8 +54,10 @@ namespace SocialInteractions
             Toil getLlmResponseToil = new Toil();
             getLlmResponseToil.initAction = () => {
                 llmTaskComplete = false;
+                InteractionDef currentInteractionDef = SocialInteractions.currentInteractionDefForJob; // Retrieve from static field
+                SocialInteractions.currentInteractionDefForJob = null; // Clear the static field immediately
                 Task.Run(async () => {
-                    string prompt = SocialInteractions.GenerateDeepTalkPrompt(pawn, Recipient, InteractionDefOf.DeepTalk, "");
+                    string prompt = SocialInteractions.GenerateDeepTalkPrompt(pawn, Recipient, currentInteractionDef, job.def.defName);
                     if (!string.IsNullOrEmpty(prompt))
                     {
                         KoboldApiClient client = new KoboldApiClient(SocialInteractions.Settings.llmApiUrl, SocialInteractions.Settings.llmApiKey);
@@ -95,7 +108,7 @@ namespace SocialInteractions
             };
             displayMessagesToil.defaultCompleteMode = ToilCompleteMode.Never;
             displayMessagesToil.AddFinishAction(() => {
-                if (Recipient.CurJobDef == DefDatabase<JobDef>.GetNamed("BeTalkedTo") && Recipient.CurJob.targetA == pawn)
+                if (Recipient.CurJobDef == JobDefOf.Wait_MaintainPosture && Recipient.CurJob.targetA == pawn)
                 {
                     Recipient.jobs.EndCurrentJob(JobCondition.Succeeded);
                 }
