@@ -18,7 +18,7 @@ namespace SocialInteractions
     {
         public static SocialInteractionsModSettings Settings;
         public static bool isShowingBubble = false;
-        public static Dictionary<int, InteractionData> jobData = new Dictionary<int, InteractionData>();
+        public static InteractionDef currentInteractionDefForJob;
 
         static SocialInteractions()
         {
@@ -358,24 +358,9 @@ namespace SocialInteractions
         }
     }
 
-    public class InteractionData
-    {
-        public InteractionDef interactionDef;
-        public string subject;
-
-        public InteractionData(InteractionDef interactionDef, string subject)
-        {
-            this.interactionDef = interactionDef;
-            this.subject = subject;
-        }
-    }
-
-
     [HarmonyPatch(typeof(Pawn_InteractionsTracker), "TryInteractWith")]
     public static class Pawn_InteractionsTracker_TryInteractWith_Patch
     {
-        // This patch is now intentionally left blank.
-        // The logic for stopping pawns is now handled by the JobDriver_HaveDeepTalk.
         public static void Postfix(bool __result, Pawn_InteractionsTracker __instance, Pawn recipient, InteractionDef intDef)
         {
         }
@@ -416,8 +401,9 @@ namespace SocialInteractions
 
                         if ((interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt) && SocialInteractions.Settings.pawnsStopOnInteractionEnabled)
                         {
+                            SocialInteractions.currentInteractionDefForJob = interactionDef;
                             Job initiatorJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
-                            SocialInteractions.jobData[initiatorJob.GetHashCode()] = new InteractionData(interactionDef, subject);
+                            initiatorJob.def.defName = subject;
                             initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
 
                             Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
