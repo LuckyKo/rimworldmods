@@ -17,6 +17,16 @@ namespace SocialInteractions
         private int messageIndex = 0;
         private int currentMessageDurationTicks = 0;
 
+        public InteractionDef interactionDef;
+        public string Subject;
+
+        public override void ExposeData()
+        {
+            base.ExposeData();
+            Scribe_Defs.Look(ref interactionDef, "interactionDef");
+            Scribe_Values.Look(ref Subject, "Subject");
+        }
+
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             return pawn.Reserve(Recipient, job, 1, -1, null, errorOnFailed);
@@ -26,6 +36,19 @@ namespace SocialInteractions
         {
             this.FailOnDespawnedOrNull(TargetIndex.A);
             this.FailOn(() => !Recipient.Spawned || !Recipient.Awake());
+
+            Toil retrieveDataToil = new Toil();
+            retrieveDataToil.initAction = () => {
+                InteractionData data;
+                if (SocialInteractions.jobData.TryGetValue(job.GetHashCode(), out data))
+                {
+                    interactionDef = data.interactionDef;
+                    Subject = data.subject;
+                    SocialInteractions.jobData.Remove(job.GetHashCode());
+                }
+            };
+            retrieveDataToil.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return retrieveDataToil;
 
             // Go to the recipient
             yield return Toils_Goto.GotoThing(TargetIndex.A, PathEndMode.Touch);
@@ -44,7 +67,7 @@ namespace SocialInteractions
             getLlmResponseToil.initAction = () => {
                 llmTaskComplete = false;
                 Task.Run(async () => {
-                    string prompt = SocialInteractions.GenerateDeepTalkPrompt(pawn, Recipient, InteractionDefOf.DeepTalk, "");
+                    string prompt = SocialInteractions.GenerateDeepTalkPrompt(pawn, Recipient, interactionDef, Subject);
                     if (!string.IsNullOrEmpty(prompt))
                     {
                         KoboldApiClient client = new KoboldApiClient(SocialInteractions.Settings.llmApiUrl, SocialInteractions.Settings.llmApiKey);

@@ -18,12 +18,28 @@ namespace SocialInteractions
     {
         public static SocialInteractionsModSettings Settings;
         public static bool isShowingBubble = false;
+        public static Dictionary<int, InteractionData> jobData = new Dictionary<int, InteractionData>();
 
         static SocialInteractions()
         {
             var harmony = new Harmony("com.gemini.socialinteractions");
             harmony.PatchAll();
             Settings = LoadedModManager.GetMod<SocialInteractionsMod>().GetSettings<SocialInteractionsModSettings>();
+        }
+
+        public static bool IsLlmInteractionEnabled(InteractionDef interactionDef)
+        {
+            if (!Settings.llmInteractionsEnabled) return false;
+
+            if (interactionDef == InteractionDefOf.Chitchat && Settings.enableChitchat) return true;
+            if (interactionDef == InteractionDefOf.DeepTalk && Settings.enableDeepTalk) return true;
+            if (interactionDef == InteractionDefOf.Insult && Settings.enableInsult) return true;
+            if (interactionDef == InteractionDefOf.RomanceAttempt && Settings.enableRomanceAttempt) return true;
+            if (interactionDef == InteractionDefOf.MarriageProposal && Settings.enableMarriageProposal) return true;
+            if (interactionDef == InteractionDefOf.Reassure && Settings.enableReassure) return true;
+            if (interactionDef == InteractionDefOf.DisturbingChat && Settings.enableDisturbingChat) return true;
+
+            return false;
         }
 
         public static string GenerateDeepTalkPrompt(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
@@ -313,9 +329,44 @@ namespace SocialInteractions
             return string.Join(", ", skillLabels);
         }
 
+        public static void HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
+        {
+            Task.Run(async () => {
+                string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
+                if (!string.IsNullOrEmpty(prompt))
+                {
+                    KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
+                    List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
+                    string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings);
+                    if (!string.IsNullOrEmpty(llmResponse))
+                    {
+                        string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                        if (messages.Any())
+                        {
+                            string firstMessage = messages[0];
+                            string wrappedMessage = WrapText(firstMessage, Settings.wordsPerLineLimit);
+                            MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, wrappedMessage, EstimateReadingTime(firstMessage) / 1000f);
+                        }
+                    }
+                }
+            });
+        }
+
         public static string RemoveRichTextTags(string text)
         {
             return Regex.Replace(text, "<color=#.{8}>|</color>", "");
+        }
+    }
+
+    public class InteractionData
+    {
+        public InteractionDef interactionDef;
+        public string subject;
+
+        public InteractionData(InteractionDef interactionDef, string subject)
+        {
+            this.interactionDef = interactionDef;
+            this.subject = subject;
         }
     }
 
@@ -348,13 +399,34 @@ namespace SocialInteractions
 
                 if (initiator != null && recipient != null && interactionDef != null)
                 {
-                    if (interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt)
+                    if (SocialInteractions.IsLlmInteractionEnabled(interactionDef))
                     {
-                        Job initiatorJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
-                        initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
+                        if (SocialInteractions.Settings.preventSpam && (initiator.CurJobDef == DefDatabase<JobDef>.GetNamed("HaveDeepTalk") || recipient.CurJobDef == DefDatabase<JobDef>.GetNamed("BeTalkedTo")))
+                        {
+                            string text = entry.ToGameStringFromPOV(initiator);
+                            text = SocialInteractions.RemoveRichTextTags(text);
+                            if (!string.IsNullOrEmpty(text))
+                            {
+                                MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, text, SocialInteractions.EstimateReadingTime(text) / 1000f);
+                            }
+                            return;
+                        }
 
-                        Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
-                        recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
+                        string subject = SocialInteractions.RemoveRichTextTags(entry.ToGameStringFromPOV(initiator));
+
+                        if ((interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt) && SocialInteractions.Settings.pawnsStopOnInteractionEnabled)
+                        {
+                            Job initiatorJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
+                            SocialInteractions.jobData[initiatorJob.GetHashCode()] = new InteractionData(interactionDef, subject);
+                            initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
+
+                            Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
+                            recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
+                        }
+                        else
+                        {
+                            SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, interactionDef, subject);
+                        }
                     }
                     else
                     {
