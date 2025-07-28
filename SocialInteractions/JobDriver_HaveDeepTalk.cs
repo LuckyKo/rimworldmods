@@ -16,6 +16,7 @@ namespace SocialInteractions
         private List<string> messages = new List<string>();
         private int messageIndex = 0;
         private int currentMessageDurationTicks = 0;
+        private bool conversationComplete = false;
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
@@ -43,6 +44,8 @@ namespace SocialInteractions
             Toil getLlmResponseToil = new Toil();
             getLlmResponseToil.initAction = () => {
                 llmTaskComplete = false;
+                SpeechBubbleManager.isConversationActive = true;
+                SpeechBubbleManager.onConversationFinished += () => conversationComplete = true;
                 Task.Run(async () => {
                     string prompt = SocialInteractions.GenerateDeepTalkPrompt(pawn, Recipient, SocialInteractions.currentInteractionDefForJob, job.def.defName);
                     if (!string.IsNullOrEmpty(prompt))
@@ -94,21 +97,26 @@ namespace SocialInteractions
                 }
             };
             displayMessagesToil.defaultCompleteMode = ToilCompleteMode.Never;
-            displayMessagesToil.AddFinishAction(() => {
-                if (Recipient.CurJobDef == DefDatabase<JobDef>.GetNamed("BeTalkedTo") && Recipient.CurJob.targetA == pawn)
-                {
-                    Recipient.jobs.EndCurrentJob(JobCondition.Succeeded);
-                }
-            });
             yield return displayMessagesToil;
 
-            // Gain joy
-            Toil gainJoy = new Toil();
-            gainJoy.initAction = () => {
-                pawn.needs.joy.GainJoy(0.5f, job.def.joyKind);
+            // Wait for conversation to finish
+            Toil waitForConversationToil = new Toil();
+            waitForConversationToil.tickAction = () => {
+                pawn.needs.joy.GainJoy(0.00015f, job.def.joyKind);
+                if (conversationComplete)
+                {
+                    waitForConversationToil.actor.jobs.curDriver.ReadyForNextToil();
+                }
             };
-            gainJoy.defaultCompleteMode = ToilCompleteMode.Instant;
-            yield return gainJoy;
+            waitForConversationToil.defaultCompleteMode = ToilCompleteMode.Never;
+            waitForConversationToil.AddFinishAction(() => {
+                JobDriver_BeTalkedTo recipientDriver = Recipient.jobs.curDriver as JobDriver_BeTalkedTo;
+                if (recipientDriver != null)
+                {
+                    recipientDriver.EndJob(JobCondition.Succeeded);
+                }
+            });
+            yield return waitForConversationToil;
         }
 
         
@@ -146,8 +154,9 @@ namespace SocialInteractions
             if (speaker != null)
             {
                 string wrappedMessage = SocialInteractions.WrapText(cleanedMessage, SocialInteractions.Settings.wordsPerLineLimit);
-                MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, wrappedMessage, SocialInteractions.EstimateReadingTime(cleanedMessage) / 1000f);
-                currentMessageDurationTicks = (int)(SocialInteractions.EstimateReadingTime(cleanedMessage) / 16.66f); // Convert milliseconds to ticks (60 ticks/sec)
+                float duration = SocialInteractions.EstimateReadingTime(cleanedMessage) / 1000f;
+                SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration);
+                currentMessageDurationTicks = (int)(duration / 16.66f); // Convert milliseconds to ticks (60 ticks/sec)
                 if (currentMessageDurationTicks <= 0) currentMessageDurationTicks = 1; // Ensure at least 1 tick duration
             }
         }

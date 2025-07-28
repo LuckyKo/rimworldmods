@@ -12,9 +12,9 @@ namespace SocialInteractions
             return true;
         }
 
-        public void EndJob()
+        public void EndJob(JobCondition condition)
         {
-            pawn.jobs.EndCurrentJob(JobCondition.Succeeded);
+            pawn.jobs.EndCurrentJob(condition);
         }
 
         protected override IEnumerable<Toil> MakeNewToils()
@@ -23,6 +23,9 @@ namespace SocialInteractions
             Toil toil = new Toil();
             toil.initAction = () => {
                 pawn.rotationTracker.FaceCell(TargetA.Cell);
+            };
+            toil.tickAction = () => {
+                pawn.needs.joy.GainJoy(0.00015f, job.def.joyKind);
             };
             toil.defaultCompleteMode = ToilCompleteMode.Never;
             yield return toil;

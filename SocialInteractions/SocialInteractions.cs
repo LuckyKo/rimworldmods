@@ -345,7 +345,8 @@ namespace SocialInteractions
                         {
                             string firstMessage = messages[0];
                             string wrappedMessage = WrapText(firstMessage, Settings.wordsPerLineLimit);
-                            MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, wrappedMessage, EstimateReadingTime(firstMessage) / 1000f);
+                            float duration = EstimateReadingTime(firstMessage) / 1000f;
+                            SpeechBubbleManager.Enqueue(initiator, wrappedMessage, duration);
                         }
                     }
                 }
