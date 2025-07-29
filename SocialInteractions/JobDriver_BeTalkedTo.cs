@@ -25,7 +25,7 @@ namespace SocialInteractions
                 pawn.rotationTracker.FaceCell(TargetA.Cell);
             };
             toil.tickAction = () => {
-                pawn.needs.joy.GainJoy(0.00015f, job.def.joyKind);
+                pawn.needs.joy.GainJoy(0.00015f, DefDatabase<JoyKindDef>.GetNamed("Social"));
             };
             toil.defaultCompleteMode = ToilCompleteMode.Never;
             yield return toil;

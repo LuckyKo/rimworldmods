@@ -338,15 +338,38 @@ namespace SocialInteractions
                     KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
                     List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
                     string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings);
+                    SpeechBubbleManager.isLlmBusy = false;
                     if (!string.IsNullOrEmpty(llmResponse))
                     {
                         string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
                         if (messages.Any())
                         {
-                            string firstMessage = messages[0];
-                            string wrappedMessage = WrapText(firstMessage, Settings.wordsPerLineLimit);
-                            float duration = EstimateReadingTime(firstMessage) / 1000f;
-                            SpeechBubbleManager.Enqueue(initiator, wrappedMessage, duration);
+                            for (int i = 0; i < messages.Length; i++)
+                            {
+                                string rawMessage = messages[i].Trim();
+                                Pawn speaker = null;
+
+                                // Determine speaker and extract dialogue
+                                if (rawMessage.StartsWith(initiator.Name.ToStringShort + ":"))
+                                {
+                                    speaker = initiator;
+                                }
+                                else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":"))
+                                {
+                                    speaker = recipient;
+                                }
+                                else
+                                {
+                                    speaker = initiator; // Default to initiator if speaker not specified
+                                }
+
+                                if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
+                                {
+                                    string wrappedMessage = WrapText(rawMessage, Settings.wordsPerLineLimit);
+                                    float duration = EstimateReadingTime(rawMessage) / 1000f;
+                                    SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0);
+                                }
+                            }
                         }
                     }
                 }
@@ -387,7 +410,7 @@ namespace SocialInteractions
                 {
                     if (SocialInteractions.IsLlmInteractionEnabled(interactionDef))
                     {
-                        if (SocialInteractions.Settings.preventSpam && (initiator.CurJobDef == DefDatabase<JobDef>.GetNamed("HaveDeepTalk") || recipient.CurJobDef == DefDatabase<JobDef>.GetNamed("BeTalkedTo")))
+                        if (SocialInteractions.Settings.preventSpam && SpeechBubbleManager.isLlmBusy)
                         {
                             string text = entry.ToGameStringFromPOV(initiator);
                             text = SocialInteractions.RemoveRichTextTags(text);
@@ -408,6 +431,7 @@ namespace SocialInteractions
                             initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
 
                             Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
+                            recipientJob.def.joyKind = DefDatabase<JoyKindDef>.GetNamed("Social");
                             recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
                         }
                         else

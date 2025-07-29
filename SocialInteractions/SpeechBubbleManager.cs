@@ -12,6 +12,7 @@ namespace SocialInteractions
         private static bool isBubbleVisible = false;
         private static float bubbleEndTime = 0;
 
+        public static bool isLlmBusy = false;
         public static bool isConversationActive = false;
         public static Action onConversationFinished;
 
@@ -24,12 +25,16 @@ namespace SocialInteractions
             if (isBubbleVisible && Time.time >= bubbleEndTime)
             {
                 isBubbleVisible = false;
-                if (speechBubbleQueue.Count == 0 && isConversationActive)
+                if (speechBubbleQueue.Count == 0) // If queue is empty after this bubble
                 {
-                    isConversationActive = false;
-                    if (onConversationFinished != null)
+                    isLlmBusy = false; // The entire interaction is done.
+                    if (isConversationActive)
                     {
-                        onConversationFinished();
+                        isConversationActive = false;
+                        if (onConversationFinished != null)
+                        {
+                            onConversationFinished();
+                        }
                     }
                 }
             }
@@ -43,8 +48,12 @@ namespace SocialInteractions
             }
         }
 
-        public static void Enqueue(Pawn speaker, string text, float duration)
+        public static void Enqueue(Pawn speaker, string text, float duration, bool isFirstMessage)
         {
+            if (isFirstMessage)
+            {
+                isLlmBusy = true;
+            }
             speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration));
         }
     }

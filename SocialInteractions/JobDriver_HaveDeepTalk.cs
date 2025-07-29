@@ -14,8 +14,6 @@ namespace SocialInteractions
         private bool llmTaskComplete = false;
         private string llmResponse;
         private List<string> messages = new List<string>();
-        private int messageIndex = 0;
-        private int currentMessageDurationTicks = 0;
         private bool conversationComplete = false;
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
@@ -47,18 +45,46 @@ namespace SocialInteractions
                 SpeechBubbleManager.isConversationActive = true;
                 SpeechBubbleManager.onConversationFinished += () => conversationComplete = true;
                 Task.Run(async () => {
-                    string prompt = SocialInteractions.GenerateDeepTalkPrompt(pawn, Recipient, SocialInteractions.currentInteractionDefForJob, job.def.defName);
-                    if (!string.IsNullOrEmpty(prompt))
+                    if (SocialInteractions.Settings == null)
                     {
-                        KoboldApiClient client = new KoboldApiClient(SocialInteractions.Settings.llmApiUrl, SocialInteractions.Settings.llmApiKey);
-                        List<string> stoppingStrings = new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
-                        llmResponse = await client.GenerateText(prompt, SocialInteractions.Settings.llmMaxTokens, SocialInteractions.Settings.llmTemperature, stoppingStrings);
-                        if (!string.IsNullOrEmpty(llmResponse))
+                        Log.Error("SocialInteractions.Settings is null. Cannot generate LLM response.");
+                        llmTaskComplete = true;
+                        SpeechBubbleManager.isConversationActive = false;
+                        return; // Exit the async task early
+                    }
+                    try
+                    {
+                        InteractionDef interactionDef = SocialInteractions.currentInteractionDefForJob ?? InteractionDefOf.Chitchat; // Default to Chitchat if null
+                        string jobDefName;
+                        if (job.def != null && job.def.defName != null)
                         {
-                            messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                            jobDefName = job.def.defName;
+                        }
+                        else
+                        {
+                            jobDefName = "UnknownJob";
+                        }
+                        string prompt = SocialInteractions.GenerateDeepTalkPrompt(pawn, Recipient, interactionDef, jobDefName);
+                        if (!string.IsNullOrEmpty(prompt))
+                        {
+                            KoboldApiClient client = new KoboldApiClient(SocialInteractions.Settings.llmApiUrl, SocialInteractions.Settings.llmApiKey);
+                            List<string> stoppingStrings = new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
+                            llmResponse = await client.GenerateText(prompt, SocialInteractions.Settings.llmMaxTokens, SocialInteractions.Settings.llmTemperature, stoppingStrings);
+                            if (!string.IsNullOrEmpty(llmResponse))
+                            {
+                                messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                            }
                         }
                     }
-                    llmTaskComplete = true;
+                    catch (Exception ex)
+                    {
+                        Log.Error(string.Format("Error generating LLM response: {0}", ex.Message));
+                        SpeechBubbleManager.isConversationActive = false; // Ensure conversation is not active if LLM task fails
+                    }
+                    finally
+                    {
+                        llmTaskComplete = true;
+                    }
                 });
             };
             getLlmResponseToil.tickAction = () => {
@@ -73,36 +99,42 @@ namespace SocialInteractions
             // Display messages
             Toil displayMessagesToil = new Toil();
             displayMessagesToil.initAction = () => {
-                messageIndex = 0;
-                if (messages.Any())
+                for (int i = 0; i < messages.Count; i++)
                 {
-                    DisplayCurrentMessage();
-                } else {
-                    this.ReadyForNextToil();
-                }
-            };
-            displayMessagesToil.tickAction = () => {
-                currentMessageDurationTicks--;
-                if (currentMessageDurationTicks <= 0)
-                {
-                    messageIndex++;
-                    if (messageIndex >= messages.Count)
+                    string rawMessage = messages[i].Trim();
+                    Pawn speaker = null;
+
+                    if (rawMessage.StartsWith(pawn.Name.ToStringShort + ":"))
                     {
-                        this.ReadyForNextToil();
+                        speaker = pawn;
+                    }
+                    else if (rawMessage.StartsWith(Recipient.Name.ToStringShort + ":"))
+                    {
+                        speaker = Recipient;
                     }
                     else
                     {
-                        DisplayCurrentMessage();
+                        speaker = pawn; // Default to initiator if speaker not specified
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
+                    {
+                        string wrappedMessage = SocialInteractions.WrapText(rawMessage, SocialInteractions.Settings.wordsPerLineLimit);
+                        float duration = SocialInteractions.EstimateReadingTime(rawMessage) / 1000f;
+                        SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0);
                     }
                 }
             };
-            displayMessagesToil.defaultCompleteMode = ToilCompleteMode.Never;
+            displayMessagesToil.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return displayMessagesToil;
 
             // Wait for conversation to finish
             Toil waitForConversationToil = new Toil();
             waitForConversationToil.tickAction = () => {
-                pawn.needs.joy.GainJoy(0.00015f, job.def.joyKind);
+                if (job.def.joyKind != null)
+                {
+                    pawn.needs.joy.GainJoy(0.00015f, job.def.joyKind);
+                }
                 if (conversationComplete)
                 {
                     waitForConversationToil.actor.jobs.curDriver.ReadyForNextToil();
@@ -110,55 +142,17 @@ namespace SocialInteractions
             };
             waitForConversationToil.defaultCompleteMode = ToilCompleteMode.Never;
             waitForConversationToil.AddFinishAction(() => {
-                JobDriver_BeTalkedTo recipientDriver = Recipient.jobs.curDriver as JobDriver_BeTalkedTo;
-                if (recipientDriver != null)
+                SpeechBubbleManager.isLlmBusy = false;
+                if (Recipient != null && Recipient.jobs != null)
                 {
-                    recipientDriver.EndJob(JobCondition.Succeeded);
+                    JobDriver_BeTalkedTo recipientDriver = Recipient.jobs.curDriver as JobDriver_BeTalkedTo;
+                    if (recipientDriver != null)
+                    {
+                        recipientDriver.EndJob(JobCondition.Succeeded);
+                    }
                 }
             });
             yield return waitForConversationToil;
-        }
-
-        
-
-        private void DisplayCurrentMessage()
-        {
-            if (messageIndex >= messages.Count) {
-                this.ReadyForNextToil();
-                return;
-            }
-
-            string rawMessage = messages[messageIndex].Trim();
-            string cleanedMessage = rawMessage;
-            Pawn speaker = null;
-
-            // Determine speaker and extract dialogue
-            if (rawMessage.StartsWith(pawn.Name.ToStringShort + ":"))
-            {
-                speaker = pawn;
-            }
-            else if (rawMessage.StartsWith(Recipient.Name.ToStringShort + ":"))
-            {
-                speaker = Recipient;
-            }
-            else
-            {
-                speaker = pawn; // Default to initiator if speaker not specified
-            }
-
-            if (string.IsNullOrWhiteSpace(cleanedMessage)) {
-                currentMessageDurationTicks = 1; // Advance quickly if message is empty
-                return;
-            }
-
-            if (speaker != null)
-            {
-                string wrappedMessage = SocialInteractions.WrapText(cleanedMessage, SocialInteractions.Settings.wordsPerLineLimit);
-                float duration = SocialInteractions.EstimateReadingTime(cleanedMessage) / 1000f;
-                SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration);
-                currentMessageDurationTicks = (int)(duration / 16.66f); // Convert milliseconds to ticks (60 ticks/sec)
-                if (currentMessageDurationTicks <= 0) currentMessageDurationTicks = 1; // Ensure at least 1 tick duration
-            }
         }
     }
 }
