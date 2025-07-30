@@ -43,7 +43,7 @@ namespace SocialInteractions
 
         public static string GenerateDeepTalkPrompt(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
-            if (initiator == null || recipient == null || interactionDef == null)
+            if (initiator == null || recipient == null || interactionDef == null || subject == null)
             {
                 return null;
             }
@@ -292,7 +292,7 @@ namespace SocialInteractions
             List<Thought> thoughts = new List<Thought>();
             pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
 
-            var negativeThoughts = thoughts.Where(t => t.MoodOffset() < 0).OrderBy(t => t.MoodOffset()).Take(3).Select(t => t.LabelCap);
+            var negativeThoughts = thoughts.Where(t => t != null && t.MoodOffset() < 0).OrderBy(t => t.MoodOffset()).Take(3).Select(t => t.LabelCap);
 
             if (negativeThoughts.Any())
             {
@@ -333,7 +333,7 @@ namespace SocialInteractions
             List<Thought> thoughts = new List<Thought>();
             pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
 
-            var positiveThoughts = thoughts.Where(t => t.MoodOffset() > 0).OrderByDescending(t => t.MoodOffset()).Take(3).Select(t => t.LabelCap);
+            var positiveThoughts = thoughts.Where(t => t != null && t.MoodOffset() > 0).OrderByDescending(t => t.MoodOffset()).Take(3).Select(t => t.LabelCap);
 
             if (positiveThoughts.Any())
             {
@@ -368,7 +368,6 @@ namespace SocialInteractions
                     KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
                     List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
                     string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings);
-                    SpeechBubbleManager.isLlmBusy = false;
                     if (!string.IsNullOrEmpty(llmResponse))
                     {
                         string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
@@ -397,7 +396,7 @@ namespace SocialInteractions
                                 {
                                     string wrappedMessage = WrapText(rawMessage, Settings.wordsPerLineLimit);
                                     float duration = EstimateReadingTime(rawMessage) / 1000f;
-                                    SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0);
+                                    SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0);
                                 }
                             }
                         }
@@ -438,23 +437,13 @@ namespace SocialInteractions
                 {
                     if (SocialInteractions.IsLlmInteractionEnabled(interactionDef))
                     {
-                        if (SocialInteractions.Settings.preventSpam && SpeechBubbleManager.isLlmBusy)
-                        {
-                            string text = entry.ToGameStringFromPOV(initiator);
-                            text = SocialInteractions.RemoveRichTextTags(text);
-                            if (!string.IsNullOrEmpty(text))
-                            {
-                                MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, text, SocialInteractions.EstimateReadingTime(text) / 1000f);
-                            }
-                            return;
-                        }
-
                         string subject = SocialInteractions.RemoveRichTextTags(entry.ToGameStringFromPOV(initiator));
 
-                        if ((interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt) && SocialInteractions.Settings.pawnsStopOnInteractionEnabled)
+                        if (interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt)
                         {
                             Job_HaveDeepTalk initiatorJob = new Job_HaveDeepTalk(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
                             initiatorJob.interactionDef = interactionDef;
+                            initiatorJob.subject = subject;
                             initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
 
                             Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);

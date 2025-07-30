@@ -97,11 +97,11 @@ namespace SocialInteractions
                 }
                 return null;
             }
-            catch (HttpRequestException e)
+            catch (HttpRequestException)
             {
                 return null;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return null;
             }

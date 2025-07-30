@@ -1,22 +1,17 @@
-Template:
-
-The following is a [topic] interraction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
-
-[pawn1] is a [pawn1_age] yo [pawn1_sex], has the following traits: [pawn1_traits], [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes], [pawn1_afflictions]. [pawn1] is currently [pawn1_action]
-
-[pawn2] is a [pawn2_age] yo [pawn2_sex], has the following traits: [pawn2_traits], [pawn2_genes]; [pawn2] is proficient in: [pawn2_proficiencies]; [pawn2]'s mood is [pawn2_mood], positives: [pawn2_likes] / negatives: [pawn2_dislikes], [pawn2_afflictions]. [pawn2] is currently [pawn2_action]
-
-[pawn2] is a [relation] to [pawn1].
-
-It's currently [time], on [date] and the weather is [weather].
-
-[subject]
-
-<start>
-[pawn1]:
-
-Stopping strings:
-</s>
-</start>
-<end>
-<end>
+Exception in JobDriver fixed tick for pawn Briggs driver=JobDriver_HaveDeepTalk (toilIndex=4) driver.job=(Briggs connected on the topic of human nature with Kiki. (Job_7778039) A = Thing_Human1923799 Giver = ThinkNode_QueuedJob [workGiverDef: null])
+System.NullReferenceException: Object reference not set to an instance of an object
+[Ref DB946AFE]
+  at SocialInteractions.JobDriver_HaveDeepTalk+<>c__DisplayClassb.<MakeNewToils>b__9 () [0x00001] in <6594b403d31144eeb07a916033022280>:0 
+  at Verse.AI.JobDriver.DriverTick () [0x00170] in <fcfab19af5d14a608a65ebd77f29482f>:0 
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+Verse.Log:Error (string)
+Verse.AI.JobUtility:TryStartErrorRecoverJob (Verse.Pawn,string,System.Exception,Verse.AI.JobDriver)
+Verse.AI.JobDriver:DriverTick ()
+Verse.AI.Pawn_JobTracker:JobTrackerTick ()
+Verse.Pawn:Tick ()
+Verse.Thing:DoTick ()
+Verse.TickList:Tick ()
+Verse.TickManager:DoSingleTick ()
+Verse.TickManager:TickManagerUpdate ()
+Verse.Game:UpdatePlay ()
+Verse.Root_Play:Update ()

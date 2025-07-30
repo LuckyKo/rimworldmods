@@ -14,7 +14,7 @@ namespace SocialInteractions
         private bool llmTaskComplete = false;
         private string llmResponse;
         private List<string> messages = new List<string>();
-        private bool conversationComplete = false;
+        private int conversationId = -1;
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
@@ -42,94 +42,97 @@ namespace SocialInteractions
             // Get LLM response
             Toil getLlmResponseToil = new Toil();
             getLlmResponseToil.initAction = () => {
-                llmTaskComplete = false;
-                SpeechBubbleManager.isConversationActive = true;
-                SpeechBubbleManager.onConversationFinished += () => conversationComplete = true;
+                try
+                {
+                    llmTaskComplete = false;
 
-                Pawn recipientForTask = recipient;
-                Job_HaveDeepTalk customJob = this.job as Job_HaveDeepTalk;
-                if (customJob == null)
-                {
-                    Log.Error("Job is not a Job_HaveDeepTalk. Ending job.");
-                    pawn.jobs.EndCurrentJob(JobCondition.Errored);
-                    return;
-                }
-                InteractionDef interactionDefForTask = customJob.interactionDef;
-                if (interactionDefForTask == null)
-                {
-                    Log.Error("InteractionDef is null. Ending job.");
-                    pawn.jobs.EndCurrentJob(JobCondition.Errored);
-                    return;
-                }
-                if (interactionDefForTask == null)
-                {
-                    Log.Error("InteractionDef is null. Ending job.");
-                    pawn.jobs.EndCurrentJob(JobCondition.Errored);
-                    return;
-                }
-                if (interactionDefForTask == null)
-                {
-                    Log.Error("InteractionDef is null. Ending job.");
-                    pawn.jobs.EndCurrentJob(JobCondition.Errored);
-                    return;
-                }
-
-                Task.Run(async () => {
-                    if (recipientForTask == null)
+                    Pawn recipientForTask = recipient;
+                    Job_HaveDeepTalk customJob = this.job as Job_HaveDeepTalk;
+                    if (customJob == null)
                     {
-                        Log.Error("Recipient became null before LLM task could run.");
-                        llmTaskComplete = true;
-                        SpeechBubbleManager.isConversationActive = false;
+                        Log.Error("Job is not a Job_HaveDeepTalk. Ending job.");
+                        pawn.jobs.EndCurrentJob(JobCondition.Errored);
                         return;
                     }
 
-                    if (SocialInteractions.Settings == null)
+                    InteractionDef interactionDefForTask = customJob.interactionDef;
+                    if (interactionDefForTask == null)
                     {
-                        Log.Error("SocialInteractions.Settings is null. Cannot generate LLM response.");
-                        llmTaskComplete = true;
-                        SpeechBubbleManager.isConversationActive = false;
+                        Log.Error("InteractionDef is null. Ending job.");
+                        pawn.jobs.EndCurrentJob(JobCondition.Errored);
                         return;
                     }
-                    if (string.IsNullOrEmpty(SocialInteractions.Settings.llmApiUrl))
+
+                    string subjectForTask = customJob.subject;
+                    if (subjectForTask == null)
                     {
-                        Log.Error("LLM API URL is not set in mod settings. Cannot generate LLM response.");
-                        llmTaskComplete = true;
-                        SpeechBubbleManager.isConversationActive = false;
+                        Log.Error("Subject is null. Ending job.");
+                        pawn.jobs.EndCurrentJob(JobCondition.Errored);
                         return;
                     }
-                    try
-                    {
-                        string jobDefName = "UnknownJob";
-                        if (job != null && job.def != null)
+
+                    Task.Run(async () => {
+                        try
                         {
-                            jobDefName = job.def.defName;
+                            if (recipientForTask == null)
+                            {
+                                Log.Error("Recipient became null before LLM task could run.");
+                                llmTaskComplete = true;
+                                return;
+                            }
+
+                            if (SocialInteractions.Settings == null)
+                            {
+                                Log.Error("SocialInteractions.Settings is null. Cannot generate LLM response.");
+                                llmTaskComplete = true;
+                                return;
+                            }
+
+                            if (string.IsNullOrEmpty(SocialInteractions.Settings.llmApiUrl))
+                            {
+                                Log.Error("LLM API URL is not set in mod settings. Cannot generate LLM response.");
+                                llmTaskComplete = true;
+                                return;
+                            }
+
+                            if (interactionDefForTask == null)
+                            {
+                                Log.Error("InteractionDef is null inside Task.Run. Cannot generate LLM response.");
+                                llmTaskComplete = true;
+                                return;
+                            }
+
+                            string prompt = SocialInteractions.GenerateDeepTalkPrompt(pawn, recipientForTask, interactionDefForTask, subjectForTask);
+                            if (!string.IsNullOrEmpty(prompt))
+                            {
+                                KoboldApiClient client = new KoboldApiClient(SocialInteractions.Settings.llmApiUrl, SocialInteractions.Settings.llmApiKey);
+                                List<string> stoppingStrings = new List<string>();
+                                if (SocialInteractions.Settings.llmStoppingStrings != null)
+                                {
+                                    stoppingStrings = new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
+                                }
+                                llmResponse = await client.GenerateText(prompt, SocialInteractions.Settings.llmMaxTokens, SocialInteractions.Settings.llmTemperature, stoppingStrings);
+                                if (!string.IsNullOrEmpty(llmResponse))
+                                {
+                                    messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                                }
+                            }
                         }
-                        string prompt = SocialInteractions.GenerateDeepTalkPrompt(pawn, recipientForTask, interactionDefForTask, jobDefName);
-                        if (!string.IsNullOrEmpty(prompt))
+                        catch (Exception ex)
                         {
-                            KoboldApiClient client = new KoboldApiClient(SocialInteractions.Settings.llmApiUrl, SocialInteractions.Settings.llmApiKey);
-                            List<string> stoppingStrings = new List<string>();
-                            if (SocialInteractions.Settings.llmStoppingStrings != null)
-                            {
-                                stoppingStrings = new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
-                            }
-                            llmResponse = await client.GenerateText(prompt, SocialInteractions.Settings.llmMaxTokens, SocialInteractions.Settings.llmTemperature, stoppingStrings);
-                            if (!string.IsNullOrEmpty(llmResponse))
-                            {
-                                messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-                            }
+                            Log.Error(string.Format("Error in Task.Run: {0} {1}", ex.Message, ex.StackTrace));
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(string.Format("Error generating LLM response: {0} {1}", ex.Message, ex.StackTrace));
-                        SpeechBubbleManager.isConversationActive = false;
-                    }
-                    finally
-                    {
-                        llmTaskComplete = true;
-                    }
-                });
+                        finally
+                        {
+                            llmTaskComplete = true;
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("Error in getLlmResponseToil: {0} {1}", ex.Message, ex.StackTrace));
+                    pawn.jobs.EndCurrentJob(JobCondition.Errored);
+                }
             };
             getLlmResponseToil.tickAction = () => {
                 if (llmTaskComplete)
@@ -143,6 +146,11 @@ namespace SocialInteractions
             // Display messages
             Toil displayMessagesToil = new Toil();
             displayMessagesToil.initAction = () => {
+                if (messages.Any())
+                {
+                    conversationId = SpeechBubbleManager.StartConversation();
+                }
+
                 Pawn recipientForDisplay = (Pawn)job.GetTarget(TargetIndex.A).Thing;
                 if (recipientForDisplay == null) return;
 
@@ -168,7 +176,7 @@ namespace SocialInteractions
                     {
                         string wrappedMessage = SocialInteractions.WrapText(rawMessage, SocialInteractions.Settings.wordsPerLineLimit);
                         float duration = SocialInteractions.EstimateReadingTime(rawMessage) / 1000f;
-                        SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0);
+                        SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, conversationId);
                     }
                 }
             };
@@ -177,12 +185,17 @@ namespace SocialInteractions
 
             // Wait for conversation to finish
             Toil waitForConversationToil = new Toil();
+            waitForConversationToil.FailOn(() =>
+            {
+                Pawn recipientPawn = (Pawn)job.GetTarget(TargetIndex.A).Thing;
+                return recipientPawn == null || recipientPawn.Downed || recipientPawn.Dead;
+            });
             waitForConversationToil.tickAction = () => {
-                if (job.def.joyKind != null)
+                if (job.def.joyKind != null && pawn.needs != null && pawn.needs.joy != null)
                 {
                     pawn.needs.joy.GainJoy(0.00015f, job.def.joyKind);
                 }
-                if (conversationComplete)
+                if (conversationId == -1 || !SpeechBubbleManager.IsConversationActive(conversationId))
                 {
                     waitForConversationToil.actor.jobs.curDriver.ReadyForNextToil();
                 }

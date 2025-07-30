@@ -1,20 +1,17 @@
-Exception in JobDriver fixed tick for pawn Greg driver=JobDriver_BeTalkedTo (toilIndex=0) driver.job=(BeTalkedTo (Job_396) A = Thing_Human171 Giver = ThinkNode_QueuedJob [workGiverDef: null])
+SocialInteractions: Starting getLlmResponseToil for Pollard and Lumi.
+SocialInteractions: customJob is not null.
+SocialInteractions: interactionDefForTask is DeepTalk.
+SocialInteractions: subjectForTask is Pollard and Lumi talked deeply about helping the sick..
+SocialInteractions: Starting Task.Run.
+SocialInteractions: recipientForTask is Lumi.
+SocialInteractions: Settings are not null.
+SocialInteractions: API URL is not null or empty.
+SocialInteractions: interactionDefForTask is DeepTalk inside Task.Run.
+SocialInteractions: Prompt generated successfully.
+SocialInteractions: LLM response processed successfully.
+SocialInteractions: Task.Run finished.
+Exception in JobDriver fixed tick for pawn Pollard driver=JobDriver_HaveDeepTalk (toilIndex=4) driver.job=(HaveDeepTalk (Job_8644165) A = Thing_Human3983840 Giver = ThinkNode_QueuedJob [workGiverDef: null])
 System.NullReferenceException: Object reference not set to an instance of an object
-[Ref F771E6F8]
-  at Verse.DefMap`2[D,V].get_Item (D def) [0x00000] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-  at RimWorld.JoyToleranceSet.JoyFactorFromTolerance (RimWorld.JoyKindDef joyKind) [0x00000] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-  at RimWorld.Need_Joy.GainJoy (System.Single amount, RimWorld.JoyKindDef joyKind) [0x00009] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-  at SocialInteractions.JobDriver_BeTalkedTo.<MakeNewToils>b__1 () [0x00001] in <6594b403d31144eeb07a916033022280>:0 
+[Ref E08C02C4]
+  at SocialInteractions.JobDriver_HaveDeepTalk+<>c__DisplayClassa.<MakeNewToils>b__8 () [0x0001e] in <a4675707bf3a4a5a8101ed1b2c5b8d63>:0 
   at Verse.AI.JobDriver.DriverTick () [0x00170] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-UnityEngine.StackTraceUtility:ExtractStackTrace ()
-Verse.Log:Error (string)
-Verse.AI.JobUtility:TryStartErrorRecoverJob (Verse.Pawn,string,System.Exception,Verse.AI.JobDriver)
-Verse.AI.JobDriver:DriverTick ()
-Verse.AI.Pawn_JobTracker:JobTrackerTick ()
-Verse.Pawn:Tick ()
-Verse.Thing:DoTick ()
-Verse.TickList:Tick ()
-Verse.TickManager:DoSingleTick ()
-Verse.TickManager:TickManagerUpdate ()
-Verse.Game:UpdatePlay ()
-Verse.Root_Play:Update ()
