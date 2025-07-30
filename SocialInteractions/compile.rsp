@@ -10,6 +10,7 @@ SocialInteractions.cs
 SocialInteractionsSettings.cs
 KoboldApiClient.cs
 JobDriver_HaveDeepTalk.cs
+Job_HaveDeepTalk.cs
 JoyGiver_HaveDeepTalk.cs
 JobDriver_BeTalkedTo.cs
 SpeechBubbleManager.cs

@@ -18,7 +18,6 @@ namespace SocialInteractions
     {
         public static SocialInteractionsModSettings Settings;
         public static bool isShowingBubble = false;
-        public static InteractionDef currentInteractionDefForJob;
 
         static SocialInteractions()
         {
@@ -44,6 +43,11 @@ namespace SocialInteractions
 
         public static string GenerateDeepTalkPrompt(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
+            if (initiator == null || recipient == null || interactionDef == null)
+            {
+                return null;
+            }
+
             if (!Settings.llmInteractionsEnabled)
             {
                 return null;
@@ -71,7 +75,7 @@ namespace SocialInteractions
             // Placeholder replacement (initial version, will expand later)
             string prompt = Settings.llmPromptTemplate;
             prompt = prompt.Replace("[topic]", interactionDef.label);
-            prompt = prompt.Replace("[subject]", subject);
+            prompt = prompt.Replace("[subject]", subject ?? "");
 
             // Get relationship
             string relation = GetRelationship(initiator, recipient);
@@ -81,25 +85,34 @@ namespace SocialInteractions
             string pawn1Age = initiator.ageTracker.AgeBiologicalYears.ToString();
             string pawn1Sex = initiator.gender.ToString();
             string pawn1Traits = "";
-            
-            if (initiator.story != null)
+            if (initiator.story != null && initiator.story.traits != null)
             {
-                if (initiator.story.traits != null)
+                List<string> traitsList = new List<string>();
+                foreach (Trait trait in initiator.story.traits.allTraits)
                 {
-                    List<string> traitsList = new List<string>();
-                    foreach (Trait trait in initiator.story.traits.allTraits)
-                    {
-                        traitsList.Add(trait.Label);
-                    }
-                    pawn1Traits = string.Join(", ", traitsList.ToArray());
+                    traitsList.Add(trait.Label);
                 }
+                pawn1Traits = string.Join(", ", traitsList.ToArray());
             }
-            string pawn1Mood = (initiator.needs != null && initiator.needs.mood != null) ? (initiator.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
+
+            string pawn1Mood = "N/A";
+            if (initiator.needs != null && initiator.needs.mood != null)
+            {
+                pawn1Mood = (initiator.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%";
+            }
+
             string pawn1Dislikes = GetDislikes(initiator);
             string pawn1Afflictions = GetAfflictions(initiator);
             string pawn1Likes = GetLikes(initiator);
-            string pawn1Action = initiator.GetJobReport().CapitalizeFirst();
+
+            string pawn1Action = "None";
+            if (initiator.jobs != null && initiator.jobs.curJob != null)
+            {
+                pawn1Action = initiator.GetJobReport().CapitalizeFirst();
+            }
+
             string pawn1Proficiencies = GetProficiencies(initiator);
+
             string pawn1Genes = "";
             if (initiator.genes != null)
             {
@@ -107,7 +120,7 @@ namespace SocialInteractions
                 List<string> geneList = new List<string>();
                 foreach (Gene gene in initiator.genes.GenesListForReading)
                 {
-                    if (!gene.def.skinColorBase.HasValue && !gene.Overridden)
+                    if (gene.def != null && !gene.def.skinColorBase.HasValue && !gene.Overridden)
                     {
                         geneList.Add(gene.def.label);
                     }
@@ -122,24 +135,34 @@ namespace SocialInteractions
             string pawn2Age = recipient.ageTracker.AgeBiologicalYears.ToString();
             string pawn2Sex = recipient.gender.ToString();
             string pawn2Traits = "";
-            if (recipient.story != null)
+            if (recipient.story != null && recipient.story.traits != null)
             {
-                if (recipient.story.traits != null)
+                List<string> traitsList = new List<string>();
+                foreach (Trait trait in recipient.story.traits.allTraits)
                 {
-                    List<string> traitsList = new List<string>();
-                    foreach (Trait trait in recipient.story.traits.allTraits)
-                    {
-                        traitsList.Add(trait.Label);
-                    }
-                    pawn2Traits = string.Join(", ", traitsList.ToArray());
+                    traitsList.Add(trait.Label);
                 }
+                pawn2Traits = string.Join(", ", traitsList.ToArray());
             }
-            string pawn2Mood = (recipient.needs != null && recipient.needs.mood != null) ? (recipient.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%" : "N/A";
+
+            string pawn2Mood = "N/A";
+            if (recipient.needs != null && recipient.needs.mood != null)
+            {
+                pawn2Mood = (recipient.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%";
+            }
+
             string pawn2Dislikes = GetDislikes(recipient);
             string pawn2Afflictions = GetAfflictions(recipient);
             string pawn2Likes = GetLikes(recipient);
-            string pawn2Action = recipient.GetJobReport().CapitalizeFirst();
+
+            string pawn2Action = "None";
+            if (recipient.jobs != null && recipient.jobs.curJob != null)
+            {
+                pawn2Action = recipient.GetJobReport().CapitalizeFirst();
+            }
+
             string pawn2Proficiencies = GetProficiencies(recipient);
+
             string pawn2Genes = "";
             if (recipient.genes != null)
             {
@@ -147,7 +170,7 @@ namespace SocialInteractions
                 List<string> geneList = new List<string>();
                 foreach (Gene gene in recipient.genes.GenesListForReading)
                 {
-                    if (!gene.def.skinColorBase.HasValue && !gene.Overridden)
+                    if (gene.def != null && !gene.def.skinColorBase.HasValue && !gene.Overridden)
                     {
                         geneList.Add(gene.def.label);
                     }
@@ -160,11 +183,18 @@ namespace SocialInteractions
 
             // World info attributes
             long absTicks = Find.TickManager.TicksAbs;
-            float longitude = Find.WorldGrid.LongLatOf(initiator.Tile).x;
-            string currentDate = GenDate.DateFullStringAt(absTicks, Find.WorldGrid.LongLatOf(initiator.Tile));
-            int hour = (int)(GenDate.DayPercent(absTicks, longitude) * 24f);
-            string currentTime = hour.ToString("D2") + ":00";
-            string currentWeather = Find.CurrentMap.weatherManager.curWeather.label;
+            string currentDate = "Unknown";
+            string currentTime = "Unknown";
+            string currentWeather = "Unknown";
+
+            if (initiator.Map != null)
+            {
+                float longitude = Find.WorldGrid.LongLatOf(initiator.Tile).x;
+                currentDate = GenDate.DateFullStringAt(absTicks, Find.WorldGrid.LongLatOf(initiator.Tile));
+                int hour = (int)(GenDate.DayPercent(absTicks, longitude) * 24f);
+                currentTime = hour.ToString("D2") + ":00";
+                currentWeather = initiator.Map.weatherManager.curWeather.label;
+            }
 
             // Replace placeholders
             prompt = prompt.Replace("[pawn1]", initiator.Name.ToStringShort);
@@ -382,19 +412,17 @@ namespace SocialInteractions
         }
     }
 
-    [HarmonyPatch(typeof(Pawn_InteractionsTracker), "TryInteractWith")]
-    public static class Pawn_InteractionsTracker_TryInteractWith_Patch
-    {
-        public static void Postfix(bool __result, Pawn_InteractionsTracker __instance, Pawn recipient, InteractionDef intDef)
-        {
-        }
-    }
+    
+
+    
 
     [HarmonyPatch(typeof(PlayLog), "Add")]
     public static class PlayLog_Add_Patch
     {
         public static void Postfix(LogEntry entry)
         {
+            if (entry == null) return;
+
             if (entry.GetType().Name == "PlayLogEntry_Interaction")
             {
                 var intDefField = entry.GetType().GetField("intDef", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -425,13 +453,11 @@ namespace SocialInteractions
 
                         if ((interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt) && SocialInteractions.Settings.pawnsStopOnInteractionEnabled)
                         {
-                            SocialInteractions.currentInteractionDefForJob = interactionDef;
-                            Job initiatorJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
-                            initiatorJob.def.defName = subject;
+                            Job_HaveDeepTalk initiatorJob = new Job_HaveDeepTalk(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
+                            initiatorJob.interactionDef = interactionDef;
                             initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
 
                             Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
-                            recipientJob.def.joyKind = DefDatabase<JoyKindDef>.GetNamed("Social");
                             recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
                         }
                         else

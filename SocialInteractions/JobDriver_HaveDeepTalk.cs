@@ -23,8 +23,9 @@ namespace SocialInteractions
 
         protected override IEnumerable<Toil> MakeNewToils()
         {
+            Pawn recipient = (Pawn)job.GetTarget(TargetIndex.A).Thing;
             this.FailOnDespawnedOrNull(TargetIndex.A);
-            this.FailOn(() => !Recipient.Spawned || !Recipient.Awake());
+            this.FailOn(() => recipient == null || !recipient.Spawned || !recipient.Awake());
 
             // Go to the recipient
             yield return Toils_Goto.GotoThing(TargetIndex.A, PathEndMode.Touch);
@@ -32,8 +33,8 @@ namespace SocialInteractions
             // Face each other
             Toil faceToil = new Toil();
             faceToil.initAction = () => {
-                pawn.rotationTracker.FaceCell(Recipient.Position);
-                Recipient.rotationTracker.FaceCell(pawn.Position);
+                pawn.rotationTracker.FaceCell(recipient.Position);
+                recipient.rotationTracker.FaceCell(pawn.Position);
             };
             faceToil.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return faceToil;
@@ -44,31 +45,74 @@ namespace SocialInteractions
                 llmTaskComplete = false;
                 SpeechBubbleManager.isConversationActive = true;
                 SpeechBubbleManager.onConversationFinished += () => conversationComplete = true;
+
+                Pawn recipientForTask = recipient;
+                Job_HaveDeepTalk customJob = this.job as Job_HaveDeepTalk;
+                if (customJob == null)
+                {
+                    Log.Error("Job is not a Job_HaveDeepTalk. Ending job.");
+                    pawn.jobs.EndCurrentJob(JobCondition.Errored);
+                    return;
+                }
+                InteractionDef interactionDefForTask = customJob.interactionDef;
+                if (interactionDefForTask == null)
+                {
+                    Log.Error("InteractionDef is null. Ending job.");
+                    pawn.jobs.EndCurrentJob(JobCondition.Errored);
+                    return;
+                }
+                if (interactionDefForTask == null)
+                {
+                    Log.Error("InteractionDef is null. Ending job.");
+                    pawn.jobs.EndCurrentJob(JobCondition.Errored);
+                    return;
+                }
+                if (interactionDefForTask == null)
+                {
+                    Log.Error("InteractionDef is null. Ending job.");
+                    pawn.jobs.EndCurrentJob(JobCondition.Errored);
+                    return;
+                }
+
                 Task.Run(async () => {
+                    if (recipientForTask == null)
+                    {
+                        Log.Error("Recipient became null before LLM task could run.");
+                        llmTaskComplete = true;
+                        SpeechBubbleManager.isConversationActive = false;
+                        return;
+                    }
+
                     if (SocialInteractions.Settings == null)
                     {
                         Log.Error("SocialInteractions.Settings is null. Cannot generate LLM response.");
                         llmTaskComplete = true;
                         SpeechBubbleManager.isConversationActive = false;
-                        return; // Exit the async task early
+                        return;
+                    }
+                    if (string.IsNullOrEmpty(SocialInteractions.Settings.llmApiUrl))
+                    {
+                        Log.Error("LLM API URL is not set in mod settings. Cannot generate LLM response.");
+                        llmTaskComplete = true;
+                        SpeechBubbleManager.isConversationActive = false;
+                        return;
                     }
                     try
                     {
-                        InteractionDef interactionDef = SocialInteractions.currentInteractionDefForJob ?? InteractionDefOf.Chitchat; // Default to Chitchat if null
-                        string jobDefName;
-                        if (job.def != null && job.def.defName != null)
+                        string jobDefName = "UnknownJob";
+                        if (job != null && job.def != null)
                         {
                             jobDefName = job.def.defName;
                         }
-                        else
-                        {
-                            jobDefName = "UnknownJob";
-                        }
-                        string prompt = SocialInteractions.GenerateDeepTalkPrompt(pawn, Recipient, interactionDef, jobDefName);
+                        string prompt = SocialInteractions.GenerateDeepTalkPrompt(pawn, recipientForTask, interactionDefForTask, jobDefName);
                         if (!string.IsNullOrEmpty(prompt))
                         {
                             KoboldApiClient client = new KoboldApiClient(SocialInteractions.Settings.llmApiUrl, SocialInteractions.Settings.llmApiKey);
-                            List<string> stoppingStrings = new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
+                            List<string> stoppingStrings = new List<string>();
+                            if (SocialInteractions.Settings.llmStoppingStrings != null)
+                            {
+                                stoppingStrings = new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
+                            }
                             llmResponse = await client.GenerateText(prompt, SocialInteractions.Settings.llmMaxTokens, SocialInteractions.Settings.llmTemperature, stoppingStrings);
                             if (!string.IsNullOrEmpty(llmResponse))
                             {
@@ -78,8 +122,8 @@ namespace SocialInteractions
                     }
                     catch (Exception ex)
                     {
-                        Log.Error(string.Format("Error generating LLM response: {0}", ex.Message));
-                        SpeechBubbleManager.isConversationActive = false; // Ensure conversation is not active if LLM task fails
+                        Log.Error(string.Format("Error generating LLM response: {0} {1}", ex.Message, ex.StackTrace));
+                        SpeechBubbleManager.isConversationActive = false;
                     }
                     finally
                     {
@@ -99,6 +143,9 @@ namespace SocialInteractions
             // Display messages
             Toil displayMessagesToil = new Toil();
             displayMessagesToil.initAction = () => {
+                Pawn recipientForDisplay = (Pawn)job.GetTarget(TargetIndex.A).Thing;
+                if (recipientForDisplay == null) return;
+
                 for (int i = 0; i < messages.Count; i++)
                 {
                     string rawMessage = messages[i].Trim();
@@ -108,13 +155,13 @@ namespace SocialInteractions
                     {
                         speaker = pawn;
                     }
-                    else if (rawMessage.StartsWith(Recipient.Name.ToStringShort + ":"))
+                    else if (rawMessage.StartsWith(recipientForDisplay.Name.ToStringShort + ":"))
                     {
-                        speaker = Recipient;
+                        speaker = recipientForDisplay;
                     }
                     else
                     {
-                        speaker = pawn; // Default to initiator if speaker not specified
+                        speaker = pawn;
                     }
 
                     if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
@@ -143,9 +190,10 @@ namespace SocialInteractions
             waitForConversationToil.defaultCompleteMode = ToilCompleteMode.Never;
             waitForConversationToil.AddFinishAction(() => {
                 SpeechBubbleManager.isLlmBusy = false;
-                if (Recipient != null && Recipient.jobs != null)
+                Pawn finalRecipient = (Pawn)job.GetTarget(TargetIndex.A).Thing;
+                if (finalRecipient != null && finalRecipient.jobs != null)
                 {
-                    JobDriver_BeTalkedTo recipientDriver = Recipient.jobs.curDriver as JobDriver_BeTalkedTo;
+                    JobDriver_BeTalkedTo recipientDriver = finalRecipient.jobs.curDriver as JobDriver_BeTalkedTo;
                     if (recipientDriver != null)
                     {
                         recipientDriver.EndJob(JobCondition.Succeeded);
