@@ -17,3 +17,4 @@ SpeechBubbleManager.cs
 JobPatches.cs
 InteractionWorkers.cs
 SI_InteractionDefOf.cs
+CombatPatches.cs

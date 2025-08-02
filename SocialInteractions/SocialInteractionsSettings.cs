@@ -44,6 +44,7 @@ It's currently [time], on [date] and the weather is [weather].
 <start>
 <end>
 </end>";
+        public bool enableCombatTaunts = true;
 
 
         public override void ExposeData()
@@ -72,6 +73,7 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref enableLovin, "enableLovin", true);
             Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);
+            Scribe_Values.Look(ref enableCombatTaunts, "enableCombatTaunts", true);
         }
     }
 
@@ -150,6 +152,9 @@ It's currently [time], on [date] and the weather is [weather].
             listingStandard.CheckboxLabeled("Rescue", ref settings.enableRescue);
             listingStandard.CheckboxLabeled("VisitSickPawn", ref settings.enableVisitSickPawn);
             listingStandard.CheckboxLabeled("Lovin", ref settings.enableLovin);
+
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("Enable Combat Taunts", ref settings.enableCombatTaunts, "If enabled, pawns will taunt each other in combat.");
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Prevent Spam", ref settings.preventSpam, "If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.");

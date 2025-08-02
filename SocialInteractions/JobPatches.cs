@@ -11,10 +11,8 @@ namespace SocialInteractions
     {
         public static void Postfix(JobDriver_TendPatient __instance, ref IEnumerable<Toil> __result)
         {
-            Log.Message("SocialInteractions: JobDriver_TendPatient_Patch Postfix called.");
             if (!SocialInteractions.IsLlmJobEnabled(__instance))
             {
-                Log.Message("SocialInteractions: TendPatient interaction is disabled in settings.");
                 return;
             }
 
@@ -24,10 +22,8 @@ namespace SocialInteractions
 
             if (tendToil != null)
             {
-                Log.Message("SocialInteractions: Found the tend toil. Adding finish action.");
                 tendToil.AddFinishAction(() =>
                 {
-                    Log.Message("SocialInteractions: TendPatient dialogue action triggered.");
                     Pawn doctor = __instance.pawn;
                     Pawn patient = (Pawn)__instance.job.targetA.Thing;
                     SocialInteractions.HandleNonStoppingInteraction(doctor, patient, SI_InteractionDefOf.TendPatient, "Tending to patient");
@@ -35,7 +31,7 @@ namespace SocialInteractions
             }
             else
             {
-                Log.Warning("SocialInteractions Mod: Could not find the correct toil to patch for 'TendPatient' interaction. Dialogue will not be triggered.");
+                // Log.Warning("SocialInteractions Mod: Could not find the correct toil to patch for 'TendPatient' interaction. Dialogue will not be triggered.");
             }
 
             __result = newToils;
@@ -103,7 +99,7 @@ namespace SocialInteractions
                 }
                 else
                 {
-                    Log.Warning("SocialInteractions Mod: Could not find the correct toil to patch for 'Lovin' interaction.");
+                    // Log.Warning("SocialInteractions Mod: Could not find the correct toil to patch for 'Lovin' interaction.");
                 }
                 
                 __result = newToils;
