@@ -16,6 +16,15 @@ namespace SocialInteractions
         private List<string> messages = new List<string>();
         private int conversationId = -1;
 
+        public override void ExposeData()
+        {
+            base.ExposeData();
+            Scribe_Values.Look(ref llmTaskComplete, "llmTaskComplete", false);
+            Scribe_Values.Look(ref llmResponse, "llmResponse");
+            Scribe_Collections.Look(ref messages, "messages", LookMode.Value);
+            Scribe_Values.Look(ref conversationId, "conversationId", -1);
+        }
+
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             return pawn.Reserve(Recipient, job, 1, -1, null, errorOnFailed);

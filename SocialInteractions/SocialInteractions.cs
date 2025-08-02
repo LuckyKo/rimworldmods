@@ -292,7 +292,15 @@ namespace SocialInteractions
             List<Thought> thoughts = new List<Thought>();
             pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
 
-            var negativeThoughts = thoughts.Where(t => t != null && t.MoodOffset() < 0).OrderBy(t => t.MoodOffset()).Take(3).Select(t => t.LabelCap);
+            var negativeThoughts = thoughts.Select(t =>
+            {
+                try
+                {
+                    if (t != null && t.MoodOffset() < 0) return t.LabelCap;
+                }
+                catch (Exception) { }
+                return null;
+            }).Where(l => l != null).Take(3);
 
             if (negativeThoughts.Any())
             {
@@ -333,7 +341,15 @@ namespace SocialInteractions
             List<Thought> thoughts = new List<Thought>();
             pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
 
-            var positiveThoughts = thoughts.Where(t => t != null && t.MoodOffset() > 0).OrderByDescending(t => t.MoodOffset()).Take(3).Select(t => t.LabelCap);
+            var positiveThoughts = thoughts.Select(t =>
+            {
+                try
+                {
+                    if (t != null && t.MoodOffset() > 0) return t.LabelCap;
+                }
+                catch (Exception) { }
+                return null;
+            }).Where(l => l != null).Take(3);
 
             if (positiveThoughts.Any())
             {
@@ -418,49 +434,56 @@ namespace SocialInteractions
     [HarmonyPatch(typeof(PlayLog), "Add")]
     public static class PlayLog_Add_Patch
     {
+        private static readonly object llmLock = new object();
         public static void Postfix(LogEntry entry)
         {
             if (entry == null) return;
 
-            if (entry.GetType().Name == "PlayLogEntry_Interaction")
+            lock (llmLock)
             {
-                var intDefField = entry.GetType().GetField("intDef", BindingFlags.NonPublic | BindingFlags.Instance);
-                var interactionDef = intDefField.GetValue(entry) as InteractionDef;
+                if (SpeechBubbleManager.isLlmBusy) return;
 
-                var initiatorField = entry.GetType().GetField("initiator", BindingFlags.NonPublic | BindingFlags.Instance);
-                Pawn initiator = initiatorField.GetValue(entry) as Pawn;
-
-                var recipientField = entry.GetType().GetField("recipient", BindingFlags.NonPublic | BindingFlags.Instance);
-                Pawn recipient = recipientField.GetValue(entry) as Pawn;
-
-                if (initiator != null && recipient != null && interactionDef != null)
+                if (entry.GetType().Name == "PlayLogEntry_Interaction")
                 {
-                    if (SocialInteractions.IsLlmInteractionEnabled(interactionDef))
+                    var intDefField = entry.GetType().GetField("intDef", BindingFlags.NonPublic | BindingFlags.Instance);
+                    var interactionDef = intDefField.GetValue(entry) as InteractionDef;
+
+                    var initiatorField = entry.GetType().GetField("initiator", BindingFlags.NonPublic | BindingFlags.Instance);
+                    Pawn initiator = initiatorField.GetValue(entry) as Pawn;
+
+                    var recipientField = entry.GetType().GetField("recipient", BindingFlags.NonPublic | BindingFlags.Instance);
+                    Pawn recipient = recipientField.GetValue(entry) as Pawn;
+
+                    if (initiator != null && recipient != null && interactionDef != null)
                     {
-                        string subject = SocialInteractions.RemoveRichTextTags(entry.ToGameStringFromPOV(initiator));
-
-                        if (interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt)
+                        if (SocialInteractions.IsLlmInteractionEnabled(interactionDef))
                         {
-                            Job_HaveDeepTalk initiatorJob = new Job_HaveDeepTalk(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
-                            initiatorJob.interactionDef = interactionDef;
-                            initiatorJob.subject = subject;
-                            initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
+                            SpeechBubbleManager.isLlmBusy = true;
+                            string subject = SocialInteractions.RemoveRichTextTags(entry.ToGameStringFromPOV(initiator));
 
-                            Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
-                            recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
+                            if (SocialInteractions.Settings.pawnsStopOnInteraction && (interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt))
+                            {
+                                Job_HaveDeepTalk initiatorJob = new Job_HaveDeepTalk(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
+                                initiatorJob.interactionDef = interactionDef;
+                                initiatorJob.subject = subject;
+                                initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
+
+                                Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
+                                recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
+                            }
+                            else
+                            {
+                                SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, interactionDef, subject);
+                            }
                         }
                         else
                         {
-                            SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, interactionDef, subject);
-                        }
-                    }
-                    else
-                    {
-                        string text = entry.ToGameStringFromPOV(initiator);
-                        text = SocialInteractions.RemoveRichTextTags(text);
-                        if (!string.IsNullOrEmpty(text))
-                        {
-                            MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, text, SocialInteractions.EstimateReadingTime(text) / 1000f);
+                            string text = entry.ToGameStringFromPOV(initiator);
+                            text = SocialInteractions.RemoveRichTextTags(text);
+                            if (!string.IsNullOrEmpty(text))
+                            {
+                                MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, text, SocialInteractions.EstimateReadingTime(text) / 1000f);
+                            }
                         }
                     }
                 }

@@ -58,10 +58,6 @@ namespace SocialInteractions
 
         public static void Enqueue(Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId)
         {
-            if (isFirstMessage)
-            {
-                isLlmBusy = true;
-            }
             speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId));
         }
     }

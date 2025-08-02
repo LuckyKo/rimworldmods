@@ -22,9 +22,11 @@ namespace SocialInteractions
             this.FailOnDespawnedOrNull(TargetIndex.A);
             Toil toil = new Toil();
             toil.initAction = () => {
+                pawn.pather.StopDead();
                 pawn.rotationTracker.FaceCell(TargetA.Cell);
             };
             toil.tickAction = () => {
+                pawn.rotationTracker.FaceCell(TargetA.Cell);
                 if (pawn.needs != null && pawn.needs.joy != null)
                 {
                     JoyKindDef socialJoy = DefDatabase<JoyKindDef>.GetNamed("Social", false);

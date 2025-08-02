@@ -15,11 +15,6 @@ namespace SocialInteractions
         {
         }
 
-        public new void ExposeData()
-        {
-            base.ExposeData();
-            Scribe_Defs.Look(ref interactionDef, "interactionDef");
-            Scribe_Values.Look(ref subject, "subject");
-        }
+        
     }
 }
