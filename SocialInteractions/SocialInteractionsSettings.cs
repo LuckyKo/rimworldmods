@@ -24,7 +24,7 @@ It's currently [time], on [date] and the weather is [weather].
 [pawn1]:";
         public bool llmInteractionsEnabled = false;
         public int wordsPerLineLimit = 10; // Default to 10 words per line
-        public float wordsPerSecond = 5.0f; // Default to 5 words per second
+        public float wordsPerSecond = 4.0f; // Default to 5 words per second
         public float llmTemperature = 0.7f; // Default temperature
         public int llmMaxTokens = 300; // Default max tokens
 
@@ -51,10 +51,11 @@ It's currently [time], on [date] and the weather is [weather].
         {
             base.ExposeData();
             Scribe_Values.Look(ref pawnsStopOnInteraction, "pawnsStopOnInteraction", true);
+            Scribe_Values.Look(ref enableCombatTaunts, "enableCombatTaunts", true);
+            Scribe_Values.Look(ref llmInteractionsEnabled, "llmInteractionsEnabled", false);
             Scribe_Values.Look(ref llmApiUrl, "llmApiUrl", "");
             Scribe_Values.Look(ref llmApiKey, "llmApiKey", "");
             Scribe_Values.Look(ref llmPromptTemplate, "llmPromptTemplate", "");
-            Scribe_Values.Look(ref llmInteractionsEnabled, "llmInteractionsEnabled", false);
             Scribe_Values.Look(ref wordsPerLineLimit, "wordsPerLineLimit", 10);
             
             Scribe_Values.Look(ref llmTemperature, "llmTemperature", 0.7f);
@@ -73,7 +74,6 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref enableLovin, "enableLovin", true);
             Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);
-            Scribe_Values.Look(ref enableCombatTaunts, "enableCombatTaunts", true);
         }
     }
 
@@ -103,6 +103,13 @@ It's currently [time], on [date] and the weather is [weather].
             listingStandard.CheckboxLabeled("Pawns stop on interaction", ref settings.pawnsStopOnInteraction, "If enabled, pawns will stop their current activities during social interactions.");
 
             listingStandard.Gap();
+            listingStandard.CheckboxLabeled("Enable Combat Taunts", ref settings.enableCombatTaunts, "If enabled, pawns will taunt each other in combat.");
+
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("Enable LLM Interactions", ref settings.llmInteractionsEnabled, "If enabled, Deep Talk interactions will use the configured LLM API.");
+            listingStandard.CheckboxLabeled("Prevent Spam", ref settings.preventSpam, "If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.");
+
+            listingStandard.Gap();
             listingStandard.Label("LLM API Configuration");
 
             listingStandard.Label("API URL:");
@@ -113,6 +120,10 @@ It's currently [time], on [date] and the weather is [weather].
 
             listingStandard.Label("Prompt Template:");
             settings.llmPromptTemplate = Widgets.TextArea(listingStandard.GetRect(200f), settings.llmPromptTemplate);
+
+            listingStandard.Gap();
+            listingStandard.Label("LLM Stopping Strings (one per line):");
+            settings.llmStoppingStrings = Widgets.TextArea(listingStandard.GetRect(100f), settings.llmStoppingStrings);
 
             listingStandard.Gap();
             listingStandard.Label("Words per line limit (for speech bubbles):");
@@ -134,11 +145,6 @@ It's currently [time], on [date] and the weather is [weather].
             string maxTokensBuffer = settings.llmMaxTokens.ToString();
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref settings.llmMaxTokens, ref maxTokensBuffer, 1, 2000);
 
-            
-
-            listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Enable LLM Interactions", ref settings.llmInteractionsEnabled, "If enabled, Deep Talk interactions will use the configured LLM API.");
-
             listingStandard.Gap();
             listingStandard.Label("Enabled LLM Interaction Types:");
             listingStandard.CheckboxLabeled("Chitchat", ref settings.enableChitchat);
@@ -152,16 +158,6 @@ It's currently [time], on [date] and the weather is [weather].
             listingStandard.CheckboxLabeled("Rescue", ref settings.enableRescue);
             listingStandard.CheckboxLabeled("VisitSickPawn", ref settings.enableVisitSickPawn);
             listingStandard.CheckboxLabeled("Lovin", ref settings.enableLovin);
-
-            listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Enable Combat Taunts", ref settings.enableCombatTaunts, "If enabled, pawns will taunt each other in combat.");
-
-            listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Prevent Spam", ref settings.preventSpam, "If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.");
-
-            listingStandard.Gap();
-            listingStandard.Label("LLM Stopping Strings (one per line):");
-            settings.llmStoppingStrings = Widgets.TextArea(listingStandard.GetRect(100f), settings.llmStoppingStrings);
 
             listingStandard.End();
 
