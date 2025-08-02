@@ -35,6 +35,10 @@ It's currently [time], on [date] and the weather is [weather].
         public bool enableMarriageProposal = true;
         public bool enableReassure = true;
         public bool enableDisturbingChat = true;
+        public bool enableTendPatient = true;
+        public bool enableRescue = true;
+        public bool enableVisitSickPawn = true;
+        public bool enableLovin = true;
         public bool preventSpam = false;
         public string llmStoppingStrings = @"</start>
 <start>
@@ -62,6 +66,10 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref enableMarriageProposal, "enableMarriageProposal", true);
             Scribe_Values.Look(ref enableReassure, "enableReassure", true);
             Scribe_Values.Look(ref enableDisturbingChat, "enableDisturbingChat", true);
+            Scribe_Values.Look(ref enableTendPatient, "enableTendPatient", true);
+            Scribe_Values.Look(ref enableRescue, "enableRescue", true);
+            Scribe_Values.Look(ref enableVisitSickPawn, "enableVisitSickPawn", true);
+            Scribe_Values.Look(ref enableLovin, "enableLovin", true);
             Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);
         }
@@ -138,6 +146,10 @@ It's currently [time], on [date] and the weather is [weather].
             listingStandard.CheckboxLabeled("MarriageProposal", ref settings.enableMarriageProposal);
             listingStandard.CheckboxLabeled("Reassure", ref settings.enableReassure);
             listingStandard.CheckboxLabeled("DisturbingChat", ref settings.enableDisturbingChat);
+            listingStandard.CheckboxLabeled("TendPatient", ref settings.enableTendPatient);
+            listingStandard.CheckboxLabeled("Rescue", ref settings.enableRescue);
+            listingStandard.CheckboxLabeled("VisitSickPawn", ref settings.enableVisitSickPawn);
+            listingStandard.CheckboxLabeled("Lovin", ref settings.enableLovin);
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Prevent Spam", ref settings.preventSpam, "If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.");

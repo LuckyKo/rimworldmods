@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <InteractionDef>
+    <defName>TendPatient</defName>
+    <label>tend patient</label>
+    <workerClass>SocialInteractions.InteractionWorker_TendPatient</workerClass>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->Tended to [RECIPIENT_nameDef].</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->Was tended to by [INITIATOR_nameDef].</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
+  <InteractionDef>
+    <defName>Lovin</defName>
+    <label>make love</label>
+    <workerClass>SocialInteractions.InteractionWorker_Lovin</workerClass>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->Made love to [RECIPIENT_nameDef].</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->Made love with [INITIATOR_nameDef].</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
+</Defs>

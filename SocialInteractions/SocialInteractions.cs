@@ -41,6 +41,17 @@ namespace SocialInteractions
             return false;
         }
 
+        public static bool IsLlmJobEnabled(JobDriver jobDriver)
+        {
+            if (!Settings.llmInteractionsEnabled) return false;
+
+            if (jobDriver is JobDriver_TendPatient && Settings.enableTendPatient) return true;
+            if (jobDriver is JobDriver_VisitSickPawn && Settings.enableVisitSickPawn) return true;
+            if (jobDriver is JobDriver_Lovin && Settings.enableLovin) return true;
+
+            return false;
+        }
+
         public static string GenerateDeepTalkPrompt(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
             if (initiator == null || recipient == null || interactionDef == null || subject == null)
@@ -61,6 +72,8 @@ namespace SocialInteractions
             else if (interactionDef == InteractionDefOf.MarriageProposal && Settings.enableMarriageProposal) isEnabled = true;
             else if (interactionDef == InteractionDefOf.Reassure && Settings.enableReassure) isEnabled = true;
             else if (interactionDef == InteractionDefOf.DisturbingChat && Settings.enableDisturbingChat) isEnabled = true;
+            else if (interactionDef == SI_InteractionDefOf.TendPatient && Settings.enableTendPatient) isEnabled = true;
+            else if (interactionDef == SI_InteractionDefOf.Lovin && Settings.enableLovin) isEnabled = true;
 
             if (!isEnabled)
             {
@@ -410,7 +423,55 @@ namespace SocialInteractions
 
                                 if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
                                 {
-                                    string wrappedMessage = WrapText(rawMessage, Settings.wordsPerLineLimit);
+                                    string formattedMessage = FormatLlmText(rawMessage);
+                                    string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
+                                    float duration = EstimateReadingTime(rawMessage) / 1000f;
+                                    SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        public static void HandleJobGiverInteraction(Pawn initiator, Pawn recipient, string interactionName, string subject)
+        {
+            Task.Run(async () => {
+                string prompt = GenerateDeepTalkPrompt(initiator, recipient, new InteractionDef() { label = interactionName }, subject);
+                if (!string.IsNullOrEmpty(prompt))
+                {
+                    KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
+                    List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
+                    string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings);
+                    if (!string.IsNullOrEmpty(llmResponse))
+                    {
+                        string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                        if (messages.Any())
+                        {
+                            for (int i = 0; i < messages.Length; i++)
+                            {
+                                string rawMessage = messages[i].Trim();
+                                Pawn speaker = null;
+
+                                // Determine speaker and extract dialogue
+                                if (rawMessage.StartsWith(initiator.Name.ToStringShort + ":"))
+                                {
+                                    speaker = initiator;
+                                }
+                                else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":"))
+                                {
+                                    speaker = recipient;
+                                }
+                                else
+                                {
+                                    speaker = initiator; // Default to initiator if speaker not specified
+                                }
+
+                                if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
+                                {
+                                    string formattedMessage = FormatLlmText(rawMessage);
+                                    string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
                                     float duration = EstimateReadingTime(rawMessage) / 1000f;
                                     SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0);
                                 }
@@ -424,6 +485,13 @@ namespace SocialInteractions
         public static string RemoveRichTextTags(string text)
         {
             return Regex.Replace(text, "<color=#.{8}>|</color>", "");
+        }
+
+        public static string FormatLlmText(string text)
+        {
+            // Use a regular expression to find text enclosed in asterisks.
+            // The regex looks for an asterisk, captures any characters until the next asterisk, and then matches the closing asterisk.
+            return Regex.Replace(text, "\\*(.*?)\\*", "<color=#A9F0F0>$1</color>");
         }
     }
 
