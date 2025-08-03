@@ -121,7 +121,15 @@ namespace SocialInteractions
             string pawn1Action = "None";
             if (initiator.jobs != null && initiator.jobs.curJob != null)
             {
-                pawn1Action = initiator.GetJobReport().CapitalizeFirst();
+                try
+                {
+                    pawn1Action = initiator.GetJobReport().CapitalizeFirst();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("Error getting initiator job report: {0}", ex.Message));
+                    pawn1Action = "None";
+                }
             }
 
             string pawn1Proficiencies = GetProficiencies(initiator);
@@ -171,7 +179,15 @@ namespace SocialInteractions
             string pawn2Action = "None";
             if (recipient.jobs != null && recipient.jobs.curJob != null)
             {
-                pawn2Action = recipient.GetJobReport().CapitalizeFirst();
+                try
+                {
+                    pawn2Action = recipient.GetJobReport().CapitalizeFirst();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("Error getting recipient job report: {0}", ex.Message));
+                    pawn2Action = "None";
+                }
             }
 
             string pawn2Proficiencies = GetProficiencies(recipient);
@@ -390,94 +406,112 @@ namespace SocialInteractions
 
         public static void HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
+            if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
+
             Task.Run(async () => {
-                string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
-                if (!string.IsNullOrEmpty(prompt))
+                try
                 {
-                    KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
-                    List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
-                    string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings, Settings.enableXtcSampling);
-                    if (!string.IsNullOrEmpty(llmResponse))
+                    string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
+                    if (!string.IsNullOrEmpty(prompt))
                     {
-                        string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
-                        if (messages.Any())
+                        KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
+                        List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
+                        string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings, Settings.enableXtcSampling);
+                        if (!string.IsNullOrEmpty(llmResponse))
                         {
-                            for (int i = 0; i < messages.Length; i++)
+                            string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                            if (messages.Any())
                             {
-                                string rawMessage = messages[i].Trim();
-                                Pawn speaker = null;
+                                for (int i = 0; i < messages.Length; i++)
+                                {
+                                    string rawMessage = messages[i].Trim();
+                                    Pawn speaker = null;
 
-                                // Determine speaker and extract dialogue
-                                if (rawMessage.StartsWith(initiator.Name.ToStringShort + ":"))
-                                {
-                                    speaker = initiator;
-                                }
-                                else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":"))
-                                {
-                                    speaker = recipient;
-                                }
-                                else
-                                {
-                                    speaker = initiator; // Default to initiator if speaker not specified
-                                }
+                                    // Determine speaker and extract dialogue
+                                    if (rawMessage.StartsWith(initiator.Name.ToStringShort + ":"))
+                                    {
+                                        speaker = initiator;
+                                    }
+                                    else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":"))
+                                    {
+                                        speaker = recipient;
+                                    }
+                                    else
+                                    {
+                                        speaker = initiator; // Default to initiator if speaker not specified
+                                    }
 
-                                if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
-                                {
-                                    string formattedMessage = FormatLlmText(rawMessage);
-                                    string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
-                                    float duration = EstimateReadingTime(rawMessage) / 1000f;
-                                    SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0);
+                                    if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
+                                    {
+                                        string formattedMessage = FormatLlmText(rawMessage);
+                                        string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
+                                        float duration = EstimateReadingTime(rawMessage) / 1000f;
+                                        SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0);
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("Error in HandleNonStoppingInteraction: {0} {1}", ex.Message, ex.StackTrace));
+                }
             });
         }
 
-        public static void HandleJobGiverInteraction(Pawn initiator, Pawn recipient, string interactionName, string subject)
+                public static void HandleJobGiverInteraction(Pawn initiator, Pawn recipient, string interactionName, string subject)
         {
+            if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
+
             Task.Run(async () => {
-                string prompt = GenerateDeepTalkPrompt(initiator, recipient, new InteractionDef() { label = interactionName }, subject);
-                if (!string.IsNullOrEmpty(prompt))
+                try
                 {
-                    KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
-                    List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
-                    string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings, Settings.enableXtcSampling);
-                    if (!string.IsNullOrEmpty(llmResponse))
+                    string prompt = GenerateDeepTalkPrompt(initiator, recipient, new InteractionDef() { label = interactionName }, subject);
+                    if (!string.IsNullOrEmpty(prompt))
                     {
-                        string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
-                        if (messages.Any())
+                        KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
+                        List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
+                        string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings, Settings.enableXtcSampling);
+                        if (!string.IsNullOrEmpty(llmResponse))
                         {
-                            for (int i = 0; i < messages.Length; i++)
+                            string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                            if (messages.Any())
                             {
-                                string rawMessage = messages[i].Trim();
-                                Pawn speaker = null;
+                                for (int i = 0; i < messages.Length; i++)
+                                {
+                                    string rawMessage = messages[i].Trim();
+                                    Pawn speaker = null;
 
-                                // Determine speaker and extract dialogue
-                                if (rawMessage.StartsWith(initiator.Name.ToStringShort + ":"))
-                                {
-                                    speaker = initiator;
-                                }
-                                else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":"))
-                                {
-                                    speaker = recipient;
-                                }
-                                else
-                                {
-                                    speaker = initiator; // Default to initiator if speaker not specified
-                                }
+                                    // Determine speaker and extract dialogue
+                                    if (rawMessage.StartsWith(initiator.Name.ToStringShort + ":"))
+                                    {
+                                        speaker = initiator;
+                                    }
+                                    else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":"))
+                                    {
+                                        speaker = recipient;
+                                    }
+                                    else
+                                    {
+                                        speaker = initiator; // Default to initiator if speaker not specified
+                                    }
 
-                                if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
-                                {
-                                    string formattedMessage = FormatLlmText(rawMessage);
-                                    string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
-                                    float duration = EstimateReadingTime(rawMessage) / 1000f;
-                                    SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0);
+                                    if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
+                                    {
+                                        string formattedMessage = FormatLlmText(rawMessage);
+                                        string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
+                                        float duration = EstimateReadingTime(rawMessage) / 1000f;
+                                        SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0);
+                                    }
                                 }
                             }
                         }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("Error in HandleJobGiverInteraction: {0} {1}", ex.Message, ex.StackTrace));
                 }
             });
         }
@@ -526,7 +560,6 @@ namespace SocialInteractions
                     {
                         if (SocialInteractions.IsLlmInteractionEnabled(interactionDef))
                         {
-                            SpeechBubbleManager.isLlmBusy = true;
                             string subject = SocialInteractions.RemoveRichTextTags(entry.ToGameStringFromPOV(initiator));
 
                             if (SocialInteractions.Settings.pawnsStopOnInteraction && (interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt))

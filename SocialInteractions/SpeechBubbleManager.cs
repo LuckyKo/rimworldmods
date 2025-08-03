@@ -17,7 +17,15 @@ namespace SocialInteractions
 
         public static bool isLlmBusy = false;
 
-        public SpeechBubbleManager(Game game) { }
+        public SpeechBubbleManager(Game game)
+        {
+            speechBubbleQueue.Clear();
+            pawnBubbleEndTimes.Clear();
+            nextQueuedBubbleDisplayTime = 0f;
+            currentConversationId = 0;
+            activeConversations.Clear();
+            isLlmBusy = false;
+        }
 
         public override void GameComponentTick()
         {
@@ -53,6 +61,9 @@ namespace SocialInteractions
                     EndConversation(bubble.conversationId);
                 }
             }
+
+            // Set isLlmBusy based on whether there are any active bubbles or conversations
+            isLlmBusy = speechBubbleQueue.Count > 0 || activeConversations.Count > 0;
         }
 
         public static int StartConversation()

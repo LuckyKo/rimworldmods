@@ -103,6 +103,16 @@ namespace SocialInteractions
                 }
                 
                 __result = newToils;
+
+                // Add a finish action to the last toil to reset isLlmBusy
+                Toil lastToil = newToils[newToils.Count - 1];
+                if (lastToil != null)
+                {
+                    lastToil.AddFinishAction(() =>
+                    {
+                        SpeechBubbleManager.isLlmBusy = false;
+                    });
+                }
             }
         }
     }
