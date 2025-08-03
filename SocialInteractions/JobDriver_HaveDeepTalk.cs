@@ -184,7 +184,7 @@ namespace SocialInteractions
                     if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
                     {
                         string wrappedMessage = SocialInteractions.WrapText(rawMessage, SocialInteractions.Settings.wordsPerLineLimit);
-                        float duration = SocialInteractions.EstimateReadingTime(rawMessage) / 1000f;
+                        float duration = SocialInteractions.EstimateReadingTime(rawMessage);
                         SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, conversationId);
                     }
                 }

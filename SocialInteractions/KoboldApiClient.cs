@@ -21,17 +21,17 @@ namespace SocialInteractions
         public float Temperature { get; set; }
         [DataMember(Name = "stop_sequence")]
         public List<string> StopSequence { get; set; }
-        [DataMember(Name = "xtc_threshold")]
-        public float XtcThreshold { get; set; }
-        [DataMember(Name = "xtc_probability")]
+        [DataMember(Name = "sampler_order")]
+        public int[] SamplerOrder { get; set; }
+        [DataMember(Name = "xtc_probability", EmitDefaultValue = false)]
         public float XtcProbability { get; set; }
+        [DataMember(Name = "xtc_threshold", EmitDefaultValue = false)]
+        public float XtcThreshold { get; set; }
 
         public KoboldApiRequest()
         {
             MaxLength = 200;
             Temperature = 0.7f;
-            XtcThreshold = 0.1f;
-            XtcProbability = 0.5f;
         }
     }
 
@@ -81,8 +81,13 @@ namespace SocialInteractions
 
                 if (enableXtcSampling)
                 {
-                    request.XtcThreshold = 0.1f;
+                    request.SamplerOrder = new int[] { 6,0,1,3,4,2,5 };
                     request.XtcProbability = 0.5f;
+                    request.XtcThreshold = 0.1f;
+                }
+                else
+                {
+                    request.SamplerOrder = new int[] { 6,0,1,3,4,2,5 };
                 }
 
                 DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(KoboldApiRequest));

@@ -10,9 +10,9 @@ namespace SocialInteractions
         public string llmApiKey = "1234";
         public string llmPromptTemplate = @"The following is a [topic] interraction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
 
-[pawn1] is a [pawn1_age] yo [pawn1_sex], has the following traits: [pawn1_traits], [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical conditions: [pawn1_afflictions]. [pawn1] is currently [pawn1_action]
+[pawn1] is a [pawn1_age] yo [pawn1_sex], has the following traits: [pawn1_traits], [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1] is currently [pawn1_action]
 
-[pawn2] is a [pawn2_age] yo [pawn2_sex], has the following traits: [pawn2_traits], [pawn2_genes]; [pawn2] is proficient in: [pawn2_proficiencies]; [pawn2]'s mood is [pawn2_mood], positives: [pawn2_likes] / negatives: [pawn2_dislikes]; Medical conditions: [pawn2_afflictions]. [pawn2] is currently [pawn2_action]
+[pawn2] is a [pawn2_age] yo [pawn2_sex], has the following traits: [pawn2_traits], [pawn2_genes]; [pawn2] is proficient in: [pawn2_proficiencies]; [pawn2]'s mood is [pawn2_mood], positives: [pawn2_likes] / negatives: [pawn2_dislikes]; Medical status: [pawn2_afflictions]. [pawn2] is currently [pawn2_action]
 
 [pawn2] is a [relation] to [pawn1].
 

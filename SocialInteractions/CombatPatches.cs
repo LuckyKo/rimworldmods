@@ -121,10 +121,10 @@ namespace SocialInteractions
     {
         public static void Postfix(Verb_MeleeAttack __instance, bool __result)
         {
-            if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && Rand.Value < 0.75f)
+            if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && __instance.CasterPawn.RaceProps.Humanlike && Rand.Value < 0.75f)
             {
                 string taunt = CombatTaunts.AttackingTaunts.RandomElement();
-                float duration = SocialInteractions.EstimateReadingTime(taunt) / 1000f;
+                float duration = SocialInteractions.EstimateReadingTime(taunt);
                 SpeechBubbleManager.EnqueueInstant(__instance.CasterPawn, taunt, duration);
             }
         }
@@ -137,11 +137,11 @@ namespace SocialInteractions
     {
         public static void Postfix(Verb_Shoot __instance, bool __result)
         {
-            if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && Rand.Value < 0.25f)
+            if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && __instance.CasterPawn.RaceProps.Humanlike && Rand.Value < 0.25f)
             {
                 Pawn casterPawn = __instance.CasterPawn;
                 string taunt = CombatTaunts.AttackingTaunts.RandomElement();
-                float duration = SocialInteractions.EstimateReadingTime(taunt) / 1000f;
+                float duration = SocialInteractions.EstimateReadingTime(taunt);
                 SpeechBubbleManager.EnqueueInstant(casterPawn, taunt, duration);
             }
         }
@@ -155,7 +155,7 @@ namespace SocialInteractions
 
             Pawn pawn = (Pawn)AccessTools.Field(typeof(Pawn_HealthTracker), "pawn").GetValue(__instance);
 
-            if (pawn == null || !pawn.Spawned || pawn.Downed || !pawn.Awake()) return;
+            if (pawn == null || !pawn.Spawned || pawn.Downed || !pawn.Awake() || !pawn.RaceProps.Humanlike) return;
 
             if (dinfo.Instigator == null || dinfo.Instigator == pawn || !dinfo.Def.ExternalViolenceFor(pawn)) return;
 
@@ -163,9 +163,9 @@ namespace SocialInteractions
             {
                 if (Rand.Value < 0.4f)
                 {
-                    string complaint = "<color=yellow>" + CombatTaunts.GettingHitComplaints.RandomElement() + "</color>";
-                    float duration = SocialInteractions.EstimateReadingTime(complaint) / 1000f;
-                    SpeechBubbleManager.EnqueueInstant(pawn, complaint, duration);
+                    string complaint = CombatTaunts.GettingHitComplaints.RandomElement();
+                    float duration = SocialInteractions.EstimateReadingTime(complaint);
+                    SpeechBubbleManager.EnqueueInstant(pawn, complaint, duration, Color.yellow);
                 }
             }
         }
@@ -178,11 +178,11 @@ namespace SocialInteractions
         {
             if (!SocialInteractions.Settings.enableCombatTaunts) return;
             Pawn pawn = (Pawn)AccessTools.Field(typeof(Pawn_HealthTracker), "pawn").GetValue(__instance);
-            if (pawn.Spawned && Rand.Value < 0.85f)
+            if (pawn.Spawned && pawn.RaceProps.Humanlike && Rand.Value < 0.85f)
             {
-                string callForHelp = "<color=red>" + CombatTaunts.DownedCallsForHelp.RandomElement() + "</color>";
-                float duration = SocialInteractions.EstimateReadingTime(callForHelp) / 1000f;
-                SpeechBubbleManager.EnqueueInstant(pawn, callForHelp, duration);
+                string callForHelp = CombatTaunts.DownedCallsForHelp.RandomElement();
+                float duration = SocialInteractions.EstimateReadingTime(callForHelp);
+                SpeechBubbleManager.EnqueueInstant(pawn, callForHelp, duration, Color.red);
             }
         }
     }

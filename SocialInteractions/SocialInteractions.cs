@@ -117,6 +117,7 @@ namespace SocialInteractions
             string pawn1Dislikes = GetDislikes(initiator);
             string pawn1Afflictions = GetAfflictions(initiator);
             string pawn1Likes = GetLikes(initiator);
+            string pawn1Tech = GetTech(initiator);
 
             string pawn1Action = "None";
             if (initiator.jobs != null && initiator.jobs.curJob != null)
@@ -125,9 +126,8 @@ namespace SocialInteractions
                 {
                     pawn1Action = initiator.GetJobReport().CapitalizeFirst();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Log.Error(string.Format("Error getting initiator job report: {0}", ex.Message));
                     pawn1Action = "None";
                 }
             }
@@ -175,6 +175,7 @@ namespace SocialInteractions
             string pawn2Dislikes = GetDislikes(recipient);
             string pawn2Afflictions = GetAfflictions(recipient);
             string pawn2Likes = GetLikes(recipient);
+            string pawn2Tech = GetTech(recipient);
 
             string pawn2Action = "None";
             if (recipient.jobs != null && recipient.jobs.curJob != null)
@@ -183,9 +184,8 @@ namespace SocialInteractions
                 {
                     pawn2Action = recipient.GetJobReport().CapitalizeFirst();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Log.Error(string.Format("Error getting recipient job report: {0}", ex.Message));
                     pawn2Action = "None";
                 }
             }
@@ -235,6 +235,7 @@ namespace SocialInteractions
             prompt = prompt.Replace("[pawn1_dislikes]", pawn1Dislikes);
             prompt = prompt.Replace("[pawn1_afflictions]", pawn1Afflictions);
             prompt = prompt.Replace("[pawn1_likes]", pawn1Likes);
+            prompt = prompt.Replace("[pawn1_tech]", pawn1Tech);
             prompt = prompt.Replace("[pawn1_action]", pawn1Action);
             prompt = prompt.Replace("[pawn1_proficiencies]", pawn1Proficiencies);
             prompt = prompt.Replace("[pawn1_genes]", pawn1Genes);
@@ -245,6 +246,7 @@ namespace SocialInteractions
             prompt = prompt.Replace("[pawn2_dislikes]", pawn2Dislikes);
             prompt = prompt.Replace("[pawn2_afflictions]", pawn2Afflictions);
             prompt = prompt.Replace("[pawn2_likes]", pawn2Likes);
+            prompt = prompt.Replace("[pawn2_tech]", pawn2Tech);
             prompt = prompt.Replace("[pawn2_action]", pawn2Action);
             prompt = prompt.Replace("[pawn2_proficiencies]", pawn2Proficiencies);
             prompt = prompt.Replace("[pawn2_genes]", pawn2Genes);
@@ -281,12 +283,20 @@ namespace SocialInteractions
             return wrappedText.ToString();
         }
 
-        public static int EstimateReadingTime(string text)
+        public static float EstimateReadingTime(string text)
         {
             // Simple estimate: words per second from settings.
             int wordCount = text.Split(new string[] { " ", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Length;
-            if (SocialInteractions.Settings.wordsPerSecond <= 0) return wordCount * 300; // Fallback if setting is zero or negative
-            return (int)(wordCount / SocialInteractions.Settings.wordsPerSecond * 1000); // Milliseconds
+            float estimatedTime = 0f;
+            if (SocialInteractions.Settings.wordsPerSecond <= 0)
+            {
+                estimatedTime = wordCount * 0.3f; // Fallback if setting is zero or negative
+            }
+            else
+            {
+                estimatedTime = wordCount / SocialInteractions.Settings.wordsPerSecond; // Seconds
+            }
+            return estimatedTime;
         }
 
         private static string GetRelationship(Pawn initiator, Pawn recipient)
@@ -347,7 +357,7 @@ namespace SocialInteractions
             }
 
             var significantHediffs = pawn.health.hediffSet.hediffs
-                .Where(h => h.Visible && !(h is Hediff_MissingPart) && (h.def.isBad || h.def.makesSickThought || h is Hediff_AddedPart))
+                .Where(h => h.Visible && !(h is Hediff_MissingPart) && !(h is Hediff_Implant) && (h.def.isBad || h.def.makesSickThought))
                 .OrderByDescending(h => h.Severity)
                 .Take(3)
                 .Select(h => h.LabelCap);
@@ -355,6 +365,27 @@ namespace SocialInteractions
             if (significantHediffs.Any())
             {
                 return string.Join(", ", significantHediffs.ToArray());
+            }
+
+            return "None";
+        }
+
+        private static string GetTech(Pawn pawn)
+        {
+            if (pawn.health == null || pawn.health.hediffSet == null)
+            {
+                return "None";
+            }
+
+            var techHediffs = pawn.health.hediffSet.hediffs
+                .Where(h => h.Visible && h is Hediff_Implant)
+                .OrderByDescending(h => h.Severity)
+                .Take(3)
+                .Select(h => h.LabelCap);
+
+            if (techHediffs.Any())
+            {
+                return string.Join(", ", techHediffs.ToArray());
             }
 
             return "None";
@@ -445,8 +476,8 @@ namespace SocialInteractions
                                     {
                                         string formattedMessage = FormatLlmText(rawMessage);
                                         string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
-                                        float duration = EstimateReadingTime(rawMessage) / 1000f;
-                                        SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0);
+                                        float duration = EstimateReadingTime(rawMessage);
+                                        SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0, null);
                                     }
                                 }
                             }
@@ -460,7 +491,7 @@ namespace SocialInteractions
             });
         }
 
-                public static void HandleJobGiverInteraction(Pawn initiator, Pawn recipient, string interactionName, string subject)
+		public static void HandleJobGiverInteraction(Pawn initiator, Pawn recipient, string interactionName, string subject)
         {
             if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
 
@@ -478,32 +509,29 @@ namespace SocialInteractions
                             string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
                             if (messages.Any())
                             {
-                                for (int i = 0; i < messages.Length; i++)
+                                string rawMessage = messages[0].Trim();
+                                Pawn speaker = null;
+
+                                // Determine speaker and extract dialogue
+                                if (rawMessage.StartsWith(initiator.Name.ToStringShort + ":"))
                                 {
-                                    string rawMessage = messages[i].Trim();
-                                    Pawn speaker = null;
+                                    speaker = initiator;
+                                }
+                                else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":"))
+                                {
+                                    speaker = recipient;
+                                }
+                                else
+                                {
+                                    speaker = initiator; // Default to initiator if speaker not specified
+                                }
 
-                                    // Determine speaker and extract dialogue
-                                    if (rawMessage.StartsWith(initiator.Name.ToStringShort + ":"))
-                                    {
-                                        speaker = initiator;
-                                    }
-                                    else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":"))
-                                    {
-                                        speaker = recipient;
-                                    }
-                                    else
-                                    {
-                                        speaker = initiator; // Default to initiator if speaker not specified
-                                    }
-
-                                    if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
-                                    {
-                                        string formattedMessage = FormatLlmText(rawMessage);
-                                        string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
-                                        float duration = EstimateReadingTime(rawMessage) / 1000f;
-                                        SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0);
-                                    }
+                                if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
+                                {
+                                    string formattedMessage = FormatLlmText(rawMessage);
+                                    string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
+                                    float duration = EstimateReadingTime(rawMessage);
+                                    SpeechBubbleManager.EnqueueInstant(speaker, wrappedMessage, duration);
                                 }
                             }
                         }
@@ -523,16 +551,14 @@ namespace SocialInteractions
 
         public static string FormatLlmText(string text)
         {
-            // Use a regular expression to find text enclosed in asterisks.
-            // The regex looks for an asterisk, captures any characters until the next asterisk, and then matches the closing asterisk.
-            return Regex.Replace(text, "\\*(.*?)\\*", "<color=#A9F0F0>$1</color>");
+            // Use a regular expression to find text enclosed in asterisks, parentheses, or square brackets.
+            text = Regex.Replace(text, @"\*(.*?)\*", "<color=#A9F0F0>$1</color>"); // light cyan for emphasis
+            text = Regex.Replace(text, @"\((.*?)\)", "<color=#F0E68C>$1</color>"); // khaki for actions/emotes
+            text = Regex.Replace(text, @"\[(.*?)\]", "<color=#DDA0DD>$1</color>"); // plum for thoughts/internal
+            return text;
         }
     }
-
-    
-
-    
-
+			
     [HarmonyPatch(typeof(PlayLog), "Add")]
     public static class PlayLog_Add_Patch
     {
@@ -556,11 +582,12 @@ namespace SocialInteractions
                     var recipientField = entry.GetType().GetField("recipient", BindingFlags.NonPublic | BindingFlags.Instance);
                     Pawn recipient = recipientField.GetValue(entry) as Pawn;
 
-                    if (initiator != null && recipient != null && interactionDef != null)
+                    if ( initiator != null && recipient != null && interactionDef != null)
                     {
                         if (SocialInteractions.IsLlmInteractionEnabled(interactionDef))
                         {
                             string subject = SocialInteractions.RemoveRichTextTags(entry.ToGameStringFromPOV(initiator));
+                            SpeechBubbleManager.ShowDefaultBubble(initiator, subject);
 
                             if (SocialInteractions.Settings.pawnsStopOnInteraction && (interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt))
                             {
@@ -583,7 +610,7 @@ namespace SocialInteractions
                             text = SocialInteractions.RemoveRichTextTags(text);
                             if (!string.IsNullOrEmpty(text))
                             {
-                                MoteMaker.ThrowText(initiator.DrawPos, initiator.Map, text, SocialInteractions.EstimateReadingTime(text) / 1000f);
+                                SpeechBubbleManager.ShowDefaultBubble(initiator, text);
                             }
                         }
                     }

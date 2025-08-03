@@ -52,8 +52,14 @@ namespace SocialInteractions
                 nextQueuedBubbleDisplayTime = Time.time + bubble.duration;
                 if (bubble.speaker != null && bubble.speaker.Map != null)
                 {
-                    Vector3 currentDrawPos = bubble.speaker.DrawPos;
-                    MoteMaker.ThrowText(currentDrawPos, bubble.speaker.Map, bubble.text, bubble.duration);
+                    if (bubble.color.HasValue)
+                    {
+                        MoteMaker.ThrowText(bubble.speaker.DrawPos, bubble.speaker.Map, bubble.text, bubble.color.Value, bubble.duration);
+                    }
+                    else
+                    {
+                        MoteMaker.ThrowText(bubble.speaker.DrawPos, bubble.speaker.Map, bubble.text, bubble.duration);
+                    }
                 }
 
                 if (!speechBubbleQueue.Any(b => b.conversationId == bubble.conversationId))
@@ -87,25 +93,48 @@ namespace SocialInteractions
             return activeConversations.Contains(conversationId);
         }
 
-        // For LLM messages (queued)
-        public static void Enqueue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId)
+        public static void Enqueue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId, Color? color = null)
         {
-            speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false));
+            speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color));
         }
 
         // For instant messages (combat taunts)
-        public static void EnqueueInstant(Verse.Pawn speaker, string text, float duration)
+        public static void EnqueueInstant(Verse.Pawn speaker, string text, float duration, Color? color = null)
         {
             float endTime;
             if (pawnBubbleEndTimes.TryGetValue(speaker, out endTime) && Time.time < endTime)
             {
                 return; // Don't enqueue if this pawn already has an active instant bubble
             }
+            duration = Math.Max(1f, duration);
             pawnBubbleEndTimes[speaker] = Time.time + duration; // Set bubbleEndTime for instant bubbles
             // No clearing of speechBubbleQueue here, as it's for instant display only
             if (speaker != null && speaker.Map != null)
             {
-                MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, text, duration);
+                if (color.HasValue)
+                {
+                    MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, text, color.Value, duration);
+                }
+                else
+                {
+                    MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, text, duration);
+                }
+            }
+        }
+
+        // For default summary bubbles
+        public static void ShowDefaultBubble(Pawn speaker, string text)
+        {
+            float endTime;
+            if (pawnBubbleEndTimes.TryGetValue(speaker, out endTime) && Time.time < endTime)
+            {
+                return; // Don't show if this pawn already has an active bubble
+            }
+            float duration = Math.Max(1f, SocialInteractions.EstimateReadingTime(text));
+            pawnBubbleEndTimes[speaker] = Time.time + duration;
+            if (speaker != null && speaker.Map != null)
+            {
+                MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, text, new Color(0.75f, 0.75f, 0.75f), duration);
             }
         }
     }
@@ -117,14 +146,16 @@ namespace SocialInteractions
         public float duration;
         public int conversationId;
         public bool isInstant;
+        public Color? color;
 
-        public SpeechBubble(Pawn speaker, string text, float duration, int conversationId, bool isInstant = false)
+        public SpeechBubble(Pawn speaker, string text, float duration, int conversationId, bool isInstant = false, Color? color = null)
         {
             this.speaker = speaker;
             this.text = text;
             this.duration = duration;
             this.conversationId = conversationId;
             this.isInstant = isInstant;
+            this.color = color;
         }
     }
 }
