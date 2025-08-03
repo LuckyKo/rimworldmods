@@ -331,7 +331,7 @@ namespace SocialInteractions
             }
 
             var significantHediffs = pawn.health.hediffSet.hediffs
-                .Where(h => h.Visible && h.Severity >= 0.5f && !h.IsTended() && h.def.isBad && !(h is Hediff_MissingPart) && !h.IsPermanent())
+                .Where(h => h.Visible && !(h is Hediff_MissingPart) && (h.def.isBad || h.def.makesSickThought || h is Hediff_AddedPart))
                 .OrderByDescending(h => h.Severity)
                 .Take(3)
                 .Select(h => h.LabelCap);
@@ -396,7 +396,7 @@ namespace SocialInteractions
                 {
                     KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
                     List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
-                    string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings);
+                    string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings, Settings.enableXtcSampling);
                     if (!string.IsNullOrEmpty(llmResponse))
                     {
                         string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
@@ -443,7 +443,7 @@ namespace SocialInteractions
                 {
                     KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
                     List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
-                    string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings);
+                    string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings, Settings.enableXtcSampling);
                     if (!string.IsNullOrEmpty(llmResponse))
                     {
                         string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();

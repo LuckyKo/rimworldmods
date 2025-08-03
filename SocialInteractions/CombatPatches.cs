@@ -124,7 +124,8 @@ namespace SocialInteractions
             if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && Rand.Value < 0.75f)
             {
                 string taunt = CombatTaunts.AttackingTaunts.RandomElement();
-                SpeechBubbleManager.EnqueueInstant(__instance.CasterPawn, taunt, 2f);
+                float duration = SocialInteractions.EstimateReadingTime(taunt) / 1000f;
+                SpeechBubbleManager.EnqueueInstant(__instance.CasterPawn, taunt, duration);
             }
         }
     }
@@ -140,7 +141,8 @@ namespace SocialInteractions
             {
                 Pawn casterPawn = __instance.CasterPawn;
                 string taunt = CombatTaunts.AttackingTaunts.RandomElement();
-                SpeechBubbleManager.EnqueueInstant(casterPawn, taunt, 2f);
+                float duration = SocialInteractions.EstimateReadingTime(taunt) / 1000f;
+                SpeechBubbleManager.EnqueueInstant(casterPawn, taunt, duration);
             }
         }
     }
@@ -162,7 +164,8 @@ namespace SocialInteractions
                 if (Rand.Value < 0.4f)
                 {
                     string complaint = "<color=yellow>" + CombatTaunts.GettingHitComplaints.RandomElement() + "</color>";
-                    SpeechBubbleManager.EnqueueInstant(pawn, complaint, 2f);
+                    float duration = SocialInteractions.EstimateReadingTime(complaint) / 1000f;
+                    SpeechBubbleManager.EnqueueInstant(pawn, complaint, duration);
                 }
             }
         }
@@ -178,7 +181,8 @@ namespace SocialInteractions
             if (pawn.Spawned && Rand.Value < 0.85f)
             {
                 string callForHelp = "<color=red>" + CombatTaunts.DownedCallsForHelp.RandomElement() + "</color>";
-                SpeechBubbleManager.EnqueueInstant(pawn, callForHelp, 3f);
+                float duration = SocialInteractions.EstimateReadingTime(callForHelp) / 1000f;
+                SpeechBubbleManager.EnqueueInstant(pawn, callForHelp, duration);
             }
         }
     }

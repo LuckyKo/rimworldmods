@@ -21,11 +21,17 @@ namespace SocialInteractions
         public float Temperature { get; set; }
         [DataMember(Name = "stop_sequence")]
         public List<string> StopSequence { get; set; }
+        [DataMember(Name = "xtc_threshold")]
+        public float XtcThreshold { get; set; }
+        [DataMember(Name = "xtc_probability")]
+        public float XtcProbability { get; set; }
 
         public KoboldApiRequest()
         {
             MaxLength = 200;
             Temperature = 0.7f;
+            XtcThreshold = 0.1f;
+            XtcProbability = 0.5f;
         }
     }
 
@@ -61,7 +67,7 @@ namespace SocialInteractions
             }
         }
 
-        public async Task<string> GenerateText(string prompt, int maxLength, float temperature, List<string> stopSequence)
+        public async Task<string> GenerateText(string prompt, int maxLength, float temperature, List<string> stopSequence, bool enableXtcSampling)
         {
             try
             {
@@ -72,6 +78,12 @@ namespace SocialInteractions
                     Temperature = temperature,
                     StopSequence = stopSequence
                 };
+
+                if (enableXtcSampling)
+                {
+                    request.XtcThreshold = 0.1f;
+                    request.XtcProbability = 0.5f;
+                }
 
                 DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(KoboldApiRequest));
                 MemoryStream stream = new MemoryStream();

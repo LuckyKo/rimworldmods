@@ -45,6 +45,7 @@ It's currently [time], on [date] and the weather is [weather].
 <end>
 </end>";
         public bool enableCombatTaunts = true;
+        public bool enableXtcSampling = false;
 
 
         public override void ExposeData()
@@ -74,6 +75,7 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref enableLovin, "enableLovin", true);
             Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);
+            Scribe_Values.Look(ref enableXtcSampling, "enableXtcSampling", false);
         }
     }
 
@@ -108,6 +110,9 @@ It's currently [time], on [date] and the weather is [weather].
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable LLM Interactions", ref settings.llmInteractionsEnabled, "If enabled, Deep Talk interactions will use the configured LLM API.");
             listingStandard.CheckboxLabeled("Prevent Spam", ref settings.preventSpam, "If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.");
+
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("Enable XTC Sampling", ref settings.enableXtcSampling, "If enabled, XTC (Exclude Top Choices) sampling will be used for LLM requests to encourage more creative responses.");
 
             listingStandard.Gap();
             listingStandard.Label("LLM API Configuration");
