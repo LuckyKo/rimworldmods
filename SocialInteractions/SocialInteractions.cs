@@ -28,6 +28,7 @@ namespace SocialInteractions
 
         public static bool IsLlmInteractionEnabled(InteractionDef interactionDef)
         {
+            Log.Message(string.Format("[SocialInteractions] IsLlmInteractionEnabled called for: {0}", interactionDef.defName));
             if (!Settings.llmInteractionsEnabled) return false;
 
             if (interactionDef == InteractionDefOf.Chitchat && Settings.enableChitchat) return true;
@@ -37,7 +38,9 @@ namespace SocialInteractions
             if (interactionDef == InteractionDefOf.MarriageProposal && Settings.enableMarriageProposal) return true;
             if (interactionDef == InteractionDefOf.Reassure && Settings.enableReassure) return true;
             if (interactionDef == InteractionDefOf.DisturbingChat && Settings.enableDisturbingChat) return true;
-
+            if (interactionDef.defName == "GoOnDate" && Settings.enableDating) return true;
+            if (interactionDef == SI_InteractionDefOf.DateRejected && Settings.enableDating) return true;
+            if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) return true;
             return false;
         }
 
@@ -74,7 +77,11 @@ namespace SocialInteractions
             else if (interactionDef == InteractionDefOf.DisturbingChat && Settings.enableDisturbingChat) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.TendPatient && Settings.enableTendPatient) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.Lovin && Settings.enableLovin) isEnabled = true;
+            else if (interactionDef.defName == "GoOnDate" && Settings.enableDating) isEnabled = true;
+            else if (interactionDef == SI_InteractionDefOf.DateRejected && Settings.enableDating) isEnabled = true;
+            else if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) isEnabled = true;
 
+            Log.Message(string.Format("[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for {0}: {1}", interactionDef.defName, isEnabled));
             if (!isEnabled)
             {
                 return null;
@@ -437,6 +444,7 @@ namespace SocialInteractions
 
         public static void HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
+            Log.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy));
             if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
 
             Task.Run(async () => {
@@ -491,19 +499,24 @@ namespace SocialInteractions
             });
         }
 
-		public static void HandleJobGiverInteraction(Pawn initiator, Pawn recipient, string interactionName, string subject)
+		public static void HandleJobGiverInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
+            // Always show a default bubble immediately
+            SpeechBubbleManager.ShowDefaultBubble(initiator, interactionDef.label);
+
             if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
 
             Task.Run(async () => {
                 try
                 {
-                    string prompt = GenerateDeepTalkPrompt(initiator, recipient, new InteractionDef() { label = interactionName }, subject);
+                    string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
+                    Log.Message(string.Format("[SocialInteractions] Generated prompt: {0}", prompt != null ? prompt.Substring(0, Math.Min(prompt.Length, 200)) : "NULL"));
                     if (!string.IsNullOrEmpty(prompt))
                     {
                         KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
                         List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
                         string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings, Settings.enableXtcSampling);
+                        Log.Message(string.Format("[SocialInteractions] LLM Response: {0}", llmResponse != null ? llmResponse.Substring(0, Math.Min(llmResponse.Length, 200)) : "NULL"));
                         if (!string.IsNullOrEmpty(llmResponse))
                         {
                             string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
@@ -584,6 +597,7 @@ namespace SocialInteractions
 
                     if ( initiator != null && recipient != null && interactionDef != null)
                     {
+                        Log.Message(string.Format("[SocialInteractions] PlayLog_Add_Patch: InteractionDef: {0}", interactionDef.defName));
                         if (SocialInteractions.IsLlmInteractionEnabled(interactionDef))
                         {
                             string subject = SocialInteractions.RemoveRichTextTags(entry.ToGameStringFromPOV(initiator));

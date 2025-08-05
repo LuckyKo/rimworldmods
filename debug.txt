@@ -1,17 +1,204 @@
-SocialInteractions: Starting getLlmResponseToil for Pollard and Lumi.
-SocialInteractions: customJob is not null.
-SocialInteractions: interactionDefForTask is DeepTalk.
-SocialInteractions: subjectForTask is Pollard and Lumi talked deeply about helping the sick..
-SocialInteractions: Starting Task.Run.
-SocialInteractions: recipientForTask is Lumi.
-SocialInteractions: Settings are not null.
-SocialInteractions: API URL is not null or empty.
-SocialInteractions: interactionDefForTask is DeepTalk inside Task.Run.
-SocialInteractions: Prompt generated successfully.
-SocialInteractions: LLM response processed successfully.
-SocialInteractions: Task.Run finished.
-Exception in JobDriver fixed tick for pawn Pollard driver=JobDriver_HaveDeepTalk (toilIndex=4) driver.job=(HaveDeepTalk (Job_8644165) A = Thing_Human3983840 Giver = ThinkNode_QueuedJob [workGiverDef: null])
-System.NullReferenceException: Object reference not set to an instance of an object
-[Ref E08C02C4]
-  at SocialInteractions.JobDriver_HaveDeepTalk+<>c__DisplayClassa.<MakeNewToils>b__8 () [0x0001e] in <a4675707bf3a4a5a8101ed1b2c5b8d63>:0 
-  at Verse.AI.JobDriver.DriverTick () [0x00170] in <fcfab19af5d14a608a65ebd77f29482f>:0 
+
+[SocialInteractions] RandomSelectionWeight for Jack and Pollard: 0.8379341
+[SocialInteractions] RandomSelectionWeight for Jack and Pollard: 0.04845187
+[SocialInteractions] RandomSelectionWeight for Jack and Pollard: 0.9410679
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] RandomSelectionWeight for Pollard and Zach: 0.4570268
+[SocialInteractions] RandomSelectionWeight for Pollard and Zach: 0.1009574
+[SocialInteractions] RandomSelectionWeight for Pollard and Zach: 0.3141293
+[SocialInteractions] RandomSelectionWeight for Pollard and Zach: 0.0956888
+[SocialInteractions] RandomSelectionWeight for Pollard and Zach: 0.1950641
+[SocialInteractions] RandomSelectionWeight for Pollard and Zach: 0.513995
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: DateAccepted
+[SocialInteractions] IsLlmInteractionEnabled called for: DateAccepted
+[SocialInteractions] HandleNonStoppingInteraction called for: DateAccepted. preventSpam: True, isLlmBusy: False
+[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for DateAccepted: True
+[SocialInteractions] RandomSelectionWeight for Vex and Zach: 0.8792927
+[SocialInteractions] RandomSelectionWeight for Vex and Zach: 0.1139857
+[SocialInteractions] RandomSelectionWeight for Vex and Zach: 0.9429479
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] RandomSelectionWeight for Tom and Pollard: 0.9498343
+[SocialInteractions] RandomSelectionWeight for Tom and Pollard: 0.3797022
+[SocialInteractions] RandomSelectionWeight for Tom and Pollard: 0.7426853
+[SocialInteractions] RandomSelectionWeight for Tom and Pollard: 0.6552282
+[SocialInteractions] RandomSelectionWeight for Zach and Nonna: 0
+[SocialInteractions] RandomSelectionWeight for Zach and Nonna: 0
+[SocialInteractions] RandomSelectionWeight for Zach and Nonna: 0
+AskForDate job created for Vex
+[SocialInteractions] JobDriver_AskForDate: MakeNewToils entered.
+[SocialInteractions] RandomSelectionWeight for Kiki and Stepan: 0.5118825
+[SocialInteractions] RandomSelectionWeight for Kiki and Stepan: 0.6106498
+[SocialInteractions] RandomSelectionWeight for Kiki and Stepan: 0.3442345
+[SocialInteractions] Initiator (Vex) current job: AskForDate (Job_10964977) A = Thing_Human504 Giver = JobGiver_IdleJoy [workGiverDef: null]
+[SocialInteractions] Recipient (Jack) current job: GotoWander (Job_10965010) A = (69, 0, 53) Giver = JobGiver_WanderColony [workGiverDef: null]
+[SocialInteractions] TryInteractWith (AskForDate) logged: True
+[SocialInteractions] Date acceptance for Vex and Jack: False
+[SocialInteractions] Date rejected by Jack. Defaulting to chitchat.
+[SocialInteractions] RandomSelectionWeight for Pollard and Jack: 0.7448775
+[SocialInteractions] RandomSelectionWeight for Pollard and Jack: 0.5138735
+[SocialInteractions] RandomSelectionWeight for Pollard and Jack: 0.9374443
+[SocialInteractions] RandomSelectionWeight for Pollard and Jack: 0.8399755
+[SocialInteractions] RandomSelectionWeight for Pollard and Jack: 0.8464981
+[SocialInteractions] RandomSelectionWeight for Pollard and Jack: 0.3183181
+[SocialInteractions] RandomSelectionWeight for Vex and Hilda: 0.8373112
+[SocialInteractions] RandomSelectionWeight for Vex and Hilda: 0.4130405
+[SocialInteractions] RandomSelectionWeight for Vex and Hilda: 0.8351566
+[SocialInteractions] RandomSelectionWeight for Vex and Hilda: 0.4855216
+[SocialInteractions] RandomSelectionWeight for Vex and Hilda: 0.3103893
+[SocialInteractions] RandomSelectionWeight for Vex and Hilda: 0.3874049
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: DateAccepted
+[SocialInteractions] IsLlmInteractionEnabled called for: DateAccepted
+[SocialInteractions] HandleNonStoppingInteraction called for: DateAccepted. preventSpam: True, isLlmBusy: False
+[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for DateAccepted: True
+[SocialInteractions] RandomSelectionWeight for Stepan and Vex: 0.6923144
+[SocialInteractions] RandomSelectionWeight for Stepan and Vex: 0.00505056
+[SocialInteractions] RandomSelectionWeight for Stepan and Vex: 0.9769245
+[SocialInteractions] RandomSelectionWeight for Stepan and Vex: 0.3634257
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: AskForDate
+[SocialInteractions] IsLlmInteractionEnabled called for: AskForDate
+[SocialInteractions] RandomSelectionWeight for Jack and Hilda: 0.00168136
+[SocialInteractions] RandomSelectionWeight for Jack and Hilda: 0.9572366
+[SocialInteractions] RandomSelectionWeight for Jack and Hilda: 0.007567598
+[SocialInteractions] RandomSelectionWeight for Jack and Hilda: 0.04726805
+[SocialInteractions] RandomSelectionWeight for Jack and Hilda: 0.6616347
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: DateRejected
+[SocialInteractions] IsLlmInteractionEnabled called for: DateRejected
+[SocialInteractions] HandleNonStoppingInteraction called for: DateRejected. preventSpam: True, isLlmBusy: False
+[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for DateRejected: True
+[SocialInteractions] RandomSelectionWeight for Mako and Jack: 0.7494422
+[SocialInteractions] RandomSelectionWeight for Mako and Jack: 0.7377945
+[SocialInteractions] RandomSelectionWeight for Mako and Jack: 0.8463018
+[SocialInteractions] RandomSelectionWeight for Mako and Jack: 0.2916194
+[SocialInteractions] RandomSelectionWeight for Mako and Jack: 0.09746902
+[SocialInteractions] RandomSelectionWeight for Mako and Jack: 0.2305439
+[SocialInteractions] RandomSelectionWeight for Mako and Jack: 0.4167444
+[SocialInteractions] RandomSelectionWeight for Mako and Jack: 0.55572
+[SocialInteractions] RandomSelectionWeight for Mako and Jack: 0.5312208
+[SocialInteractions] RandomSelectionWeight for Kiki and Jolt: 0.3841685
+[SocialInteractions] RandomSelectionWeight for Kiki and Jolt: 0.1099491
+[SocialInteractions] RandomSelectionWeight for Kiki and Jolt: 0.1492561
+[SocialInteractions] RandomSelectionWeight for Kiki and Jolt: 0.8179418
+[SocialInteractions] RandomSelectionWeight for Hilda and Manu: 0.5483294
+[SocialInteractions] RandomSelectionWeight for Hilda and Manu: 0.2984385
+[SocialInteractions] RandomSelectionWeight for Hilda and Manu: 0.9797651
+[SocialInteractions] RandomSelectionWeight for Hilda and Manu: 0.5669613
+[SocialInteractions] RandomSelectionWeight for Hilda and Manu: 0.2569169
+[SocialInteractions] RandomSelectionWeight for Hilda and Manu: 0.6409705
+[SocialInteractions] RandomSelectionWeight for Kiki and Jolt: 0.6570256
+[SocialInteractions] RandomSelectionWeight for Kiki and Jolt: 0.4994239
+[SocialInteractions] RandomSelectionWeight for Kiki and Jolt: 0.3985055
+[SocialInteractions] RandomSelectionWeight for Kiki and Jolt: 0.8023949
+[SocialInteractions] RandomSelectionWeight for Kiki and Manu: 0.1548133
+[SocialInteractions] RandomSelectionWeight for Kiki and Manu: 0.4669592
+[SocialInteractions] RandomSelectionWeight for Kiki and Manu: 0.167597
+[SocialInteractions] RandomSelectionWeight for Mako and Nonna: 0
+[SocialInteractions] RandomSelectionWeight for Mako and Nonna: 0
+[SocialInteractions] RandomSelectionWeight for Mako and Nonna: 0
+[SocialInteractions] RandomSelectionWeight for Stepan and Pollard: 0.6259941
+[SocialInteractions] RandomSelectionWeight for Stepan and Pollard: 0.9353576
+[SocialInteractions] RandomSelectionWeight for Stepan and Pollard: 0.553841
+[SocialInteractions] RandomSelectionWeight for Stepan and Pollard: 0.8591521
+[SocialInteractions] RandomSelectionWeight for Stepan and Pollard: 0.7199636
+[SocialInteractions] RandomSelectionWeight for Jolt and Briggs: 0
+[SocialInteractions] RandomSelectionWeight for Jolt and Briggs: 0
+[SocialInteractions] RandomSelectionWeight for Jolt and Briggs: 0
+[SocialInteractions] RandomSelectionWeight for Stepan and Zach: 0.9646927
+[SocialInteractions] RandomSelectionWeight for Stepan and Zach: 0.9962435
+[SocialInteractions] RandomSelectionWeight for Stepan and Zach: 0.1998246
+[SocialInteractions] RandomSelectionWeight for Stepan and Zach: 0.07316943
+[SocialInteractions] RandomSelectionWeight for Stepan and Zach: 0.6082946
+[SocialInteractions] RandomSelectionWeight for Stepan and Zach: 0.1325946
+[SocialInteractions] RandomSelectionWeight for Stepan and Zach: 0.03710485
+[SocialInteractions] RandomSelectionWeight for Stepan and Zach: 0.3372276
+[SocialInteractions] RandomSelectionWeight for Stepan and Zach: 0.1175796
+[SocialInteractions] RandomSelectionWeight for Pollard and Kiki: 0
+[SocialInteractions] RandomSelectionWeight for Pollard and Kiki: 0
+[SocialInteractions] RandomSelectionWeight for Pollard and Kiki: 0
+[SocialInteractions] RandomSelectionWeight for Hilda and Nonna: 0
+[SocialInteractions] RandomSelectionWeight for Hilda and Nonna: 0
+[SocialInteractions] RandomSelectionWeight for Hilda and Nonna: 0
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.9627165
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.04221075
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.4157294
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.5366279
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.8394802
+[SocialInteractions] RandomSelectionWeight for Briggs and Pollard: 0.9493039
+[SocialInteractions] RandomSelectionWeight for Briggs and Pollard: 0.3561547
+[SocialInteractions] RandomSelectionWeight for Briggs and Pollard: 0.05461429
+AskForDate job created for Zach
+[SocialInteractions] JobDriver_AskForDate: MakeNewToils entered.
+[SocialInteractions] RandomSelectionWeight for Tom and Kiki: 0
+[SocialInteractions] RandomSelectionWeight for Tom and Kiki: 0
+[SocialInteractions] RandomSelectionWeight for Tom and Kiki: 0
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] Initiator (Zach) current job: AskForDate (Job_10966182) A = Thing_Human56481 Giver = JobGiver_GetJoy [workGiverDef: null]
+[SocialInteractions] Recipient (Manu) current job: GotoWander (Job_10966207) A = (103, 0, 59) Giver = JobGiver_WanderColony [workGiverDef: null]
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: AskForDate
+[SocialInteractions] IsLlmInteractionEnabled called for: AskForDate
+[SocialInteractions] TryInteractWith (AskForDate) logged: True
+[SocialInteractions] Date acceptance for Zach and Manu: False
+[SocialInteractions] Date rejected by Manu. Defaulting to chitchat.
+[SocialInteractions] JobDriver_AskForDate: MakeNewToils entered.
+[SocialInteractions] Initiator (Zach) current job: AskForDate (Job_10966237) A = Thing_Human56481 Giver = JobGiver_GetJoy [workGiverDef: null]
+[SocialInteractions] Recipient (Manu) current job: GotoWander (Job_10966207) A = (103, 0, 59) Giver = JobGiver_WanderColony [workGiverDef: null]
+[SocialInteractions] TryInteractWith (AskForDate) logged: False
+[SocialInteractions] Date acceptance for Zach and Manu: False
+[SocialInteractions] Date rejected by Manu. Defaulting to chitchat.
+[SocialInteractions] JobDriver_AskForDate: MakeNewToils entered.
+[SocialInteractions] Initiator (Zach) current job: AskForDate (Job_10966249) A = Thing_Human56481 Giver = JobGiver_GetJoy [workGiverDef: null]
+[SocialInteractions] Recipient (Manu) current job: GotoWander (Job_10966207) A = (103, 0, 59) Giver = JobGiver_WanderColony [workGiverDef: null]
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: AskForDate
+[SocialInteractions] IsLlmInteractionEnabled called for: AskForDate
+[SocialInteractions] TryInteractWith (AskForDate) logged: True
+[SocialInteractions] Date acceptance for Zach and Manu: True
+[SocialInteractions] Joy spot found: True
+[SocialInteractions] JobDriver_OnDate: MakeNewToils entered.
+[SocialInteractions] JobDriver_OnDate: Partner: Manu, JoySpot: Harpsichord2891301, JoySpotDef: Harpsichord
+[SocialInteractions] JobDriver_OnDate: JoyGiverDef found: Play_MusicalInstrument
+[SocialInteractions] Initiator job started: True. Current job: OnDate (Job_10966253) A = Thing_Human56481 B = Thing_Harpsichord2891301 Giver = ThinkNode_QueuedJob [workGiverDef: null]
+[SocialInteractions] JobDriver_OnDate: MakeNewToils entered.
+[SocialInteractions] JobDriver_OnDate: Partner: Zach, JoySpot: Harpsichord2891301, JoySpotDef: Harpsichord
+[SocialInteractions] JobDriver_OnDate: JoyGiverDef found: Play_MusicalInstrument
+[SocialInteractions] Recipient job started: True. Current job: OnDate (Job_10966254) A = Thing_Human259695 B = Thing_Harpsichord2891301 Giver = ThinkNode_QueuedJob [workGiverDef: null]
+[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for DateAccepted: True
+[SocialInteractions] Generated prompt: The following is a going on a date interraction between two RimWorld characters, Manu and Zach. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so 
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.2883113
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.6880667
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.9891564
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.2186493
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.001545895
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.3628271
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.5399582
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.461329
+[SocialInteractions] RandomSelectionWeight for Stepan and Jack: 0.1559522
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: AskForDate
+[SocialInteractions] IsLlmInteractionEnabled called for: AskForDate
+[SocialInteractions] RandomSelectionWeight for Mako and Zach: 0.7416726
+[SocialInteractions] RandomSelectionWeight for Mako and Zach: 0.1154693
+[SocialInteractions] RandomSelectionWeight for Mako and Zach: 0.3797382
+[SocialInteractions] RandomSelectionWeight for Mako and Zach: 0.8117266
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: AskForDate
+[SocialInteractions] IsLlmInteractionEnabled called for: AskForDate
+[SocialInteractions] LLM Response:  (playing harpsichord, then looking at Zach) Hey, you want to try this?
+
+Zach: (not looking at her, but still playing harpsichord) No, it's not your turn. You said you'd play this one.
+
+
+Manu: (s
+[SocialInteractions] RandomSelectionWeight for Tom and Zach: 0.4664809
+[SocialInteractions] RandomSelectionWeight for Tom and Zach: 0.6770174
+[SocialInteractions] RandomSelectionWeight for Tom and Zach: 0.9792012
+[SocialInteractions] RandomSelectionWeight for Tom and Zach: 0.1405144
+[SocialInteractions] RandomSelectionWeight for Tom and Zach: 0.2615105
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: DateRejected
+[SocialInteractions] IsLlmInteractionEnabled called for: DateRejected
+[SocialInteractions] HandleNonStoppingInteraction called for: DateRejected. preventSpam: True, isLlmBusy: False
+[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for DateRejected: True
+[SocialInteractions] RandomSelectionWeight for Mako and Hilda: 0.396365
+[SocialInteractions] RandomSelectionWeight for Mako and Hilda: 0.08396687
+[SocialInteractions] RandomSelectionWeight for Mako and Hilda: 0.5216094
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat

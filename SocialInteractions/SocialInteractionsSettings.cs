@@ -46,6 +46,7 @@ It's currently [time], on [date] and the weather is [weather].
 </end>";
         public bool enableCombatTaunts = true;
         public bool enableXtcSampling = false;
+        public bool enableDating = true;
 
 
         public override void ExposeData()
@@ -60,7 +61,7 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref wordsPerLineLimit, "wordsPerLineLimit", 10);
             
             Scribe_Values.Look(ref llmTemperature, "llmTemperature", 0.7f);
-            Scribe_Values.Look(ref llmMaxTokens, "llmMaxTokens", 200);
+            Scribe_Values.Look(ref llmMaxTokens, "llmMaxTokens", 300);
 
             Scribe_Values.Look(ref enableChitchat, "enableChitchat", true);
             Scribe_Values.Look(ref enableDeepTalk, "enableDeepTalk", true);
@@ -76,6 +77,7 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);
             Scribe_Values.Look(ref enableXtcSampling, "enableXtcSampling", false);
+            Scribe_Values.Look(ref enableDating, "enableDating", true);
         }
     }
 
@@ -97,7 +99,7 @@ It's currently [time], on [date] and the weather is [weather].
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
-            Rect viewRect = new Rect(inRect.x, inRect.y, inRect.width - 16f, inRect.height * 2); // Adjust height as needed
+            Rect viewRect = new Rect(inRect.x, inRect.y, inRect.width - 16f, inRect.height * 5); // Adjust height as needed
             Widgets.BeginScrollView(inRect, ref scrollPosition, viewRect);
 
             Listing_Standard listingStandard = new Listing_Standard();
@@ -163,6 +165,7 @@ It's currently [time], on [date] and the weather is [weather].
             listingStandard.CheckboxLabeled("Rescue", ref settings.enableRescue);
             listingStandard.CheckboxLabeled("VisitSickPawn", ref settings.enableVisitSickPawn);
             listingStandard.CheckboxLabeled("Lovin", ref settings.enableLovin);
+            listingStandard.CheckboxLabeled("Dating", ref settings.enableDating);
 
             listingStandard.End();
 

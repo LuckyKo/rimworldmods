@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <JoyGiverDef>
+    <defName>GoOnDate</defName>
+    <giverClass>SocialInteractions.JoyGiver_GoOnDate</giverClass>
+    <baseChance>50</baseChance>
+    <jobDef>AskForDate</jobDef>
+    <joyKind>Social</joyKind>
+  </JoyGiverDef>
+
+</Defs>

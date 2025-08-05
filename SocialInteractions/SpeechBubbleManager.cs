@@ -14,6 +14,7 @@ namespace SocialInteractions
         private static float nextQueuedBubbleDisplayTime = 0f;
         private static int currentConversationId = 0;
         private static HashSet<int> activeConversations = new HashSet<int>();
+        private static Queue<Action> pendingJobs = new Queue<Action>();
 
         public static bool isLlmBusy = false;
 
@@ -25,6 +26,7 @@ namespace SocialInteractions
             currentConversationId = 0;
             activeConversations.Clear();
             isLlmBusy = false;
+            pendingJobs.Clear();
         }
 
         public override void GameComponentTick()
@@ -70,6 +72,17 @@ namespace SocialInteractions
 
             // Set isLlmBusy based on whether there are any active bubbles or conversations
             isLlmBusy = speechBubbleQueue.Count > 0 || activeConversations.Count > 0;
+
+            // Process pending jobs
+            while (pendingJobs.Count > 0)
+            {
+                pendingJobs.Dequeue()();
+            }
+        }
+
+        public static void EnqueueJob(Action jobAction)
+        {
+            pendingJobs.Enqueue(jobAction);
         }
 
         public static int StartConversation()

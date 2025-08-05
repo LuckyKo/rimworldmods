@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <InteractionDef>
+    <defName>Rescue</defName>
+    <label>rescuing</label>
+    <workerClass>InteractionWorker</workerClass>
+    <symbol>Things/Mote/SpeechSymbols/Speech</symbol>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->Rescued [RECIPIENT_nameDef].</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->Was rescued by [INITIATOR_nameDef].</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
+  <InteractionDef>
+    <defName>VisitSickPawn</defName>
+    <label>visiting sick pawn</label>
+    <workerClass>InteractionWorker</workerClass>
+    <symbol>Things/Mote/SpeechSymbols/Speech</symbol>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->Visited [RECIPIENT_nameDef].</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->Was visited by [INITIATOR_nameDef].</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
+</Defs>

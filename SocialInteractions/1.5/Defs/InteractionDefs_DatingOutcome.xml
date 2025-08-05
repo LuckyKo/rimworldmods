@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <InteractionDef>
+    <defName>DateRejected</defName>
+    <label>asking for a date and getting rejected</label>
+    <workerClass>SocialInteractions.InteractionWorker_AskForDate</workerClass>
+    <symbol>Things/Mote/SpeechSymbols/Insult</symbol>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->Asked [RECIPIENT_nameDef] on a date and was rejected.</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->Rejected [INITIATOR_nameDef]'s date proposal.</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
+  <InteractionDef>
+    <defName>DateAccepted</defName>
+    <label>going on a date</label>
+    <workerClass>SocialInteractions.InteractionWorker_AskForDate</workerClass>
+    <symbol>Things/Mote/SpeechSymbols/Romance</symbol>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->Went on a date with [RECIPIENT_nameDef].</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->Went on a date with [INITIATOR_nameDef].</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
+</Defs>

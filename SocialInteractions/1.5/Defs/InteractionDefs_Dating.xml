@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <InteractionDef>
+    <defName>AskForDate</defName>
+    <label>ask for a date</label>
+    <workerClass>SocialInteractions.InteractionWorker_AskForDate</workerClass>
+    <symbol>Things/Mote/SpeechSymbols/Romance</symbol>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->Asked [RECIPIENT_nameDef] on a date.</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->Was asked on a date by [INITIATOR_nameDef].</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
+</Defs>

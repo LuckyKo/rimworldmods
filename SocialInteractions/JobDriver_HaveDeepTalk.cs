@@ -51,15 +51,23 @@ namespace SocialInteractions
             // Get LLM response
             Toil getLlmResponseToil = new Toil();
             getLlmResponseToil.initAction = () => {
+                if (this.job == null) return; // Job may have been replaced
                 try
                 {
                     llmTaskComplete = false;
 
                     Pawn recipientForTask = recipient;
                     Job_HaveDeepTalk customJob = this.job as Job_HaveDeepTalk;
+                    if (this.job == null)
+                    {
+                        Log.Error("Job is null. Ending job.");
+                        pawn.jobs.EndCurrentJob(JobCondition.Errored);
+                        return;
+                    }
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_HaveDeepTalk: Current job type is {0}", this.job.GetType().Name));
                     if (customJob == null)
                     {
-                        Log.Error("Job is not a Job_HaveDeepTalk. Ending job.");
+                        Log.Error(string.Format("Job is not a Job_HaveDeepTalk. Actual type: {0}. Ending job.", this.job.GetType().Name));
                         pawn.jobs.EndCurrentJob(JobCondition.Errored);
                         return;
                     }

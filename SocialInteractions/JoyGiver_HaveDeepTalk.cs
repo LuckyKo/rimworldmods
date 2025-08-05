@@ -16,7 +16,7 @@ namespace SocialInteractions
             Pawn bestLover = LovePartnerRelationUtility.GetPartnerInMyBed(pawn);
             if (bestLover != null && pawn.relations.OpinionOf(bestLover) > 20)
             {
-                return JobMaker.MakeJob(def.jobDef, bestLover);
+                return new Job_HaveDeepTalk(def.jobDef, bestLover);
             }
 
             return null;

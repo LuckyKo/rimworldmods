@@ -50,7 +50,7 @@ namespace SocialInteractions
 
             Pawn rescuer = pawn;
             Pawn patient = (Pawn)__result.targetA.Thing;
-            SocialInteractions.HandleJobGiverInteraction(rescuer, patient, "Rescuing", "Rescuing patient");
+            SocialInteractions.HandleJobGiverInteraction(rescuer, patient, SI_InteractionDefOf.Rescue, "Rescuing patient");
         }
     }
 
@@ -66,7 +66,7 @@ namespace SocialInteractions
 
             Pawn visitor = pawn;
             Pawn patient = (Pawn)__result.targetA.Thing;
-            SocialInteractions.HandleJobGiverInteraction(visitor, patient, "Visiting sick pawn", "Visiting sick pawn");
+            SocialInteractions.HandleJobGiverInteraction(visitor, patient, SI_InteractionDefOf.VisitSickPawn, "Visiting sick pawn");
         }
     }
 
