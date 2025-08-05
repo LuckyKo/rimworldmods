@@ -338,7 +338,7 @@ namespace SocialInteractions
             List<Thought> thoughts = new List<Thought>();
             pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
 
-            var negativeThoughts = thoughts.Select(t =>
+            var negativeThoughts = new List<Thought>(thoughts).Select(t =>
             {
                 try
                 {
@@ -408,7 +408,7 @@ namespace SocialInteractions
             List<Thought> thoughts = new List<Thought>();
             pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
 
-            var positiveThoughts = thoughts.Select(t =>
+            var positiveThoughts = new List<Thought>(thoughts).Select(t =>
             {
                 try
                 {

@@ -11,24 +11,12 @@ namespace SocialInteractions
     {
         public override float RandomSelectionWeight(Pawn initiator, Pawn recipient)
         {
-            float weight = 0f;
-            // Do not allow pawns to ask themselves out
-            if (initiator == recipient) weight = 0f;
-
-            // Check if either pawn is already on a date
-            else if (initiator.jobs.curJob.def.defName == "OnDate" || recipient.jobs.curJob.def.defName == "OnDate") weight = 0f;
-
-            // Check for age compatibility
-            else if (initiator.ageTracker.AgeBiologicalYearsFloat < 16f || recipient.ageTracker.AgeBiologicalYearsFloat < 16f) weight = 0f;
-
-            // Check for opinion
-            else if (initiator.relations.OpinionOf(recipient) < 10) weight = 0f;
-
-            // Add a random factor
-            else weight = 1.0f * Rand.Value;
-
-            Log.Message(string.Format("[SocialInteractions] RandomSelectionWeight for {0} and {1}: {2}", initiator.Name.ToStringShort, recipient.Name.ToStringShort, weight));
-            return weight;
+            if (initiator == recipient) return 0f;
+            if (initiator.jobs != null && initiator.jobs.curJob != null && initiator.jobs.curJob.def.defName == "OnDate") return 0f;
+            if (recipient.jobs != null && recipient.jobs.curJob != null && recipient.jobs.curJob.def.defName == "OnDate") return 0f;
+            if (initiator.ageTracker.AgeBiologicalYearsFloat < 16f || recipient.ageTracker.AgeBiologicalYearsFloat < 16f) return 0f;
+            if (initiator.relations.OpinionOf(recipient) < 10) return 0f;
+            return 1.0f * Rand.Value;
         }
 
         public override void Interacted(Pawn initiator, Pawn recipient, List<RulePackDef> extraSentencePacks, out string letterText, out string letterLabel, out LetterDef letterDef, out LookTargets lookTargets)
@@ -37,8 +25,6 @@ namespace SocialInteractions
             letterLabel = null;
             letterDef = null;
             lookTargets = null;
-
-            // We now handle the job creation in the JobDriver_AskForDate
         }
     }
 }

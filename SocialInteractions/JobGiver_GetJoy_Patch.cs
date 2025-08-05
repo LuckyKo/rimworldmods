@@ -29,12 +29,7 @@ namespace SocialInteractions
 
                 if (Rand.Value < chance)
                 {
-                    // Assign the wait job to the partner
-                    partner.jobs.TryTakeOrderedJob(new Job(DefDatabase<JobDef>.GetNamed("WaitForDate")), JobTag.Misc);
-
-                    // Ask them on a date
                     __result = new Job(DefDatabase<JobDef>.GetNamed("AskForDate"), partner);
-                    Log.Message(string.Format("AskForDate job created for {0}", pawn.Name.ToStringShort));
                     return false; // Skip original method
                 }
             }

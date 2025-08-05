@@ -2,107 +2,155 @@ using RimWorld;
 using Verse;
 using Verse.AI;
 using System.Linq;
+using System.Collections.Generic;
+using System;
 
 namespace SocialInteractions
 {
     public class JobDriver_AskForDate : JobDriver
     {
+        private bool accepted = false;
+        private Thing chosenJoySpot = null;
+        private JoyGiverDef chosenJoyGiverDef = null;
+
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
+            Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: TryMakePreToilReservations for {0} and {1}", this.pawn.Name.ToStringShort, ((Pawn)this.job.targetA.Thing).Name.ToStringShort));
             return this.pawn.Reserve(this.job.targetA, this.job, 1, -1, null, errorOnFailed);
         }
 
-        protected override System.Collections.Generic.IEnumerable<Toil> MakeNewToils()
+        public override void ExposeData()
         {
-            Log.Message("[SocialInteractions] JobDriver_AskForDate: MakeNewToils entered.");
+            base.ExposeData();
+            Scribe_Values.Look(ref accepted, "accepted", false);
+            Scribe_References.Look(ref chosenJoySpot, "chosenJoySpot");
+            Scribe_Defs.Look(ref chosenJoyGiverDef, "chosenJoyGiverDef");
+        }
+
+        protected override IEnumerable<Toil> MakeNewToils()
+        {
+            Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: MakeNewToils for {0} and {1}", this.pawn.Name.ToStringShort, ((Pawn)this.job.targetA.Thing).Name.ToStringShort));
             this.FailOnDespawnedOrNull(TargetIndex.A);
 
             yield return Toils_Goto.GotoThing(TargetIndex.A, PathEndMode.InteractionCell);
 
-            Toil askOut = new Toil();
-            askOut.initAction = () =>
+            // Toil 1: Make the decision
+            Toil decide = new Toil();
+            decide.initAction = () =>
             {
                 Pawn recipient = (Pawn)this.job.targetA.Thing;
-                Log.Message(string.Format("[SocialInteractions] Initiator ({0}) current job: {1}", this.pawn.Name.ToStringShort, this.pawn.jobs.curJob != null ? this.pawn.jobs.curJob.ToString() : "None"));
-                Log.Message(string.Format("[SocialInteractions] Recipient ({0}) current job: {1}", recipient.Name.ToStringShort, recipient.jobs.curJob != null ? recipient.jobs.curJob.ToString() : "None"));
-                
-                bool interactionLogged = this.pawn.interactions.TryInteractWith(recipient, DefDatabase<InteractionDef>.GetNamed("AskForDate"));
-                Log.Message(string.Format("[SocialInteractions] TryInteractWith (AskForDate) logged: {0}", interactionLogged));
-                if (!interactionLogged)
+                float acceptanceChance = 0.5f + (recipient.relations.OpinionOf(this.pawn) / 200f);
+                this.accepted = Rand.Value < acceptanceChance;
+                Log.Message(string.Format("[SocialInteractions] AskForDate: {0} asks {1} on a date. Acceptance chance: {2:P2}, Accepted: {3}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, acceptanceChance, this.accepted));
+
+                if (this.accepted)
                 {
-                    Log.Message(string.Format("[SocialInteractions] AskForDate interaction not logged for {0} with {1}. Ending job.", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
-                    this.EndJobWith(JobCondition.Incompletable);
-                    return; // Exit initAction early
-                };
-            };
-            askOut.defaultCompleteMode = ToilCompleteMode.Instant;
-            yield return askOut;
-
-            yield return Toils_General.Wait(10); // Wait a few ticks for the interaction to process
-
-            Toil handleResponse = new Toil();
-            handleResponse.initAction = () =>
-            {
-                Pawn recipient = (Pawn)this.job.targetA.Thing;
-                bool accepted = recipient.relations.OpinionOf(this.pawn) > 10 && Rand.Value > 0.5f;
-                Log.Message(string.Format("[SocialInteractions] Date acceptance for {0} and {1}: {2}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, accepted));
-
-                if (accepted)
-                {
-                    // Find a suitable spot for the date
-                    Thing joySpot = FindJoySpotFor(this.pawn, recipient);
-                    Log.Message(string.Format("[SocialInteractions] Joy spot found: {0}", joySpot != null));
-                    if (joySpot != null)
+                    try
                     {
-                        Job initiatorJob = new Job(DefDatabase<JobDef>.GetNamed("OnDate"), recipient, joySpot);
-
-                        bool initiatorJobStarted = this.pawn.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
-                        Log.Message(string.Format("[SocialInteractions] Initiator job started: {0}. Current job: {1}", initiatorJobStarted, this.pawn.jobs.curJob));
-
-                        Job recipientJob = new Job(DefDatabase<JobDef>.GetNamed("OnDate"), this.pawn, joySpot);
-                        recipient.jobs.EndCurrentJob(JobCondition.InterruptForced);
-                        bool recipientJobStarted = recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
-                        Log.Message(string.Format("[SocialInteractions] Recipient job started: {0}. Current job: {1}", recipientJobStarted, recipient.jobs.curJob));
-
-                        if (initiatorJobStarted && recipientJobStarted)
+                        var potentialSpots = FindJoySpotFor(this.pawn, recipient).ToList();
+                        Log.Message(string.Format("[SocialInteractions] AskForDate: Found {0} potential joy spots.", potentialSpots.Count()));
+                        if (potentialSpots.Any())
                         {
-                            // Notify the player
-                            Messages.Message(string.Format("{0} and {1} are now going on a date.", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
+                            var chosenSpotAndGiver = potentialSpots.RandomElement();
+                            this.chosenJoySpot = chosenSpotAndGiver.Item1;
+                            this.chosenJoyGiverDef = chosenSpotAndGiver.Item2;
+                            Log.Message(string.Format("[SocialInteractions] AskForDate: Chosen spot: {0} with giver {1}", this.chosenJoySpot.def.defName, this.chosenJoyGiverDef.defName));
                         }
                         else
                         {
-                            Log.Message(string.Format("[SocialInteractions] Date job failed for {0} and {1}. Initiator job started: {2}, Recipient job started: {3}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, initiatorJobStarted, recipientJobStarted));
-                            this.pawn.interactions.TryInteractWith(recipient, SI_InteractionDefOf.DateRejected);
+                            Log.Message("[SocialInteractions] AskForDate: No suitable joy spots found.");
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(string.Format("[SocialInteractions] AskForDate: Exception in FindJoySpotFor: {0}", ex.Message));
+                    }
+                }
+            };
+            decide.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return decide;
+
+            // Toil 2: Act on the decision
+            Toil act = new Toil();
+            act.initAction = () =>
+            {
+                Pawn recipient = (Pawn)this.job.targetA.Thing;
+                if (this.accepted)
+                {
+                    this.pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, true);
+                    recipient.jobs.EndCurrentJob(JobCondition.InterruptForced, true);
+
+                    if (this.chosenJoySpot != null)
+                    {
+                        Log.Message("[SocialInteractions] AskForDate: Assigning joy jobs.");
+                        // Assign joy jobs
+                        Job initiatorJob = new Job(this.chosenJoyGiverDef.jobDef, this.chosenJoySpot, recipient);
+                        this.pawn.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
+                        Log.Message(string.Format("[SocialInteractions] AskForDate: Initiator job: {0} on {1} with {2}", initiatorJob.def.defName, initiatorJob.targetA.Thing.def.defName, recipient.Name.ToStringShort));
+
+                        Job recipientJob = new Job(DefDatabase<JobDef>.GetNamed("FollowAndWatch"), this.pawn);
+                        recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
+                        Log.Message(string.Format("[SocialInteractions] AskForDate: Recipient job: {0} on {1} with {2}", recipientJob.def.defName, this.pawn.Name.ToStringShort, this.pawn.Name.ToStringShort));
+
+                        Messages.Message(string.Format("{0} and {1} are now going on a date.", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
                     }
                     else
                     {
-                        Log.Message(string.Format("[SocialInteractions] No joy giver def found for {0}. Defaulting to chitchat.", joySpot.def.defName));
-                        this.pawn.interactions.TryInteractWith(recipient, SI_InteractionDefOf.DateRejected);
+                        Log.Message("[SocialInteractions] AskForDate: Assigning fallback walk jobs.");
+                        // Assign fallback walk jobs
+                        IntVec3 wanderRoot = pawn.Position;
+                        if (!RCellFinder.TryFindRandomPawnEntryCell(out wanderRoot, pawn.Map, 0.5f))
+                        {
+                            wanderRoot = pawn.Position;
+                        }
+                        Job initiatorJob = new Job(JobDefOf.GotoWander, wanderRoot);
+                        this.pawn.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
+
+                        Job recipientJob = new Job(DefDatabase<JobDef>.GetNamed("FollowAndWatch"), this.pawn);
+                        recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
+                        
+                        Messages.Message(string.Format("{0} and {1} are now going for a walk together.", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
                     }
                 }
                 else
                 {
-                    // The date was rejected
-                    Log.Message(string.Format("[SocialInteractions] Date rejected by {0}. Defaulting to chitchat.", recipient.Name.ToStringShort));
+                    Log.Message("[SocialInteractions] AskForDate: Date rejected.");
                     this.pawn.interactions.TryInteractWith(recipient, SI_InteractionDefOf.DateRejected);
                 }
             };
-            handleResponse.defaultCompleteMode = ToilCompleteMode.Instant;
-            yield return handleResponse;
+            act.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return act;
         }
 
-        private Thing FindJoySpotFor(Pawn pawn, Pawn partner)
+        private IEnumerable<Tuple<Thing, JoyGiverDef>> FindJoySpotFor(Pawn pawn, Pawn partner)
         {
-            return pawn.Map.listerThings.AllThings
-                .Where(t => t.def.building != null &&
-                             DefDatabase<JoyGiverDef>.AllDefsListForReading.Any(j => j.thingDefs != null && j.thingDefs.Contains(t.def)) &&
-                             t.def.GetStatValueAbstract(StatDefOf.JoyGainFactor) > 0 &&
-                             JoyUtility.EnjoyableOutsideNow(pawn.Map) &&
-                             pawn.CanReserveAndReach(t, PathEndMode.InteractionCell, Danger.None) &&
-                             partner.CanReserveAndReach(t, PathEndMode.InteractionCell, Danger.None))
-                .OrderBy(t => t.Position.DistanceTo(pawn.Position))
-                .FirstOrDefault();
+            // 1. Find all social joy buildings on the map
+            var socialJoyBuildings = pawn.Map.listerBuildings.allBuildingsColonist
+                .Where(b => b.def.GetStatValueAbstract(StatDefOf.JoyGainFactor) > 0 && b.def.building.joyKind == JoyKindDefOf.Social);
+
+            foreach (var building in socialJoyBuildings)
+            {
+                // 2. Check if both pawns can reserve and reach the building
+                if (pawn.CanReserveAndReach(building, PathEndMode.InteractionCell, Danger.None))
+                {
+                    // 3. Find a suitable JoyGiverDef for this building
+                    var suitableJoyGivers = DefDatabase<JoyGiverDef>.AllDefsListForReading
+                        .Where(jg =>
+                            jg.joyKind == JoyKindDefOf.Social &&
+                            jg.thingDefs != null &&
+                            jg.thingDefs.Contains(building.def) &&
+                            jg.jobDef != JobDefOf.Lovin && // Exclude Lovin
+                            jg.jobDef.defName != "VisitSickPawn" && // Exclude VisitSickPawn
+                            jg.jobDef.defName != "StandAndChat" // Exclude StandAndChat
+                        );
+
+                    foreach (var giver in suitableJoyGivers)
+                    {
+                        yield return new Tuple<Thing, JoyGiverDef>(building, giver);
+                    }
+                }
+            }
+            yield break; // Return empty if no spots found
         }
     }
 }

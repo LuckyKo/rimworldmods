@@ -15,6 +15,10 @@ namespace SocialInteractions
         {
         }
 
-        
+        public Job_HaveDeepTalk(JobDef def, LocalTargetInfo targetA, InteractionDef interactionDef, string subject) : base(def, targetA)
+        {
+            this.interactionDef = interactionDef;
+            this.subject = subject;
+        }
     }
 }

@@ -19,9 +19,10 @@ InteractionWorkers.cs
 SI_InteractionDefOf.cs
 CombatPatches.cs
 InteractionWorker_AskForDate.cs
+
+JobDriver_FollowAndWatch.cs
 JobDriver_AskForDate.cs
-JobDriver_OnDate.cs
+
 JobGiver_GetJoy_Patch.cs
-JobDriver_WaitForDate.cs
+
 JoyGiver_GoOnDate.cs
-Job_OnDate.cs
