@@ -6,6 +6,39 @@ using Verse.AI;
 
 namespace SocialInteractions
 {
+    [HarmonyPatch(typeof(PlayLog), "Add")]
+    public static class PlayLog_Add_Patch
+    {
+        [HarmonyPostfix]
+        public static void Postfix(PlayLog __instance, LogEntry entry)
+        {
+            if (entry.GetType().Name == "PlayLogEntry_Interaction")
+            {
+                var intDefField = entry.GetType().GetField("intDef", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var interactionDef = intDefField.GetValue(entry) as InteractionDef;
+
+                var initiatorField = entry.GetType().GetField("initiator", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                Pawn initiator = initiatorField.GetValue(entry) as Pawn;
+
+                var recipientField = entry.GetType().GetField("recipient", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                Pawn recipient = recipientField.GetValue(entry) as Pawn;
+
+                if (initiator != null && recipient != null)
+                {
+                    if (interactionDef == SI_InteractionDefOf.DateAccepted)
+                    {
+                        string subject = SpeechBubbleManager.GetDateSubject(initiator, recipient);
+                        SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, interactionDef, subject);
+                    }
+                    else
+                    {
+                        SocialInteractions.HandleInteraction(initiator, recipient, interactionDef);
+                    }
+                }
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(JobDriver_TendPatient), "MakeNewToils")]
     public static class JobDriver_TendPatient_Patch
     {

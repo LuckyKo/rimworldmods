@@ -80,6 +80,19 @@ namespace SocialInteractions
             }
         }
 
+        public static string GetDateSubject(Pawn initiator, Pawn recipient)
+        {
+            if (initiator.CurJob != null && initiator.CurJob.targetA.Thing != null)
+            {
+                Building joyBuilding = initiator.CurJob.targetA.Thing as Building;
+                if (joyBuilding != null)
+                {
+                    return string.Format("{0} is on a date with {1} doing {2}", initiator.Name.ToStringShort, recipient.Name.ToStringShort, joyBuilding.def.label);
+                }
+            }
+            return string.Format("{0} is on a date with {1}", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+        }
+
         public static void EnqueueJob(Action jobAction)
         {
             pendingJobs.Enqueue(jobAction);

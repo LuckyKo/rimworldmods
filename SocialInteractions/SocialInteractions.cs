@@ -442,6 +442,23 @@ namespace SocialInteractions
             return string.Join(", ", skillLabels);
         }
 
+        public static void HandleInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef)
+        {
+            if (IsLlmInteractionEnabled(interactionDef))
+            {
+                string subject = interactionDef.label;
+                HandleNonStoppingInteraction(initiator, recipient, interactionDef, subject);
+            }
+            else
+            {
+                string text = interactionDef.label;
+                if (!string.IsNullOrEmpty(text))
+                {
+                    SpeechBubbleManager.ShowDefaultBubble(initiator, text);
+                }
+            }
+        }
+
         public static void HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
             Log.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy));
@@ -567,69 +584,8 @@ namespace SocialInteractions
             // Use a regular expression to find text enclosed in asterisks, parentheses, or square brackets.
             text = Regex.Replace(text, @"\*(.*?)\*", "<color=#A9F0F0>$1</color>"); // light cyan for emphasis
             text = Regex.Replace(text, @"\((.*?)\)", "<color=#F0E68C>$1</color>"); // khaki for actions/emotes
-            text = Regex.Replace(text, @"\[(.*?)\]", "<color=#DDA0DD>$1</color>"); // plum for thoughts/internal
+            text = Regex.Replace(text, @"\\[(.*?)\\]", "<color=#DDA0DD>$1</color>"); // plum for thoughts/internal
             return text;
-        }
-    }
-			
-    [HarmonyPatch(typeof(PlayLog), "Add")]
-    public static class PlayLog_Add_Patch
-    {
-        private static readonly object llmLock = new object();
-        public static void Postfix(LogEntry entry)
-        {
-            if (entry == null) return;
-
-            lock (llmLock)
-            {
-                if (SpeechBubbleManager.isLlmBusy) return;
-
-                if (entry.GetType().Name == "PlayLogEntry_Interaction")
-                {
-                    var intDefField = entry.GetType().GetField("intDef", BindingFlags.NonPublic | BindingFlags.Instance);
-                    var interactionDef = intDefField.GetValue(entry) as InteractionDef;
-
-                    var initiatorField = entry.GetType().GetField("initiator", BindingFlags.NonPublic | BindingFlags.Instance);
-                    Pawn initiator = initiatorField.GetValue(entry) as Pawn;
-
-                    var recipientField = entry.GetType().GetField("recipient", BindingFlags.NonPublic | BindingFlags.Instance);
-                    Pawn recipient = recipientField.GetValue(entry) as Pawn;
-
-                    if ( initiator != null && recipient != null && interactionDef != null)
-                    {
-                        Log.Message(string.Format("[SocialInteractions] PlayLog_Add_Patch: InteractionDef: {0}", interactionDef.defName));
-                        if (SocialInteractions.IsLlmInteractionEnabled(interactionDef))
-                        {
-                            string subject = SocialInteractions.RemoveRichTextTags(entry.ToGameStringFromPOV(initiator));
-                            SpeechBubbleManager.ShowDefaultBubble(initiator, subject);
-
-                            if (SocialInteractions.Settings.pawnsStopOnInteraction && (interactionDef == InteractionDefOf.DeepTalk || interactionDef == InteractionDefOf.RomanceAttempt))
-                            {
-                                Job_HaveDeepTalk initiatorJob = new Job_HaveDeepTalk(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
-                                initiatorJob.interactionDef = interactionDef;
-                                initiatorJob.subject = subject;
-                                initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
-
-                                Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
-                                recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
-                            }
-                            else
-                            {
-                                SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, interactionDef, subject);
-                            }
-                        }
-                        else
-                        {
-                            string text = entry.ToGameStringFromPOV(initiator);
-                            text = SocialInteractions.RemoveRichTextTags(text);
-                            if (!string.IsNullOrEmpty(text))
-                            {
-                                SpeechBubbleManager.ShowDefaultBubble(initiator, text);
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }

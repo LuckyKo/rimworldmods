@@ -1,56 +1,27 @@
-[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Insult
-[SocialInteractions] IsLlmInteractionEnabled called for: Insult
-[SocialInteractions] HandleNonStoppingInteraction called for: Insult. preventSpam: True, isLlmBusy: False
-[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for Insult: True
 [SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
 [SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] InteractionWorker_AskForDate: Pollard asked Jack on a date.
-[SocialInteractions] AskForDate: Pollard asks Jack on a date. Acceptance chance: 84.00 %, Accepted: True
-[SocialInteractions] AskForDate: Found 8 potential joy spots.
-[SocialInteractions] AskForDate: Chosen spot: MegascreenTelevision with giver WatchTelevision
-[SocialInteractions] JobDriver_AskForDate: Constructor called.
-[SocialInteractions] JobDriver_AskForDate: TryMakePreToilReservations for Pollard and Jack
-[SocialInteractions] JobDriver_AskForDate: Constructor called.
-[SocialInteractions] JobDriver_AskForDate: TryMakePreToilReservations for Pollard and Jack
-[SocialInteractions] JobDriver_AskForDate: MakeNewToils for Pollard and Jack
-[SocialInteractions] JobDriver_AskForDate: MakeNewToils - JobDef: AskForDate, TargetA: Human, TargetB: MegascreenTelevision
-[SocialInteractions] JobDriver_AskForDate: MakeNewToils - chosenJoySpot: MegascreenTelevision
-[SocialInteractions] AskForDate: Job assigned: True. Initiator current job: AskForDate
-[SocialInteractions] PlayLog_Add_Patch: InteractionDef: DateRejected
-[SocialInteractions] IsLlmInteractionEnabled called for: DateRejected
-[SocialInteractions] HandleNonStoppingInteraction called for: DateRejected. preventSpam: True, isLlmBusy: False
-[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for DateRejected: True
-[SocialInteractions] GetJoyGiverDefForSpot: Searching for giver for joySpot MegascreenTelevision for initiator Pollard and recipient Jack
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: Meditate
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping Meditate: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: Pray
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping Pray: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: Skygaze
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping Skygaze: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: GoForWalk
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping GoForWalk: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: VisitGrave
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping VisitGrave: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: ViewArt
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping ViewArt: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: BuildSnowman
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping BuildSnowman: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: SocialRelax
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping SocialRelax: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: VisitSickPawn
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping VisitSickPawn: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: Play_Horseshoes
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping Play_Horseshoes: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: Play_Hoopstone
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping Play_Hoopstone: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: Play_Billiards
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping Play_Billiards: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: Play_GameOfUr
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping Play_GameOfUr: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: Play_Chess
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping Play_Chess: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: Play_Poker
-[SocialInteractions] GetJoyGiverDefForSpot: Skipping Play_Poker: thingDefs is null or does not contain joySpot.def (MegascreenTelevision).
-[SocialInteractions] GetJoyGiverDefForSpot: Checking giver: WatchTelevision
-[SocialInteractions] GetJoyGiverDefForSpot: Found suitable giver: WatchTelevision
-[SocialInteractions] JobDriver_AskForDate: joySpotFound set to true.
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: DeepTalk
+[SocialInteractions] IsLlmInteractionEnabled called for: DeepTalk
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] PlayLog_Add_Patch: InteractionDef: AskForDate
+[SocialInteractions] IsLlmInteractionEnabled called for: AskForDate
+JobDriver threw exception in toil unnamed's initAction for pawn Zach driver=JobDriver_AskForDate (toilIndex=1) driver.job=(AskForDate (Job_10964905) A = Thing_Human1722243 Giver = ThinkNode_QueuedJob [workGiverDef: null])
+System.IndexOutOfRangeException: Index was outside the bounds of the array.
+[Ref FD303BF6]
+  at Verse.EdificeGrid.get_Item (Verse.IntVec3 c) [0x00017] in <fcfab19af5d14a608a65ebd77f29482f>:0 
+  at Verse.GridsUtility.GetEdifice (Verse.IntVec3 c, Verse.Map map) [0x00000] in <fcfab19af5d14a608a65ebd77f29482f>:0 
+  at Verse.AI.ReservationUtility.ReserveSittableOrSpot (Verse.Pawn pawn, Verse.IntVec3 exactSittingPos, Verse.AI.Job job, System.Boolean errorOnFailed) [0x00007] in <fcfab19af5d14a608a65ebd77f29482f>:0 
+  at RimWorld.JobDriver_SitFacingBuilding.TryMakePreToilReservations (System.Boolean errorOnFailed) [0x00048] in <fcfab19af5d14a608a65ebd77f29482f>:0 
+  at Verse.AI.Job.TryMakePreToilReservations (Verse.Pawn driverPawn, System.Boolean errorOnFailed) [0x00007] in <fcfab19af5d14a608a65ebd77f29482f>:0 
+  at Verse.AI.Pawn_JobTracker.TryTakeOrderedJob (Verse.AI.Job job, System.Nullable`1[T] tag, System.Boolean requestQueueing) [0x00123] in <fcfab19af5d14a608a65ebd77f29482f>:0 
+  at SocialInteractions.JobDriver_AskForDate.<MakeNewToils>b__0 () [0x000a4] in <b4df010ffb7645a5b5a15f238451257b>:0 
+  at Verse.AI.JobDriver.TryActuallyStartNextToil () [0x001b0] in <fcfab19af5d14a608a65ebd77f29482f>:0 
