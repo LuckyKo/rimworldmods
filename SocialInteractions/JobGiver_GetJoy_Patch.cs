@@ -29,7 +29,9 @@ namespace SocialInteractions
 
                 if (Rand.Value < chance)
                 {
-                    __result = new Job(DefDatabase<JobDef>.GetNamed("AskForDate"), partner);
+                    // Instead of creating a job, we'll create an interaction
+                    InteractionDef intDef = DefDatabase<InteractionDef>.GetNamed("AskForDate");
+                    pawn.interactions.TryInteractWith(partner, intDef);
                     return false; // Skip original method
                 }
             }

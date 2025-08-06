@@ -408,15 +408,7 @@ namespace SocialInteractions
             List<Thought> thoughts = new List<Thought>();
             pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
 
-            var positiveThoughts = new List<Thought>(thoughts).Select(t =>
-            {
-                try
-                {
-                    if (t != null && t.MoodOffset() > 0) return t.LabelCap;
-                }
-                catch (Exception) { }
-                return null;
-            }).Where(l => l != null).Take(3);
+            var positiveThoughts = thoughts.Where(t => t != null && t.MoodOffset() > 0).Select(t => t.LabelCap).Take(3);
 
             if (positiveThoughts.Any())
             {

@@ -24,26 +24,35 @@ namespace SocialInteractions
             askToil.initAction = () =>
             {
                 Pawn recipient = (Pawn)this.job.targetA.Thing;
+                Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Initiator: {0}, Recipient: {1}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
+
                 float acceptanceChance = 0.5f + (recipient.relations.OpinionOf(this.pawn) / 200f);
                 bool accepted = Rand.Value < acceptanceChance;
+                Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Acceptance Chance: {0}, Accepted: {1}", acceptanceChance, accepted));
 
                 if (accepted)
                 {
                     Job initiatorJob = null;
-                    var joyGiver = GetBestJoyGiver(this.pawn, recipient);
+                    JoyGiverDef joyGiver = GetBestJoyGiver(this.pawn, recipient);
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Best JoyGiver: {0}", (joyGiver != null ? joyGiver.defName : "null")));
+
                     if (joyGiver != null)
                     {
                         initiatorJob = joyGiver.Worker.TryGiveJob(this.pawn);
+                        Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Initiator Job from JoyGiver: {0}", (initiatorJob != null ? initiatorJob.def.defName : "null")));
                     }
 
-                    if (initiatorJob != null)
+                    if (initiatorJob != null && initiatorJob.targetA.IsValid)
                     {
-                        this.pawn.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
+                        Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Assigning main jobs. Initiator: {0}, Recipient: {1}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
+                        this.pawn.jobs.StartJob(initiatorJob, JobCondition.InterruptForced);
+                        Log.Message(string.Format("[SocialInteractions] Initiator {0} assigned job {1}", this.pawn.Name.ToStringShort, initiatorJob.def.defName));
 
                         Job recipientJob = JobMaker.MakeJob(SI_InteractionDefOf.FollowAndWatchInitiator, this.pawn, initiatorJob.targetA.Thing);
                         if (recipient.jobs != null)
                         {
-                            recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
+                            recipient.jobs.StartJob(recipientJob, JobCondition.InterruptForced);
+                            Log.Message(string.Format("[SocialInteractions] Recipient {0} assigned job {1}", recipient.Name.ToStringShort, recipientJob.def.defName));
                         }
 
                         this.pawn.health.AddHediff(HediffDef.Named("OnDate"));
@@ -52,9 +61,12 @@ namespace SocialInteractions
                         Find.PlayLog.Add(new PlayLogEntry_Interaction(SI_InteractionDefOf.DateAccepted, this.pawn, recipient, null));
 
                         Messages.Message(string.Format("{0} and {1} are now going on a date.", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
+                        string subject = SpeechBubbleManager.GetDateSubject(this.pawn, recipient);
+                        SocialInteractions.HandleNonStoppingInteraction(this.pawn, recipient, SI_InteractionDefOf.DateAccepted, subject);
                     }
                     else
                     {
+                        Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Falling back to walk. Initiator: {0}, Recipient: {1}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
                         // Fallback to walk
                         IntVec3 wanderRoot = this.pawn.Position;
                         if (!RCellFinder.TryFindRandomPawnEntryCell(out wanderRoot, this.pawn.Map, 0.5f))
@@ -62,24 +74,50 @@ namespace SocialInteractions
                             wanderRoot = this.pawn.Position;
                         }
                         Job walkJob = new Job(JobDefOf.GotoWander, wanderRoot);
-                        this.pawn.jobs.TryTakeOrderedJob(walkJob, JobTag.Misc);
-
-                        Job recipientWalkJob = new Job(JobDefOf.Goto, wanderRoot);
-                        if (recipient.jobs != null)
+                        if (walkJob != null)
                         {
-                            recipient.jobs.TryTakeOrderedJob(recipientWalkJob, JobTag.Misc);
-                        }
+                            this.pawn.jobs.StartJob(walkJob, JobCondition.InterruptForced);
+                            Log.Message(string.Format("[SocialInteractions] Initiator {0} assigned walk job {1}", this.pawn.Name.ToStringShort, walkJob.def.defName));
 
-                        Messages.Message(string.Format("{0} and {1} are now going for a walk together.", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
+                            Job recipientWalkJob = new Job(JobDefOf.Goto, wanderRoot);
+                            if (recipient.jobs != null && recipientWalkJob != null)
+                            {
+                                recipient.jobs.StartJob(recipientWalkJob, JobCondition.InterruptForced);
+                                Log.Message(string.Format("[SocialInteractions] Recipient {0} assigned walk job {1}", recipient.Name.ToStringShort, recipientWalkJob.def.defName));
+                            }
+
+                            Messages.Message(string.Format("{0} and {1} are now going for a walk together.", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
+                        }
                     }
                 }
                 else
                 {
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Date rejected. Initiator: {0}, Recipient: {1}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
                     // Date rejected
                 }
             };
             askToil.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return askToil;
+
+            // Add a final action to remove the OnDate hediffs
+            Toil finalToil = new Toil();
+            finalToil.initAction = () =>
+            {
+                Pawn recipient = (Pawn)this.job.targetA.Thing;
+                Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Cleaning up OnDate hediffs for {0} and {1}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
+                Hediff hediff = this.pawn.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
+                if (hediff != null)
+                {
+                    this.pawn.health.RemoveHediff(hediff);
+                }
+                Hediff recipientHediff = recipient.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
+                if (recipientHediff != null)
+                {
+                    recipient.health.RemoveHediff(recipientHediff);
+                }
+            };
+            finalToil.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return finalToil;
         }
 
         private JoyGiverDef GetBestJoyGiver(Pawn initiator, Pawn recipient)

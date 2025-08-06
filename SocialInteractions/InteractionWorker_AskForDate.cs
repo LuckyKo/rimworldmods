@@ -18,8 +18,22 @@ namespace SocialInteractions
             if (initiator.needs == null || initiator.needs.joy == null) return 0f;
             if (initiator.needs.joy.CurLevelPercentage > 0.8f) return 0f;
             if (initiator.ageTracker.AgeBiologicalYearsFloat < 16f || recipient.ageTracker.AgeBiologicalYearsFloat < 16f) return 0f;
-            if (initiator.relations.OpinionOf(recipient) < 10) return 0f;
-            return 1.0f * Rand.Value;
+            // Check if the recipient is a partner
+            bool isPartner = initiator.relations.DirectRelationExists(PawnRelationDefOf.Lover, recipient) ||
+                             initiator.relations.DirectRelationExists(PawnRelationDefOf.Fiance, recipient) ||
+                             initiator.relations.DirectRelationExists(PawnRelationDefOf.Spouse, recipient);
+
+            // If they are a partner, give a very high chance
+            if (isPartner)
+            {
+                return 100f; // A high weight to strongly prioritize partners
+            }
+
+            // If not a partner, calculate the romance chance for a "cheating" attempt
+            float romanceChance = InteractionWorker_RomanceAttempt.SuccessChance(initiator, recipient, 1f);
+
+            // Use the romance chance as the weight, with a small random factor
+            return romanceChance * Rand.Range(0.1f, 0.5f);
         }
 
         public override void Interacted(Pawn initiator, Pawn recipient, List<RulePackDef> extraSentencePacks, out string letterText, out string letterLabel, out LetterDef letterDef, out LookTargets lookTargets)

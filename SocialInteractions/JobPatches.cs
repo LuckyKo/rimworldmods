@@ -29,8 +29,7 @@ namespace SocialInteractions
 
                     if (interactionDef == SI_InteractionDefOf.DateAccepted)
                     {
-                        string subject = SpeechBubbleManager.GetDateSubject(initiator, recipient);
-                        SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, interactionDef, subject);
+                        // Do nothing, let the JobDriver handle it
                     }
                     else
                     {
