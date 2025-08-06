@@ -33,7 +33,7 @@ namespace SocialInteractions
             float romanceChance = InteractionWorker_RomanceAttempt.SuccessChance(initiator, recipient, 1f);
 
             // Use the romance chance as the weight, with a small random factor
-            return romanceChance * Rand.Range(0.1f, 0.5f);
+            return romanceChance * Rand.Range(0.8f, 1.0f);
         }
 
         public override void Interacted(Pawn initiator, Pawn recipient, List<RulePackDef> extraSentencePacks, out string letterText, out string letterLabel, out LetterDef letterDef, out LookTargets lookTargets)

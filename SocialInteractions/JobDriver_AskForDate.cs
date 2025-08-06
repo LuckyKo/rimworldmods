@@ -20,6 +20,8 @@ namespace SocialInteractions
 
             yield return Toils_Goto.GotoThing(TargetIndex.A, PathEndMode.InteractionCell); // Go to Recipient
 
+            Job initiatorJob = null;
+
             Toil askToil = new Toil();
             askToil.initAction = () =>
             {
@@ -32,7 +34,7 @@ namespace SocialInteractions
 
                 if (accepted)
                 {
-                    Job initiatorJob = GetBestJoyJob(this.pawn, recipient);
+                    initiatorJob = GetBestJoyJob(this.pawn, recipient);
 
                     if (initiatorJob != null && initiatorJob.targetA.IsValid)
                     {
@@ -40,21 +42,26 @@ namespace SocialInteractions
                         this.pawn.jobs.StartJob(initiatorJob, JobCondition.InterruptForced);
                         Log.Message(string.Format("[SocialInteractions] Initiator {0} assigned job {1}", this.pawn.Name.ToStringShort, initiatorJob.def.defName));
 
-                        Job recipientJob = JobMaker.MakeJob(SI_InteractionDefOf.FollowAndWatchInitiator, this.pawn, initiatorJob.targetA.Thing);
-                        if (recipient.jobs != null)
-                        {
-                            recipient.jobs.StartJob(recipientJob, JobCondition.InterruptForced);
-                            Log.Message(string.Format("[SocialInteractions] Recipient {0} assigned job {1}", recipient.Name.ToStringShort, recipientJob.def.defName));
-                        }
-
                         this.pawn.health.AddHediff(HediffDef.Named("OnDate"));
                         recipient.health.AddHediff(HediffDef.Named("OnDate"));
+                        DatingManager.StartDate(this.pawn, recipient);
 
                         Find.PlayLog.Add(new PlayLogEntry_Interaction(SI_InteractionDefOf.DateAccepted, this.pawn, recipient, null));
 
                         Messages.Message(string.Format("{0} and {1} are now going on a date.", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
                         string subject = SpeechBubbleManager.GetDateSubject(this.pawn, recipient);
                         SocialInteractions.HandleNonStoppingInteraction(this.pawn, recipient, SI_InteractionDefOf.DateAccepted, subject);
+
+                        // Assign recipient's job after a short delay
+                        LongEventHandler.QueueLongEvent(delegate
+                        {
+                            if (recipient.jobs != null)
+                            {
+                                Job recipientJob = JobMaker.MakeJob(SI_InteractionDefOf.FollowAndWatchInitiator, this.pawn, initiatorJob.targetA.Thing);
+                                recipient.jobs.StartJob(recipientJob, JobCondition.InterruptForced);
+                                Log.Message(string.Format("[SocialInteractions] Recipient {0} assigned job {1} after delay", recipient.Name.ToStringShort, recipientJob.def.defName));
+                            }
+                        }, "AssignRecipientJob", false, null);
                     }
                     else
                     {
@@ -91,6 +98,7 @@ namespace SocialInteractions
             askToil.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return askToil;
 
+
             // Add a final action to remove the OnDate hediffs
             Toil finalToil = new Toil();
             finalToil.initAction = () =>
@@ -107,6 +115,7 @@ namespace SocialInteractions
                 {
                     recipient.health.RemoveHediff(recipientHediff);
                 }
+                DatingManager.EndDate(this.pawn);
             };
             finalToil.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return finalToil;

@@ -18,4 +18,33 @@
     </logRulesRecipient>
   </InteractionDef>
 
+  <ThoughtDef>
+    <defName>CaughtCheating</defName>
+    <durationDays>2</durationDays>
+    <stackLimit>1</stackLimit>
+    <stages>
+      <li>
+        <label>caught cheating</label>
+        <description>I can't believe I saw them with my own eyes...</description>
+        <baseMoodEffect>-25</baseMoodEffect>
+      </li>
+    </stages>
+  </ThoughtDef>
+
+  <InteractionDef>
+    <defName>CaughtCheating</defName>
+    <label>caught cheating</label>
+    <workerClass>SocialInteractions.InteractionWorker_CaughtCheating</workerClass>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->[INITIATOR_nameDef] caught [RECIPIENT_nameDef] cheating.</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->[RECIPIENT_nameDef] was caught cheating by [INITIATOR_nameDef].</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
 </Defs>

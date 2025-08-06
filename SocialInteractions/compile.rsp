@@ -27,3 +27,6 @@ JobDriver_FollowAndWatch.cs
 JobGiver_GetJoy_Patch.cs
 
 JoyGiver_GoOnDate.cs
+DatingManager.cs
+InteractionWorker_CaughtCheating.cs
+JoyGiver_FollowAndWatch.cs
