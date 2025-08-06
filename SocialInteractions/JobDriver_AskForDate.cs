@@ -32,15 +32,7 @@ namespace SocialInteractions
 
                 if (accepted)
                 {
-                    Job initiatorJob = null;
-                    JoyGiverDef joyGiver = GetBestJoyGiver(this.pawn, recipient);
-                    Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Best JoyGiver: {0}", (joyGiver != null ? joyGiver.defName : "null")));
-
-                    if (joyGiver != null)
-                    {
-                        initiatorJob = joyGiver.Worker.TryGiveJob(this.pawn);
-                        Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Initiator Job from JoyGiver: {0}", (initiatorJob != null ? initiatorJob.def.defName : "null")));
-                    }
+                    Job initiatorJob = GetBestJoyJob(this.pawn, recipient);
 
                     if (initiatorJob != null && initiatorJob.targetA.IsValid)
                     {
@@ -120,12 +112,22 @@ namespace SocialInteractions
             yield return finalToil;
         }
 
-        private JoyGiverDef GetBestJoyGiver(Pawn initiator, Pawn recipient)
+        private Job GetBestJoyJob(Pawn initiator, Pawn recipient)
         {
-            return DefDatabase<JoyGiverDef>.AllDefsListForReading
+            List<JoyGiverDef> possibleJoyGivers = DefDatabase<JoyGiverDef>.AllDefsListForReading
                 .Where(jg => jg.Worker.CanBeGivenTo(initiator) && jg.Worker.CanBeGivenTo(recipient))
                 .InRandomOrder()
-                .FirstOrDefault();
+                .ToList();
+
+            foreach (JoyGiverDef joyGiver in possibleJoyGivers)
+            {
+                Job job = joyGiver.Worker.TryGiveJob(initiator);
+                if (job != null)
+                {
+                    return job;
+                }
+            }
+            return null;
         }
     }
 }
