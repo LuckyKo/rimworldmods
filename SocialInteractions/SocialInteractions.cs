@@ -31,7 +31,7 @@ namespace SocialInteractions
             Log.Message(string.Format("[SocialInteractions] IsLlmInteractionEnabled called for: {0}", interactionDef.defName));
             if (!Settings.llmInteractionsEnabled) return false;
 
-            if (interactionDef == InteractionDefOf.Chitchat && Settings.enableChitchat) return true;
+            
             if (interactionDef == InteractionDefOf.DeepTalk && Settings.enableDeepTalk) return true;
             if (interactionDef == InteractionDefOf.Insult && Settings.enableInsult) return true;
             if (interactionDef == InteractionDefOf.RomanceAttempt && Settings.enableRomanceAttempt) return true;
@@ -68,8 +68,8 @@ namespace SocialInteractions
             }
 
             bool isEnabled = false;
-            if (interactionDef == InteractionDefOf.Chitchat && Settings.enableChitchat) isEnabled = true;
-            else if (interactionDef == InteractionDefOf.DeepTalk && Settings.enableDeepTalk) isEnabled = true;
+            
+            if (interactionDef == InteractionDefOf.DeepTalk && Settings.enableDeepTalk) isEnabled = true;
             else if (interactionDef == InteractionDefOf.Insult && Settings.enableInsult) isEnabled = true;
             else if (interactionDef == InteractionDefOf.RomanceAttempt && Settings.enableRomanceAttempt) isEnabled = true;
             else if (interactionDef == InteractionDefOf.MarriageProposal && Settings.enableMarriageProposal) isEnabled = true;
