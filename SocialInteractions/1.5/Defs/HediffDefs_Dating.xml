@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <HediffDef>
+    <defName>OnDate</defName>
+    <label>on a date</label>
+    <description>This pawn is currently on a date.</description>
+    <hediffClass>HediffWithComps</hediffClass>
+  </HediffDef>
+</Defs>

@@ -45,9 +45,18 @@ namespace SocialInteractions
                 else
                 {
                     // Gain joy while watching
-                    JoyUtility.JoyTickCheckEnd(this.pawn, 1, JoyTickFullJoyAction.EndJob);
+                    JoyUtility.JoyTickCheckEnd(this.pawn, 1, JoyTickFullJoyAction.None);
                 }
             };
+            watch.AddFinishAction(() =>
+            {
+                Pawn initiator = (Pawn)this.job.targetA.Thing;
+                Hediff hediff = this.pawn.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
+                if (hediff != null) this.pawn.health.RemoveHediff(hediff);
+
+                hediff = initiator.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
+                if (hediff != null) initiator.health.RemoveHediff(hediff);
+            });
             watch.defaultCompleteMode = ToilCompleteMode.Never;
             yield return watch;
         }

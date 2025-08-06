@@ -25,6 +25,8 @@ namespace SocialInteractions
 
                 if (initiator != null && recipient != null)
                 {
+                    string defaultText = SocialInteractions.RemoveRichTextTags(entry.ToGameStringFromPOV(initiator));
+
                     if (interactionDef == SI_InteractionDefOf.DateAccepted)
                     {
                         string subject = SpeechBubbleManager.GetDateSubject(initiator, recipient);
@@ -32,7 +34,7 @@ namespace SocialInteractions
                     }
                     else
                     {
-                        SocialInteractions.HandleInteraction(initiator, recipient, interactionDef);
+                        SocialInteractions.HandleInteraction(initiator, recipient, interactionDef, defaultText);
                     }
                 }
             }

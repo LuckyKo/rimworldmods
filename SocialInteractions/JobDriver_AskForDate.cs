@@ -46,6 +46,11 @@ namespace SocialInteractions
                             recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
                         }
 
+                        this.pawn.health.AddHediff(HediffDef.Named("OnDate"));
+                        recipient.health.AddHediff(HediffDef.Named("OnDate"));
+
+                        Find.PlayLog.Add(new PlayLogEntry_Interaction(SI_InteractionDefOf.DateAccepted, this.pawn, recipient, null));
+
                         Messages.Message(string.Format("{0} and {1} are now going on a date.", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
                     }
                     else

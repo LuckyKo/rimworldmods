@@ -442,19 +442,17 @@ namespace SocialInteractions
             return string.Join(", ", skillLabels);
         }
 
-        public static void HandleInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef)
+        public static void HandleInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string defaultText)
         {
             if (IsLlmInteractionEnabled(interactionDef))
             {
-                string subject = interactionDef.label;
-                HandleNonStoppingInteraction(initiator, recipient, interactionDef, subject);
+                HandleNonStoppingInteraction(initiator, recipient, interactionDef, null);
             }
             else
             {
-                string text = interactionDef.label;
-                if (!string.IsNullOrEmpty(text))
+                if (!string.IsNullOrEmpty(defaultText))
                 {
-                    SpeechBubbleManager.ShowDefaultBubble(initiator, text);
+                    SpeechBubbleManager.ShowDefaultBubble(initiator, defaultText);
                 }
             }
         }

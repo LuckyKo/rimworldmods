@@ -1,27 +1,23 @@
-[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] PlayLog_Add_Patch: InteractionDef: DeepTalk
-[SocialInteractions] IsLlmInteractionEnabled called for: DeepTalk
-[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] PlayLog_Add_Patch: InteractionDef: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] PlayLog_Add_Patch: InteractionDef: AskForDate
-[SocialInteractions] IsLlmInteractionEnabled called for: AskForDate
-JobDriver threw exception in toil unnamed's initAction for pawn Zach driver=JobDriver_AskForDate (toilIndex=1) driver.job=(AskForDate (Job_10964905) A = Thing_Human1722243 Giver = ThinkNode_QueuedJob [workGiverDef: null])
-System.IndexOutOfRangeException: Index was outside the bounds of the array.
-[Ref FD303BF6]
-  at Verse.EdificeGrid.get_Item (Verse.IntVec3 c) [0x00017] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-  at Verse.GridsUtility.GetEdifice (Verse.IntVec3 c, Verse.Map map) [0x00000] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-  at Verse.AI.ReservationUtility.ReserveSittableOrSpot (Verse.Pawn pawn, Verse.IntVec3 exactSittingPos, Verse.AI.Job job, System.Boolean errorOnFailed) [0x00007] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-  at RimWorld.JobDriver_SitFacingBuilding.TryMakePreToilReservations (System.Boolean errorOnFailed) [0x00048] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-  at Verse.AI.Job.TryMakePreToilReservations (Verse.Pawn driverPawn, System.Boolean errorOnFailed) [0x00007] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-  at Verse.AI.Pawn_JobTracker.TryTakeOrderedJob (Verse.AI.Job job, System.Nullable`1[T] tag, System.Boolean requestQueueing) [0x00123] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-  at SocialInteractions.JobDriver_AskForDate.<MakeNewToils>b__0 () [0x000a4] in <b4df010ffb7645a5b5a15f238451257b>:0 
-  at Verse.AI.JobDriver.TryActuallyStartNextToil () [0x001b0] in <fcfab19af5d14a608a65ebd77f29482f>:0 
+Config error in OnDate: Hediff with defName OnDate has no description!
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+Verse.Log:Error (string)
+Verse.DefDatabase`1<Verse.HediffDef>:ErrorCheckAllDefs ()
+System.Reflection.RuntimeMethodInfo:Invoke (object,System.Reflection.BindingFlags,System.Reflection.Binder,object[],System.Globalization.CultureInfo)
+System.Reflection.MethodBase:Invoke (object,object[])
+Verse.GenGeneric:InvokeStaticMethodOnGenericType (System.Type,System.Type,string)
+Verse.PlayDataLoader/<>c:<DoPlayLoad>b__4_1 (System.Type)
+System.Threading.Tasks.Parallel/<>c__DisplayClass33_0`2<System.Type, object>:<ForEachWorker>b__0 (int)
+System.Threading.Tasks.Parallel/<>c__DisplayClass19_0`1<object>:<ForWorker>b__1 (System.Threading.Tasks.RangeWorker&,int,bool&)
+System.Threading.Tasks.TaskReplicator/Replica`1<System.Threading.Tasks.RangeWorker>:ExecuteAction (bool&)
+System.Threading.Tasks.TaskReplicator/Replica:Execute ()
+System.Threading.Tasks.TaskReplicator/Replica/<>c:<.ctor>b__4_0 (object)
+System.Threading.Tasks.Task:InnerInvoke ()
+System.Threading.Tasks.Task:Execute ()
+System.Threading.Tasks.Task:ExecutionContextCallback (object)
+System.Threading.ExecutionContext:RunInternal (System.Threading.ExecutionContext,System.Threading.ContextCallback,object,bool)
+System.Threading.ExecutionContext:Run (System.Threading.ExecutionContext,System.Threading.ContextCallback,object,bool)
+System.Threading.Tasks.Task:ExecuteWithThreadLocal (System.Threading.Tasks.Task&)
+System.Threading.Tasks.Task:ExecuteEntry (bool)
+System.Threading.Tasks.Task:System.Threading.IThreadPoolWorkItem.ExecuteWorkItem ()
+System.Threading.ThreadPoolWorkQueue:Dispatch ()
+System.Threading._ThreadPoolWaitCallback:PerformWaitCallback ()
