@@ -35,5 +35,24 @@ namespace SocialInteractions
             }
             return null;
         }
+
+        public static Pawn GetInitiatorOfDateWith(Pawn pawn)
+        {
+            foreach (var couple in datingCouples)
+            {
+                if (couple.Item2 == pawn) return couple.Item1;
+            }
+            return null;
+        }
+
+        public static void AdvanceDateStage(Pawn pawn)
+        {
+            Pawn partner = GetPartnerOnDateWith(pawn);
+            if (partner != null)
+            {
+                // For now, just end the date. We can add more stages later.
+                EndDate(pawn);
+            }
+        }
     }
 }

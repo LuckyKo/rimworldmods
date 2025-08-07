@@ -5,5 +5,5 @@
     <label>on a date</label>
     <description>This pawn is currently on a date.</description>
     <hediffClass>HediffWithComps</hediffClass>
-  </HediffDef>
+    </HediffDef>
 </Defs>

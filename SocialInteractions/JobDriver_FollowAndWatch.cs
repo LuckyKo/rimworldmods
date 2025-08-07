@@ -1,6 +1,8 @@
 using RimWorld;
 using Verse;
 using Verse.AI;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace SocialInteractions
 {
@@ -40,10 +42,44 @@ namespace SocialInteractions
                 // End if initiator is not doing a job, or the job is not at the joy spot
                 if (initiator.CurJob == null || initiator.CurJob.targetA.Thing != joySpot)
                 {
+                    Log.Message(string.Format("[SocialInteractions] FollowAndWatch: Ending because initiator's job ended or changed. Initiator: {0}, Job: {1}", initiator.Name.ToStringShort, initiator.CurJob != null ? initiator.CurJob.def.defName : "null"));
                     this.ReadyForNextToil();
                 }
                 else
                 {
+                    // Periodically try to join the initiator's joy activity
+                    if (Find.TickManager.TicksGame % 60 == 0) // Check once per second
+                    {
+                        if (initiator.CurJob != null && initiator.CurJob.def.joyKind != null) // Check if initiator's job is a joy job
+                        {
+                            Building joyBuilding = initiator.CurJob.targetA.Thing as Building;
+                            if (joyBuilding != null)
+                            {
+                                JoyGiverDef joyGiverDef = DefDatabase<JoyGiverDef>.AllDefs.FirstOrDefault(x => x.joyKind == joyBuilding.def.building.joyKind);
+                                if (joyGiverDef != null && joyGiverDef.jobDef.joyMaxParticipants > 1)
+                                {
+                                    // Find an available interaction cell
+                                    List<IntVec3> cells = new List<IntVec3>();
+                                    cells.AddRange(GenAdj.CellsAdjacent8Way(joyBuilding));
+                                    cells.AddRange(GenAdj.CellsAdjacentCardinal(joyBuilding));
+
+                                    foreach (IntVec3 cell in cells)
+                                    {
+                                        if (cell.Standable(this.pawn.Map) && !this.pawn.Map.pawnDestinationReservationManager.IsReserved(cell))
+                                        {
+                                            Job newRecipientJoyJob = JobMaker.MakeJob(initiator.CurJob.def, joyBuilding, cell);
+                                            if (this.pawn.CanReserveAndReach(cell, PathEndMode.OnCell, Danger.Some))
+                                            {
+                                                this.pawn.jobs.StartJob(newRecipientJoyJob, JobCondition.InterruptForced);
+                                                this.ReadyForNextToil(); // End FollowAndWatch job
+                                                return; // Exit the loop
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     // Gain joy while watching
                     JoyUtility.JoyTickCheckEnd(this.pawn, 1, JoyTickFullJoyAction.None);
                 }

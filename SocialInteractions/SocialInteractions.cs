@@ -226,7 +226,10 @@ namespace SocialInteractions
             if (initiator.Map != null)
             {
                 float longitude = Find.WorldGrid.LongLatOf(initiator.Tile).x;
-                currentDate = GenDate.DateFullStringAt(absTicks, Find.WorldGrid.LongLatOf(initiator.Tile));
+                int day = GenDate.DayOfQuadrum(absTicks, longitude);
+                Quadrum quadrum = GenDate.Quadrum(absTicks, longitude);
+                int year = GenDate.Year(absTicks, longitude);
+                currentDate = string.Format("{0} of {1}, {2}", day, quadrum.Label(), year);
                 int hour = (int)(GenDate.DayPercent(absTicks, longitude) * 24f);
                 currentTime = hour.ToString("D2") + ":00";
                 currentWeather = initiator.Map.weatherManager.curWeather.label;
