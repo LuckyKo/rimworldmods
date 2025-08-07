@@ -42,8 +42,11 @@ namespace SocialInteractions
                         this.pawn.jobs.StartJob(initiatorJob, JobCondition.InterruptForced);
                         Log.Message(string.Format("[SocialInteractions] Initiator {0} assigned job {1}", this.pawn.Name.ToStringShort, initiatorJob.def.defName));
 
-                        this.pawn.health.AddHediff(HediffDef.Named("OnDate"));
-                        recipient.health.AddHediff(HediffDef.Named("OnDate"));
+                        LongEventHandler.QueueLongEvent(delegate
+                        {
+                            this.pawn.health.AddHediff(HediffDef.Named("OnDate"));
+                            recipient.health.AddHediff(HediffDef.Named("OnDate"));
+                        }, "AddOnDateHediffs", false, null);
                         DatingManager.StartDate(this.pawn, recipient);
 
                         Find.PlayLog.Add(new PlayLogEntry_Interaction(SI_InteractionDefOf.DateAccepted, this.pawn, recipient, null));
@@ -65,28 +68,19 @@ namespace SocialInteractions
                     }
                     else
                     {
-                        Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Falling back to walk. Initiator: {0}, Recipient: {1}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
-                        // Fallback to walk
-                        IntVec3 wanderRoot = this.pawn.Position;
-                        if (!RCellFinder.TryFindRandomPawnEntryCell(out wanderRoot, this.pawn.Map, 0.5f))
-                        {
-                            wanderRoot = this.pawn.Position;
-                        }
-                        Job walkJob = new Job(JobDefOf.GotoWander, wanderRoot);
-                        if (walkJob != null)
-                        {
-                            this.pawn.jobs.StartJob(walkJob, JobCondition.InterruptForced);
-                            Log.Message(string.Format("[SocialInteractions] Initiator {0} assigned walk job {1}", this.pawn.Name.ToStringShort, walkJob.def.defName));
+                        Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Falling back to FollowAndWatchInitiator. Initiator: {0}, Recipient: {1}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
+                        // Fallback to FollowAndWatchInitiator
+                        Job initiatorWaitJob = new Job(JobDefOf.Wait, this.pawn.Position);
+                        this.pawn.jobs.StartJob(initiatorWaitJob, JobCondition.InterruptForced);
+                        Log.Message(string.Format("[SocialInteractions] Initiator {0} assigned wait job {1}", this.pawn.Name.ToStringShort, initiatorWaitJob.def.defName));
 
-                            Job recipientWalkJob = new Job(JobDefOf.Goto, wanderRoot);
-                            if (recipient.jobs != null && recipientWalkJob != null)
-                            {
-                                recipient.jobs.StartJob(recipientWalkJob, JobCondition.InterruptForced);
-                                Log.Message(string.Format("[SocialInteractions] Recipient {0} assigned walk job {1}", recipient.Name.ToStringShort, recipientWalkJob.def.defName));
-                            }
-
-                            Messages.Message(string.Format("{0} and {1} are now going for a walk together.", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
+                        Job recipientFollowJob = JobMaker.MakeJob(SI_InteractionDefOf.FollowAndWatchInitiator, this.pawn);
+                        if (recipient.jobs != null)
+                        {
+                            recipient.jobs.StartJob(recipientFollowJob, JobCondition.InterruptForced);
+                            Log.Message(string.Format("[SocialInteractions] Recipient {0} assigned job {1}", recipient.Name.ToStringShort, recipientFollowJob.def.defName));
                         }
+                        Messages.Message(string.Format("{0} and {1} are now going on a date (fallback: following and watching).", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
                     }
                 }
                 else
@@ -131,7 +125,7 @@ namespace SocialInteractions
             foreach (JoyGiverDef joyGiver in possibleJoyGivers)
             {
                 Job job = joyGiver.Worker.TryGiveJob(initiator);
-                if (job != null)
+                if (job != null && job.targetA.IsValid)
                 {
                     return job;
                 }

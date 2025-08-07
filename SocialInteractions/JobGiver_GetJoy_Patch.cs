@@ -32,7 +32,7 @@ namespace SocialInteractions
                     // Instead of creating a job, we'll create an interaction
                     InteractionDef intDef = DefDatabase<InteractionDef>.GetNamed("AskForDate");
                     pawn.interactions.TryInteractWith(partner, intDef);
-                    return false; // Skip original method
+                    return true; // Allow original method to run and assign a joy job
                 }
             }
 
