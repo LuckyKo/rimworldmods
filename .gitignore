@@ -1,15 +1,31 @@
-*.user
+# RimWorld Modding
+SocialInteractions/bin/
+SocialInteractions/obj/
+SocialInteractions/1.5/Assemblies/
+
+# Visual Studio
+.vs/
 *.suo
+*.user
 *.userosscache
 *.sln.docstates
-*.userprefs
-bin/
-obj/
-.vs/
-*.csproj.user
-*.cache
-*.DS_Store
+
+# Rider
+.idea/
+*.iml
+
+# OS generated files
+.DS_Store
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Debugging
+debug.txt
+
+# Build artifacts
+Assembly-CSharp.dll
+Newtonsoft.Json.dll
+SocialInteractions.dll
 commit_message.txt
 console.txt
-*.dll
-SocialInteractions/1.5/Assemblies/
