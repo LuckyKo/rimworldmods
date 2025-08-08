@@ -11,7 +11,7 @@ namespace SocialInteractions
     {
         public override float RandomSelectionWeight(Pawn initiator, Pawn recipient)
         {
-            if (initiator.health.hediffSet.HasHediff(HediffDef.Named("OnDate")) || recipient.health.hediffSet.HasHediff(HediffDef.Named("OnDate"))) return 0f;
+            if (DatingManager.IsOnDate(initiator) || DatingManager.IsOnDate(recipient)) return 0f;
             if (initiator == recipient) return 0f;
             if (initiator.jobs != null && initiator.jobs.curJob != null && (initiator.jobs.curJob.def.defName == "AskForDate" || initiator.jobs.curJob.def.defName == "FollowAndWatchInitiator")) return 0f;
             if (recipient.jobs != null && recipient.jobs.curJob != null && (recipient.jobs.curJob.def.defName == "AskForDate" || recipient.jobs.curJob.def.defName == "FollowAndWatchInitiator")) return 0f;

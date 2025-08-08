@@ -15,7 +15,15 @@
   <JobDef>
     <defName>FollowAndWatchInitiator</defName>
     <driverClass>SocialInteractions.JobDriver_FollowAndWatch</driverClass>
-    <reportString>watching [TARGET_A_nameDef]</reportString>
+    <reportString>On a date with TargetA</reportString>
+  </JobDef>
+
+  <JobDef>
+    <defName>DateLovin</defName>
+    <driverClass>SocialInteractions.JobDriver_DateLovin</driverClass>
+    <reportString>Doing some Lovin' with TargetA</reportString>
     <joyKind>Social</joyKind>
   </JobDef>
+
+  
 </Defs>

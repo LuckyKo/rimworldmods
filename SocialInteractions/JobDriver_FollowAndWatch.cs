@@ -57,20 +57,14 @@ namespace SocialInteractions
 
                 Thing joySpot = this.job.targetB.Thing;
 
-                // End condition: initiator is no longer doing a job at the original joy spot.
-                if (initiator.CurJob == null || initiator.CurJob.targetA.Thing != joySpot)
+                // End condition: initiator is no longer doing a joy job at the joy spot.
+                if (initiator.CurJob == null || initiator.CurJob.def.joyKind == null || initiator.CurJob.targetA.Thing != joySpot)
                 {
-                    Log.Message(string.Format("[SocialInteractions] FollowAndWatch: Initiator's joy job at {0} has ended. Advancing date stage.", joySpot.Label));
-                    
-                    Date date = DatingManager.GetDateWith(this.pawn);
-                    if (date != null && date.Stage == DateStage.Joy)
-                    {
-                        DatingManager.AdvanceDateStage(this.pawn);
-                    }
-                    
+                    DatingManager.AdvanceDateStage(initiator);
                     this.ReadyForNextToil(); // End the FollowAndWatch job
                     return;
                 }
+                
                 
                 // Periodically try to join the initiator's joy activity
                 if (Find.TickManager.TicksGame % 60 == 0) // Check once per second
@@ -97,6 +91,7 @@ namespace SocialInteractions
                         }
                     }
                 }
+                
                 // Gain joy while watching
                 if (initiator.CurJob != null && initiator.CurJob.def != null && initiator.CurJob.def.joyKind != null)
                 {

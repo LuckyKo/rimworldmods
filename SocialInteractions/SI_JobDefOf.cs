@@ -7,5 +7,7 @@ namespace SocialInteractions
     public static class SI_JobDefOf
     {
         public static JobDef FollowAndWatchInitiator;
+        public static JobDef DateLovin;
+        
     }
 }

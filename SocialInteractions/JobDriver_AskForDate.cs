@@ -52,7 +52,7 @@ namespace SocialInteractions
                         Find.PlayLog.Add(new PlayLogEntry_Interaction(SI_InteractionDefOf.DateAccepted, this.pawn, recipient, null));
 
                         Messages.Message(string.Format("{0} and {1} are now going on a date.", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
-                        string subject = SpeechBubbleManager.GetDateSubject(this.pawn, recipient);
+                        string subject = SpeechBubbleManager.GetDateSubject(this.pawn, recipient, initiatorJob.targetA.Thing ?? new LocalTargetInfo(this.pawn.Position));
                         SocialInteractions.HandleNonStoppingInteraction(this.pawn, recipient, SI_InteractionDefOf.DateAccepted, subject);
 
                         // Assign recipient's job after a short delay
@@ -74,7 +74,7 @@ namespace SocialInteractions
                         this.pawn.jobs.StartJob(initiatorWaitJob, JobCondition.InterruptForced);
                         Log.Message(string.Format("[SocialInteractions] Initiator {0} assigned wait job {1}", this.pawn.Name.ToStringShort, initiatorWaitJob.def.defName));
 
-                        Job recipientFollowJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn);
+                        Job recipientFollowJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn, this.pawn.Position);
                         if (recipient.jobs != null)
                         {
                             recipient.jobs.StartJob(recipientFollowJob, JobCondition.InterruptForced);

@@ -114,8 +114,9 @@ namespace SocialInteractions
             Pawn initiator = __instance.pawn;
             Pawn partner = (Pawn)__instance.job.targetA.Thing;
 
-            // Symmetry breaking: only the pawn whose name comes first alphabetically will trigger the dialogue.
-            // Ensure ticksLeft is always a reasonable duration, overriding any problematic values
+            // Set ticksLeft for the current pawn to a finite, random value
+            // This overrides the game's default behavior of setting it to 9999999 if the partner already has a lovin' job.
+            // We need to use reflection to access the private 'ticksLeft' field.
             __instance.GetType().GetField("ticksLeft", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 .SetValue(__instance, (int)(2500f * UnityEngine.Mathf.Clamp(Rand.Range(0.1f, 1.1f), 0.1f, 2f)));
 

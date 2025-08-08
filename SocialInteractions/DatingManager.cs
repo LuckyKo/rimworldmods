@@ -101,9 +101,16 @@ namespace SocialInteractions
                         Log.Message("[SocialInteractions] Conditions for lovin' met. Assigning lovin' job.");
                         date.Stage = DateStage.Lovin;
                         Building_Bed bed = RestUtility.FindBedFor(date.Initiator);
-                        Job lovinJob = JobMaker.MakeJob(JobDefOf.Lovin, date.Partner, bed);
+
+                        // End any existing lovin' jobs for initiator and partner
+                        if (date.Initiator.CurJobDef == JobDefOf.Lovin) date.Initiator.jobs.EndCurrentJob(JobCondition.Succeeded);
+                        if (date.Partner.CurJobDef == JobDefOf.Lovin) date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
+
+                        Job lovinJob = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Partner, bed);
+                        Log.Message(string.Format("[SocialInteractions] Initiator Lovin Job created: {0}", lovinJob));
                         date.Initiator.jobs.StartJob(lovinJob, JobCondition.InterruptForced);
-                        Job lovinJobPartner = JobMaker.MakeJob(JobDefOf.Lovin, date.Initiator, bed);
+                        Job lovinJobPartner = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Initiator, bed);
+                        Log.Message(string.Format("[SocialInteractions] Partner Lovin Job created: {0}", lovinJobPartner));
                         date.Partner.jobs.StartJob(lovinJobPartner, JobCondition.InterruptForced);
 
                         string subject = SpeechBubbleManager.GetDateEndSubject(date.Initiator, date.Partner);

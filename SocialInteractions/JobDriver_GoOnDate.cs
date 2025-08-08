@@ -59,6 +59,52 @@ namespace SocialInteractions
             };
             advanceDate.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return advanceDate;
+
+            Toil waitForLovinJob = new Toil();
+            waitForLovinJob.initAction = () =>
+            {
+                Log.Message("[SocialInteractions] JobDriver_GoOnDate: Starting waitForLovinJob toil.");
+            };
+            waitForLovinJob.tickAction = () =>
+            {
+                Pawn initiator = (Pawn)this.job.targetA.Thing;
+                Pawn partner = (Pawn)this.job.targetB.Thing;
+                Date date = DatingManager.GetDateWith(initiator);
+
+                if (date == null)
+                {
+                    this.EndJobWith(JobCondition.Succeeded);
+                    return;
+                }
+
+                if (date.Stage == DateStage.Lovin)
+                {
+                    bool initiatorDone = initiator.CurJob == null || initiator.CurJob.def != SI_JobDefOf.DateLovin;
+                    bool partnerDone = partner.CurJob == null || partner.CurJob.def != SI_JobDefOf.DateLovin;
+
+                    if (initiatorDone && partnerDone)
+                    {
+                        Log.Message("[SocialInteractions] JobDriver_GoOnDate: Lovin job appears finished for both pawns. Advancing to next toil.");
+                        this.ReadyForNextToil();
+                    }
+                }
+                else
+                {
+                    // If the date is not in the lovin' stage (e.g., they couldn't have lovin'), end the job.
+                    this.EndJobWith(JobCondition.Succeeded);
+                }
+            };
+            waitForLovinJob.defaultCompleteMode = ToilCompleteMode.Never;
+            yield return waitForLovinJob;
+
+            Toil finishDate = new Toil();
+            finishDate.initAction = () =>
+            {
+                Log.Message("[SocialInteractions] JobDriver_GoOnDate: Initiating finishDate toil.");
+                DatingManager.AdvanceDateStage((Pawn)this.job.targetA.Thing);
+            };
+            finishDate.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return finishDate;
         }
     }
 }

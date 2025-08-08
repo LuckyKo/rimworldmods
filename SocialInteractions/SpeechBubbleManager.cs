@@ -64,7 +64,8 @@ namespace SocialInteractions
                     }
                 }
 
-                if (!speechBubbleQueue.Any(b => b.conversationId == bubble.conversationId))
+                // Use a copy of the queue for safe iteration
+                if (!new Queue<SpeechBubble>(speechBubbleQueue).Any(b => b.conversationId == bubble.conversationId))
                 {
                     EndConversation(bubble.conversationId);
                 }
@@ -80,9 +81,9 @@ namespace SocialInteractions
             }
         }
 
-                public static string GetDateSubject(Pawn initiator, Pawn recipient)
+                public static string GetDateSubject(Pawn initiator, Pawn recipient, LocalTargetInfo joySpot)
         {
-            return string.Format("A date between {0} and {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+            return string.Format("A date between {0} and {1} at the {2}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort, joySpot.Thing != null ? joySpot.Thing.Label : joySpot.Cell.ToString());
         }
 
         public static string GetDateEndSubject(Pawn initiator, Pawn recipient)
