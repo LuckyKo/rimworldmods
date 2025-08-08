@@ -13,6 +13,8 @@ namespace SocialInteractions
         public static InteractionDef Lovin;
         public static InteractionDef Rescue;
         public static InteractionDef VisitSickPawn;
-        public static JobDef FollowAndWatchInitiator;
+        
+        public static InteractionDef DateLovin;
+        
     }
 }

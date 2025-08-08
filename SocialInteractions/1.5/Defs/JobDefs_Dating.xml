@@ -1,23 +1,21 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Defs>
-
-  
-
-  
-
   <JobDef>
     <defName>AskForDate</defName>
     <driverClass>SocialInteractions.JobDriver_AskForDate</driverClass>
-    <reportString>asking {0} on a date.</reportString>
-    <joyKind>Social</joyKind>
+    <reportString>asking for a date</reportString>
   </JobDef>
-
-  
 
   <JobDef>
-    <defName>FollowAndWatch</defName>
-    <driverClass>SocialInteractions.JobDriver_FollowAndWatch</driverClass>
-    <reportString>watching {0}.</reportString>
+    <defName>GoOnDate</defName>
+    <driverClass>SocialInteractions.JobDriver_GoOnDate</driverClass>
+    <reportString>going on a date</reportString>
   </JobDef>
 
+  <JobDef>
+    <defName>FollowAndWatchInitiator</defName>
+    <driverClass>SocialInteractions.JobDriver_FollowAndWatch</driverClass>
+    <reportString>watching [TARGET_A_nameDef]</reportString>
+    <joyKind>Social</joyKind>
+  </JobDef>
 </Defs>

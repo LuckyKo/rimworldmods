@@ -47,4 +47,21 @@
     </logRulesRecipient>
   </InteractionDef>
 
+  <InteractionDef>
+    <defName>DateLovin</defName>
+    <label>lovin'</label>
+    <workerClass>SocialInteractions.InteractionWorker_DateLovin</workerClass>
+    <symbol>Things/Mote/SpeechSymbols/Romance</symbol>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->Ended a date with [RECIPIENT_nameDef] in a special way.</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->Ended a date with [INITIATOR_nameDef] in a special way.</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
 </Defs>

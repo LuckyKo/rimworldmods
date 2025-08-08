@@ -115,6 +115,11 @@ namespace SocialInteractions
             Pawn partner = (Pawn)__instance.job.targetA.Thing;
 
             // Symmetry breaking: only the pawn whose name comes first alphabetically will trigger the dialogue.
+            // Ensure ticksLeft is always a reasonable duration, overriding any problematic values
+            __instance.GetType().GetField("ticksLeft", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                .SetValue(__instance, (int)(2500f * UnityEngine.Mathf.Clamp(Rand.Range(0.1f, 1.1f), 0.1f, 2f)));
+
+            // Symmetry breaking: only the pawn whose name comes first alphabetically will trigger the dialogue.
             if (initiator.Name.ToStringShort.CompareTo(partner.Name.ToStringShort) < 0)
             {
                 var newToils = new List<Toil>(__result);
@@ -138,13 +143,19 @@ namespace SocialInteractions
                 
                 __result = newToils;
 
-                // Add a finish action to the last toil to reset isLlmBusy
+                // Add a finish action to the last toil to reset isLlmBusy and advance date stage
                 Toil lastToil = newToils[newToils.Count - 1];
                 if (lastToil != null)
                 {
                     lastToil.AddFinishAction(() =>
                     {
                         SpeechBubbleManager.isLlmBusy = false;
+
+                        // Check if pawns are on a date and advance the stage
+                        if (initiator != null && DatingManager.IsOnDate(initiator))
+                        {
+                            DatingManager.AdvanceDateStage(initiator);
+                        }
                     });
                 }
             }

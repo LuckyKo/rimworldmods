@@ -43,7 +43,7 @@ namespace SocialInteractions
             letterDef = null;
             lookTargets = null;
 
-            Job job = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("AskForDate"), recipient);
+            Job job = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("GoOnDate"), recipient);
             initiator.jobs.TryTakeOrderedJob(job, JobTag.Misc);
         }
 

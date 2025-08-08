@@ -10,12 +10,6 @@
     <joyKind>Social</joyKind>
   </JoyGiverDef>
 
-  <JoyGiverDef>
-    <defName>FollowAndWatch</defName>
-    <giverClass>SocialInteractions.JoyGiver_FollowAndWatch</giverClass>
-    <baseChance>100</baseChance>
-    <jobDef>FollowAndWatchInitiator</jobDef>
-    <joyKind>Social</joyKind>
-  </JoyGiverDef>
+  
 
 </Defs>

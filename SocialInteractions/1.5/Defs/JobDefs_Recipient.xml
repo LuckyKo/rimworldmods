@@ -8,11 +8,5 @@
   </JobDef>
 
   
-<JobDef>
-    <defName>FollowAndWatchInitiator</defName>
-    <driverClass>SocialInteractions.JobDriver_FollowAndWatch</driverClass>
-    <reportString>following and watching TargetA.</reportString>
-    <joyKind>Social</joyKind>
-    <allowOpportunisticPrefix>true</allowOpportunisticPrefix>
-  </JobDef>
+
 </Defs>

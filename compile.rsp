@@ -15,4 +15,7 @@ n:/work/stuff/mine/RimWorldMods/SocialInteractions/JobDriver_BeTalkedTo.cs
 n:/work/stuff/mine/RimWorldMods/SocialInteractions/Conversation.cs
 n:/work/stuff/mine/RimWorldMods/SocialInteractions/SpeechBubbleManager.cs
 n:/work/stuff/mine/RimWorldMods/SocialInteractions/JoyTickCheckEnd_Patch.cs
-n:/work/stuff/mine/RimWorldMods/SocialInteractions/DateTracker_MapComponent.cs
+n:/work/stuff/mine/RimWorldMods/SocialInteractions/Pawn_JobTracker_Notify_JobAdded_Patch.cs
+n:/work/stuff/mine/RimWorldMods/SocialInteractions/JobDriver_GoOnDate.cs
+n:/work/stuff/mine/RimWorldMods/SocialInteractions/DatingManager.cs
+n:/work/stuff/mine/RimWorldMods/SocialInteractions/JobDriver_Lovin.cs

@@ -30,3 +30,6 @@ JoyGiver_GoOnDate.cs
 DatingManager.cs
 InteractionWorker_CaughtCheating.cs
 JoyGiver_FollowAndWatch.cs
+InteractionWorker_DateLovin.cs
+SI_JobDefOf.cs
+JobDriver_GoOnDate.cs

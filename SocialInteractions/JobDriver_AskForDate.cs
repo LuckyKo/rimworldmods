@@ -60,7 +60,7 @@ namespace SocialInteractions
                         {
                             if (recipient.jobs != null)
                             {
-                                Job recipientJob = JobMaker.MakeJob(SI_InteractionDefOf.FollowAndWatchInitiator, this.pawn, initiatorJob.targetA.Thing);
+                                Job recipientJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn, initiatorJob.targetA.Thing);
                                 recipient.jobs.StartJob(recipientJob, JobCondition.InterruptForced);
                                 Log.Message(string.Format("[SocialInteractions] Recipient {0} assigned job {1} after delay", recipient.Name.ToStringShort, recipientJob.def.defName));
                             }
@@ -74,7 +74,7 @@ namespace SocialInteractions
                         this.pawn.jobs.StartJob(initiatorWaitJob, JobCondition.InterruptForced);
                         Log.Message(string.Format("[SocialInteractions] Initiator {0} assigned wait job {1}", this.pawn.Name.ToStringShort, initiatorWaitJob.def.defName));
 
-                        Job recipientFollowJob = JobMaker.MakeJob(SI_InteractionDefOf.FollowAndWatchInitiator, this.pawn);
+                        Job recipientFollowJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn);
                         if (recipient.jobs != null)
                         {
                             recipient.jobs.StartJob(recipientFollowJob, JobCondition.InterruptForced);
