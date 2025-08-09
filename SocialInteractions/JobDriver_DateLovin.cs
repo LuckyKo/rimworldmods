@@ -39,6 +39,7 @@ namespace SocialInteractions
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
+            if (pawn == null || Partner == null || Bed == null) return false;
             if (pawn.Reserve(Partner, job, 1, -1, null, errorOnFailed))
             {
                 return pawn.Reserve(Bed, job, Bed.SleepingSlotsCount, 0, null, errorOnFailed);
@@ -48,7 +49,7 @@ namespace SocialInteractions
 
         public override bool CanBeginNowWhileLyingDown()
         {
-            return JobInBedUtility.InBedOrRestSpotNow(pawn, job.GetTarget(BedInd));
+            return pawn != null && Bed != null && JobInBedUtility.InBedOrRestSpotNow(pawn, job.GetTarget(BedInd));
         }
 
         protected override System.Collections.Generic.IEnumerable<Toil> MakeNewToils()
@@ -67,11 +68,12 @@ namespace SocialInteractions
             Toil toil = ToilMaker.MakeToil("MakeNewToils");
             toil.initAction = delegate
             {
+                if (pawn == null) return;
                 Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
                 if (pawn == initiator)
                 {
                     ticksLeft = (int)(2500f * Mathf.Clamp(Rand.Range(0.1f, 1.1f), 0.1f, 2f));
-                    Find.HistoryEventsManager.RecordEvent(new HistoryEvent(HistoryEventDefOf.InitiatedLovin, pawn.Named(HistoryEventArgsNames.Doer)));
+                    if (Find.HistoryEventsManager != null) Find.HistoryEventsManager.RecordEvent(new HistoryEvent(HistoryEventDefOf.InitiatedLovin, pawn.Named(HistoryEventArgsNames.Doer)));
                 }
                 else
                 {
@@ -92,26 +94,43 @@ namespace SocialInteractions
                 }
                 else if (pawn.IsHashIntervalTick(100, delta))
                 {
-                    FleckMaker.ThrowMetaIcon(pawn.Position, pawn.Map, FleckDefOf.Heart);
+                    if (Partner != null)
+                    {
+                        FleckMaker.ThrowMetaIcon(pawn.Position, pawn.Map, FleckDefOf.Heart);
+                    }
                 }
             });
             toil2.AddFinishAction(delegate
             {
+                if (pawn == null) return;
                 Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
                 if (pawn == initiator)
                 {
-                    Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
+                    if (Partner != null && Partner.jobs != null)
+                    {
+                        Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
+                    }
                     DatingManager.AdvanceDateStage(pawn);
                 }
 
                 Thought_Memory thought_Memory = (Thought_Memory)ThoughtMaker.MakeThought(ThoughtDefOf.GotSomeLovin);
-                if (pawn.needs.mood != null)
+                if (pawn.needs != null && pawn.needs.mood != null)
                 {
-                    pawn.needs.mood.thoughts.memories.TryGainMemory(thought_Memory, Partner);
+                    if (pawn.needs.mood.thoughts != null && pawn.needs.mood.thoughts.memories != null)
+                    {
+                        pawn.needs.mood.thoughts.memories.TryGainMemory(thought_Memory, Partner);
+                    }
                 }
-                Find.HistoryEventsManager.RecordEvent(new HistoryEvent(HistoryEventDefOf.GotLovin, pawn.Named(HistoryEventArgsNames.Doer)));
-                HistoryEventDef def = (pawn.relations.DirectRelationExists(PawnRelationDefOf.Spouse, Partner) ? HistoryEventDefOf.GotLovin_Spouse : HistoryEventDefOf.GotLovin_NonSpouse);
-                Find.HistoryEventsManager.RecordEvent(new HistoryEvent(def, pawn.Named(HistoryEventArgsNames.Doer)));
+                if (Find.HistoryEventsManager != null)
+                {
+                    Find.HistoryEventsManager.RecordEvent(new HistoryEvent(HistoryEventDefOf.GotLovin, pawn.Named(HistoryEventArgsNames.Doer)));
+                    HistoryEventDef def = HistoryEventDefOf.GotLovin_NonSpouse;
+                    if (pawn.relations != null && Partner != null && pawn.relations.DirectRelationExists(PawnRelationDefOf.Spouse, Partner))
+                    {
+                        def = HistoryEventDefOf.GotLovin_Spouse;
+                    }
+                    Find.HistoryEventsManager.RecordEvent(new HistoryEvent(def, pawn.Named(HistoryEventArgsNames.Doer)));
+                }
             });
             toil2.socialMode = RandomSocialMode.Off;
             yield return toil2;

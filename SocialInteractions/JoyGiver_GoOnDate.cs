@@ -9,8 +9,16 @@ namespace SocialInteractions
     {
         public override Job TryGiveJob(Pawn pawn)
         {
+            if (pawn == null) return null;
+
+            // Add this check to prevent new date jobs if pawn is already on a date
+            if (DatingManager.IsOnDate(pawn))
+            {
+                return null;
+            }
+
             // 1. Check if pawn needs joy
-            if (pawn.needs.joy == null || pawn.needs.joy.CurLevelPercentage > 0.9f)
+            if (pawn.needs == null || pawn.needs.joy == null || pawn.needs.joy.CurLevelPercentage > 0.9f)
             {
                 return null;
             }
@@ -29,15 +37,18 @@ namespace SocialInteractions
             }
 
             // 4. Create and return the "AskForDate" job
-            Job job = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("AskForDate"), partner);
+            JobDef askForDateJobDef = DefDatabase<JobDef>.GetNamed("AskForDate");
+            if (askForDateJobDef == null) return null;
+            Job job = JobMaker.MakeJob(askForDateJobDef, partner);
             return job;
         }
 
         private Pawn FindPartnerFor(Pawn pawn)
         {
+            if (pawn == null || pawn.Map == null || pawn.Map.mapPawns == null) return null;
             // Find a pawn who is a lover, fiance, or spouse
             return (Pawn)pawn.Map.mapPawns.AllPawnsSpawned
-                .Where(p => p != pawn &&
+                .Where(p => p != null && p != pawn && p.relations != null &&
                             (p.relations.DirectRelationExists(PawnRelationDefOf.Lover, pawn) ||
                              p.relations.DirectRelationExists(PawnRelationDefOf.Fiance, pawn) ||
                              p.relations.DirectRelationExists(PawnRelationDefOf.Spouse, pawn)))

@@ -8,13 +8,18 @@ namespace SocialInteractions
     {
         public override float RandomSelectionWeight(Pawn initiator, Pawn recipient)
         {
+            if (initiator == null || recipient == null) return 0f;
             // Check if the initiator has a romantic partner
-            Pawn partner = initiator.relations.GetFirstDirectRelationPawn(PawnRelationDefOf.Lover, (p) => !p.Dead);
-            if (partner == null)
+            Pawn partner = null;
+            if (initiator.relations != null)
+            {
+                partner = initiator.relations.GetFirstDirectRelationPawn(PawnRelationDefOf.Lover, (p) => !p.Dead);
+            }
+            if (partner == null && initiator.relations != null)
             {
                 partner = initiator.relations.GetFirstDirectRelationPawn(PawnRelationDefOf.Fiance, (p) => !p.Dead);
             }
-            if (partner == null)
+            if (partner == null && initiator.relations != null)
             {
                 partner = initiator.relations.GetFirstDirectRelationPawn(PawnRelationDefOf.Spouse, (p) => !p.Dead);
             }
@@ -45,11 +50,18 @@ namespace SocialInteractions
             if (cheatingPartner != null)
             {
                 // Apply the "Caught Cheating" thought to the initiator
-                initiator.needs.mood.thoughts.memories.TryGainMemory(ThoughtDef.Named("CaughtCheating"), recipient);
+                if (initiator.needs != null && initiator.needs.mood != null && initiator.needs.mood.thoughts != null && initiator.needs.mood.thoughts.memories != null)
+                {
+                    initiator.needs.mood.thoughts.memories.TryGainMemory(ThoughtDef.Named("CaughtCheating"), recipient);
+                }
 
                 // Make the LLM call
                 string subject = string.Format("{0} caught {1} cheating with {2}", initiator.Name.ToStringShort, recipient.Name.ToStringShort, cheatingPartner.Name.ToStringShort);
-                SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, DefDatabase<InteractionDef>.GetNamed("CaughtCheating"), subject);
+                InteractionDef caughtCheatingInteractionDef = DefDatabase<InteractionDef>.GetNamed("CaughtCheating");
+                if (caughtCheatingInteractionDef != null)
+                {
+                    SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, caughtCheatingInteractionDef, subject);
+                }
             }
         }
     }

@@ -1,3 +1,4 @@
+using System;
 using Verse;
 using RimWorld;
 using System.Collections.Generic;
@@ -90,7 +91,7 @@ namespace SocialInteractions
                 {
                     Log.Message("[SocialInteractions] Transitioning from Joy to Lovin stage.");
                     // End the partner's FollowAndWatch job.
-                    if (date.Partner.CurJobDef == SI_JobDefOf.FollowAndWatchInitiator)
+                    if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == SI_JobDefOf.FollowAndWatchInitiator)
                     {
                         date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
                     }
@@ -103,15 +104,25 @@ namespace SocialInteractions
                         Building_Bed bed = RestUtility.FindBedFor(date.Initiator);
 
                         // End any existing lovin' jobs for initiator and partner
-                        if (date.Initiator.CurJobDef == JobDefOf.Lovin) date.Initiator.jobs.EndCurrentJob(JobCondition.Succeeded);
-                        if (date.Partner.CurJobDef == JobDefOf.Lovin) date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
+                        if (date.Initiator != null && date.Initiator.jobs != null && date.Initiator.CurJobDef == JobDefOf.Lovin) date.Initiator.jobs.EndCurrentJob(JobCondition.Succeeded);
+                        if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == JobDefOf.Lovin) date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
 
-                        Job lovinJob = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Partner, bed);
-                        Log.Message(string.Format("[SocialInteractions] Initiator Lovin Job created: {0}", lovinJob));
-                        date.Initiator.jobs.StartJob(lovinJob, JobCondition.InterruptForced);
-                        Job lovinJobPartner = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Initiator, bed);
-                        Log.Message(string.Format("[SocialInteractions] Partner Lovin Job created: {0}", lovinJobPartner));
-                        date.Partner.jobs.StartJob(lovinJobPartner, JobCondition.InterruptForced);
+                        if (bed != null)
+                        {
+                            Job lovinJob = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Partner, bed);
+                            Log.Message(string.Format("[SocialInteractions] Initiator Lovin Job created: {0}", lovinJob));
+                            date.Initiator.jobs.StartJob(lovinJob, JobCondition.InterruptForced);
+                            Job lovinJobPartner = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Initiator, bed);
+                            Log.Message(string.Format("[SocialInteractions] Partner Lovin Job created: {0}", lovinJobPartner));
+                            date.Partner.jobs.StartJob(lovinJobPartner, JobCondition.InterruptForced);
+                        }
+                        else
+                        {
+                            Log.Message("[SocialInteractions] No suitable bed found for lovin'. Ending date.");
+                            date.Stage = DateStage.Finished;
+                            EndDate(pawn);
+                            return;
+                        }
 
                         string subject = SpeechBubbleManager.GetDateEndSubject(date.Initiator, date.Partner);
                         SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, subject);
@@ -136,9 +147,119 @@ namespace SocialInteractions
 
         private static bool CanHaveLovin(Pawn initiator, Pawn partner)
         {
-            bool hasBed = RestUtility.FindBedFor(initiator) != null && RestUtility.FindBedFor(partner) != null;
+            bool hasBed = (initiator != null && RestUtility.FindBedFor(initiator) != null) && (partner != null && RestUtility.FindBedFor(partner) != null);
             Log.Message(string.Format("[SocialInteractions] CanHaveLovin check for {0} and {1}. HasBed: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, hasBed));
             return hasBed;
+        }
+
+        public static List<Tuple<Thing, JoyGiverDef>> FindJoySpotFor(Pawn pawn, Pawn partner)
+        {
+            List<Tuple<Thing, JoyGiverDef>> foundSpots = new List<Tuple<Thing, JoyGiverDef>>();
+
+            // 1. Filter for suitable social JoyGiverDefs
+            List<JoyGiverDef> suitableJoyGivers = new List<JoyGiverDef>();
+            try
+            {
+                suitableJoyGivers = DefDatabase<JoyGiverDef>.AllDefsListForReading
+                    .Where(jg =>
+                    {
+                        if (jg.jobDef == null)
+                        {
+                            return false;
+                        }
+                        if (jg.jobDef == JobDefOf.Lovin) { return false; }
+                        if (jg.jobDef.defName == "VisitSickPawn") { return false; }
+                        if (jg.jobDef.defName == "StandAndChat") { return false; }
+                        if (jg.thingDefs == null || !jg.thingDefs.Any()) { return false; }
+                        
+                        if (jg.Worker == null)
+                        {
+                            return false;
+                        }
+
+                        try
+                        {
+                            if (!jg.Worker.CanBeGivenTo(pawn)) { return false; }
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception checking CanBeGivenTo for initiator on {0}: {1}", jg.defName, ex.Message));
+                            return false;
+                        }
+
+                        try
+                        {
+                            if (!jg.Worker.CanBeGivenTo(partner)) { return false; }
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception checking CanBeGivenTo for partner on {0}: {1}", jg.defName, ex.Message));
+                            return false;
+                        }
+                        return true;
+                    }).ToList();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception during JoyGiverDef filtering query definition: {0}", ex.Message));
+            }
+
+            try
+            {
+                foreach (var giver in suitableJoyGivers)
+                {
+                    // 2. For each JoyGiverDef, find compatible buildings on the map
+                    if (giver.thingDefs != null)
+                    {
+                        foreach (var thingDef in giver.thingDefs)
+                        {
+                            IEnumerable<Building> potentialBuildings = null;
+                            if (pawn.Map != null && pawn.Map.listerBuildings != null)
+                            {
+                                potentialBuildings = pawn.Map.listerBuildings.allBuildingsColonist
+                                    .Where(b =>
+                                        b != null && // Ensure building is not null
+                                        b.def == thingDef && // Must be the specific ThingDef for this giver
+                                        b.def.GetStatValueAbstract(StatDefOf.JoyGainFactor) > 0 && // Must provide joy
+                                        pawn.CanReserveAndReach(b, PathEndMode.InteractionCell, Danger.None) && // Initiator can reserve and reach
+                                        partner.CanReserveAndReach(b, PathEndMode.InteractionCell, Danger.None) // Partner can reserve and reach
+                                    );
+                            }
+
+                            if (potentialBuildings != null)
+                            {
+                                foreach (var building in potentialBuildings)
+                                {
+                                    // Add a robust check for building's position in EdificeGrid
+                                    try
+                                    {
+                                        // Attempt to access the edifice grid. If this throws, the building is problematic.
+                                        Thing edifice = building.Map.edificeGrid[building.Position];
+                                        // If we reach here, it means the access didn't throw.
+                                        // We can optionally check if edifice is null or not the expected building,
+                                        // but the primary goal is to catch the IndexOutOfRangeException.
+                                        foundSpots.Add(new Tuple<Thing, JoyGiverDef>(building, giver));
+                                    }
+                                    catch (IndexOutOfRangeException ex)
+                                    {
+                                        Log.Error(string.Format("[SocialInteractions] FindJoySpotFor: Excluding problematic building {0} at {1} due to IndexOutOfRangeException in EdificeGrid: {2}", building.LabelShort, building.Position, ex.Message));
+                                    }
+                                    catch (Exception ex) // Catch other potential exceptions during access
+                                    {
+                                        Log.Error(string.Format("[SocialInteractions] FindJoySpotFor: Excluding problematic building {0} at {1} due to unexpected exception during EdificeGrid access: {2}", building.LabelShort, building.Position, ex.Message));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception during iteration through suitable JoyGiverDefs: {0}", ex.Message));
+            }
+            
+            return foundSpots;
         }
     }
 }

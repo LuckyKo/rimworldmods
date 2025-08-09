@@ -21,44 +21,39 @@ namespace SocialInteractions
             Toil follow = new Toil();
             follow.initAction = () =>
             {
-                IntVec3 watchCell;
-                if (this.job.targetB.Thing != null)
-                {
-                    watchCell = CellFinder.StandableCellNear(this.job.targetB.Thing.Position, this.job.targetB.Thing.Map, 5);
-                }
-                else
-                {
-                    // Fallback to initiator's position if joy spot is not a physical thing
-                    watchCell = CellFinder.StandableCellNear(this.job.targetA.Thing.Position, this.job.targetA.Thing.Map, 5);
-                }
-
-                if (!watchCell.IsValid) watchCell = this.job.targetA.Thing.Position; // Fallback to initiator's exact position if no valid cell found
-                this.pawn.pather.StartPath(watchCell, PathEndMode.OnCell);
+                if (this.pawn == null || this.job == null || this.job.targetA == null) return;
+                if (this.pawn != null && this.pawn.pather != null) this.pawn.pather.StartPath(this.job.targetA, PathEndMode.Touch);
             };
             follow.defaultCompleteMode = ToilCompleteMode.PatherArrival;
-            follow.atomicWithPrevious = true;
             yield return follow;
 
             Toil watch = new Toil();
             watch.initAction = () =>
             {
                 Log.Message("[SocialInteractions] JobDriver_FollowAndWatch: Starting watch toil.");
-                this.pawn.rotationTracker.FaceCell(this.job.targetA.Cell);
             };
             watch.tickAction = () =>
             {
                 // Add null and type check for initiator
                 Pawn initiator = this.job.targetA.Thing as Pawn;
-                if (initiator == null)
+                if (initiator == null || this.pawn == null || this.job == null || this.job.targetB == null)
                 {
-                    this.ReadyForNextToil(); // End the job if initiator is invalid
+                    this.ReadyForNextToil(); // End the job if initiator or job targets are invalid
                     return;
                 }
 
                 Thing joySpot = this.job.targetB.Thing;
 
+                // Continuous following: If initiator moves, update path
+                if (this.pawn.IsHashIntervalTick(60) && (this.pawn.pather == null || !this.pawn.pather.Moving || this.pawn.pather.Destination != initiator.Position))
+                {
+                    this.pawn.pather.StartPath(initiator, PathEndMode.InteractionCell);
+                }
+
                 // End condition: initiator is no longer doing a joy job at the joy spot.
-                if (initiator.CurJob == null || initiator.CurJob.def.joyKind == null || initiator.CurJob.targetA.Thing != joySpot)
+                // The job should end when the initiator's joy job at the joySpot ends.
+                // Also, if the initiator is no longer on a date, the job should end.
+                if (initiator.CurJob == null || initiator.CurJob.targetA.Thing != joySpot || !DatingManager.IsOnDate(initiator))
                 {
                     DatingManager.AdvanceDateStage(initiator);
                     this.ReadyForNextToil(); // End the FollowAndWatch job
@@ -72,7 +67,7 @@ namespace SocialInteractions
                     if (initiator.CurJob != null && initiator.CurJob.def != null && initiator.CurJob.def.joyKind != null) // Check if initiator's job is a joy job
                     {
                         Building joyBuilding = initiator.CurJob.targetA.Thing as Building;
-                        if (joyBuilding != null) // Only proceed if it's a building-based joy activity
+                        if (joyBuilding != null && joyBuilding.def != null && joyBuilding.def.building != null) // Only proceed if it's a building-based joy activity
                         {
                             JoyGiverDef joyGiverDef = DefDatabase<JoyGiverDef>.AllDefs.FirstOrDefault(x => x.joyKind == joyBuilding.def.building.joyKind);
                             if (joyGiverDef != null && joyGiverDef.jobDef != null && joyGiverDef.jobDef.joyMaxParticipants > 1)
@@ -81,7 +76,7 @@ namespace SocialInteractions
                                 JoyGiver_FollowAndWatch joyGiverFollowAndWatch = new JoyGiver_FollowAndWatch();
                                 Job newRecipientJoyJob = joyGiverFollowAndWatch.TryGiveJob(this.pawn, joyBuilding);
 
-                                if (newRecipientJoyJob != null)
+                                if (newRecipientJoyJob != null && this.pawn.jobs != null)
                                 {
                                     this.pawn.jobs.StartJob(newRecipientJoyJob, JobCondition.InterruptForced);
                                     this.ReadyForNextToil(); // End FollowAndWatch job
@@ -92,23 +87,22 @@ namespace SocialInteractions
                     }
                 }
                 
-                // Gain joy while watching
+                
+            
+            // Gain joy while watching
                 if (initiator.CurJob != null && initiator.CurJob.def != null && initiator.CurJob.def.joyKind != null)
                 {
-                    JoyUtility.JoyTickCheckEnd(this.pawn, 1, JoyTickFullJoyAction.None);
+                    // Custom joy gain for observing
+                    if (this.pawn.needs != null && this.pawn.needs.joy != null && initiator.CurJob.def.joyGainRate > 0f)
+                    {
+                        float joyGain = initiator.CurJob.def.joyGainRate * 0.000144f; // Base joy gain per tick
+                        this.pawn.needs.joy.GainJoy(joyGain, JoyKindDefOf.Social);
+                    }
                 }
             };
             watch.AddFinishAction(() =>
             {
-                Pawn initiatorPawn = this.job.targetA.Thing as Pawn;
-                if (initiatorPawn != null)
-                {
-                    Hediff hediff = this.pawn.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
-                    if (hediff != null) this.pawn.health.RemoveHediff(hediff);
-
-                    hediff = initiatorPawn.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
-                    if (hediff != null) initiatorPawn.health.RemoveHediff(hediff);
-                }
+                // OnDate hediffs are now handled by DatingManager
             });
             watch.defaultCompleteMode = ToilCompleteMode.Never;
             yield return watch;
