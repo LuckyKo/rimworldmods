@@ -46,7 +46,30 @@ namespace SocialInteractions
             Date date = GetDateWith(pawn);
             if (date != null)
             {
-                Log.Message(string.Format("[SocialInteractions] Ending date for {0} and {1}.", date.Initiator.Name.ToStringShort, date.Partner.Name.ToStringShort));
+                Log.Message(string.Format("[SocialInteractions] Ending date for {0} and {1}. Removing OnDate hediffs.", date.Initiator.Name.ToStringShort, date.Partner.Name.ToStringShort));
+
+                // Remove OnDate hediff from initiator
+                Hediff hediffInitiator = null;
+                if (date.Initiator.health != null && date.Initiator.health.hediffSet != null)
+                {
+                    hediffInitiator = date.Initiator.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
+                }
+                if (hediffInitiator != null)
+                {
+                    date.Initiator.health.RemoveHediff(hediffInitiator);
+                }
+
+                // Remove OnDate hediff from partner
+                Hediff hediffPartner = null;
+                if (date.Partner.health != null && date.Partner.health.hediffSet != null)
+                {
+                    hediffPartner = date.Partner.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
+                }
+                if (hediffPartner != null)
+                {
+                    date.Partner.health.RemoveHediff(hediffPartner);
+                }
+
                 dates.RemoveAll(d => d.Initiator == pawn || d.Partner == pawn);
             }
         }
@@ -145,16 +168,26 @@ namespace SocialInteractions
             }
         }
 
+        private static bool AreRomanticallyCompatible(Pawn p1, Pawn p2)
+        {
+            if (p1 == null || p2 == null || p1.relations == null) return false;
+
+            return p1.relations.DirectRelationExists(PawnRelationDefOf.Lover, p2) ||
+                   p1.relations.DirectRelationExists(PawnRelationDefOf.Fiance, p2) ||
+                   p1.relations.DirectRelationExists(PawnRelationDefOf.Spouse, p2);
+        }
+
         private static bool CanHaveLovin(Pawn initiator, Pawn partner)
         {
             bool hasBed = (initiator != null && RestUtility.FindBedFor(initiator) != null) && (partner != null && RestUtility.FindBedFor(partner) != null);
-            Log.Message(string.Format("[SocialInteractions] CanHaveLovin check for {0} and {1}. HasBed: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, hasBed));
-            return hasBed;
+            bool romanticallyCompatible = AreRomanticallyCompatible(initiator, partner);
+            Log.Message(string.Format("[SocialInteractions] CanHaveLovin check for {0} and {1}. HasBed: {2}, RomanticallyCompatible: {3}", initiator.Name.ToStringShort, partner.Name.ToStringShort, hasBed, romanticallyCompatible));
+            return hasBed && romanticallyCompatible;
         }
 
-        public static List<Tuple<Thing, JoyGiverDef>> FindJoySpotFor(Pawn pawn, Pawn partner)
+        public static List<Tuple<Thing, JoyGiverDef, IntVec3>> FindJoySpotFor(Pawn pawn, Pawn partner)
         {
-            List<Tuple<Thing, JoyGiverDef>> foundSpots = new List<Tuple<Thing, JoyGiverDef>>();
+            List<Tuple<Thing, JoyGiverDef, IntVec3>> foundSpots = new List<Tuple<Thing, JoyGiverDef, IntVec3>>();
 
             // 1. Filter for suitable social JoyGiverDefs
             List<JoyGiverDef> suitableJoyGivers = new List<JoyGiverDef>();
@@ -236,9 +269,52 @@ namespace SocialInteractions
                                         // Attempt to access the edifice grid. If this throws, the building is problematic.
                                         Thing edifice = building.Map.edificeGrid[building.Position];
                                         // If we reach here, it means the access didn't throw.
-                                        // We can optionally check if edifice is null or not the expected building,
-                                        // but the primary goal is to catch the IndexOutOfRangeException.
-                                        foundSpots.Add(new Tuple<Thing, JoyGiverDef>(building, giver));
+                                        // We can optionally check if edifice is null or not the expected building, but the primary goal is to catch the IndexOutOfRangeException.
+                                        // Only add to foundSpots if the edifice is the expected building and it's spawned.
+                                        if (edifice == building && building.Spawned)
+                                        {
+                                            // NEW LOGIC: Find an accessible interaction cell
+                                            IntVec3 interactionCell = IntVec3.Invalid;
+
+                                            // Prioritize interaction cells defined by the building
+                                            IntVec3 potentialCell = building.InteractionCell;
+                                            if (potentialCell.IsValid && potentialCell.InBounds(building.Map) && !potentialCell.Impassable(building.Map) &&
+                                                pawn.CanReach(potentialCell, PathEndMode.OnCell, Danger.None) &&
+                                                partner.CanReach(potentialCell, PathEndMode.OnCell, Danger.None) &&
+                                                pawn.CanReserve(potentialCell) && partner.CanReserve(potentialCell))
+                                            {
+                                                interactionCell = potentialCell;
+                                            }
+
+                                            // If no specific interaction cell, try adjacent cells
+                                            if (interactionCell == IntVec3.Invalid)
+                                            {
+                                                foreach (IntVec3 c in GenAdj.CellsAdjacent8Way(building))
+                                                {
+                                                    if (c.IsValid && c.InBounds(building.Map) && !c.Impassable(building.Map) &&
+                                                        pawn.CanReach(c, PathEndMode.OnCell, Danger.None) &&
+                                                        partner.CanReach(c, PathEndMode.OnCell, Danger.None) &&
+                                                        pawn.CanReserve(c) && partner.CanReserve(c))
+                                                    {
+                                                        interactionCell = c;
+                                                        break; // Found a suitable cell, break
+                                                    }
+                                                }
+                                            }
+
+                                            if (interactionCell != IntVec3.Invalid)
+                                            {
+                                                foundSpots.Add(new Tuple<Thing, JoyGiverDef, IntVec3>(building, giver, interactionCell));
+                                            }
+                                            else
+                                            {
+                                                Log.Message(string.Format("[SocialInteractions] FindJoySpotFor: No suitable interaction cell found for building {0} at {1}.", building.LabelShort, building.Position));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Log.Message(string.Format("[SocialInteractions] FindJoySpotFor: Excluding problematic building {0} at {1}. Edifice mismatch or not spawned. Edifice: {2}, Spawned: {3}", building.LabelShort, building.Position, edifice != null ? edifice.LabelShort : "NULL", building.Spawned));
+                                        }
                                     }
                                     catch (IndexOutOfRangeException ex)
                                     {

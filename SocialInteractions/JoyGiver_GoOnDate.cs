@@ -2,17 +2,38 @@ using RimWorld;
 using Verse;
 using Verse.AI;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace SocialInteractions
 {
     public class JoyGiver_GoOnDate : JoyGiver
     {
+        private static Dictionary<Pawn, int> lastAttemptTick = new Dictionary<Pawn, int>();
+        private const int CooldownTicks = 600; // 10 seconds (60 ticks per second)
+
         public override Job TryGiveJob(Pawn pawn)
         {
             if (pawn == null) return null;
 
+            // Cooldown to prevent spamming date attempts
+            int lastTick;
+            if (lastAttemptTick.TryGetValue(pawn, out lastTick) && Find.TickManager.TicksGame - lastTick < CooldownTicks)
+            {
+                return null;
+            }
+
+            // Update last attempt tick
+            lastAttemptTick[pawn] = Find.TickManager.TicksGame;
+
             // Add this check to prevent new date jobs if pawn is already on a date
             if (DatingManager.IsOnDate(pawn))
+            {
+                return null;
+            }
+
+            // Prevent spamming jobs if pawn already has an AskForDate or GoOnDate job
+            if (pawn.jobs != null && pawn.jobs.curJob != null &&
+                (pawn.jobs.curJob.def == DefDatabase<JobDef>.GetNamed("AskForDate") || pawn.jobs.curJob.def == DefDatabase<JobDef>.GetNamed("GoOnDate")))
             {
                 return null;
             }
@@ -30,8 +51,8 @@ namespace SocialInteractions
                 return null;
             }
 
-            // 3. Check if both pawns can interact
-            if (!SocialInteractionUtility.CanInitiateInteraction(pawn) || !SocialInteractionUtility.CanReceiveInteraction(partner))
+            // 3. Check if both pawns can interact and if the partner can be reserved
+            if (!SocialInteractionUtility.CanInitiateInteraction(pawn) || !SocialInteractionUtility.CanReceiveInteraction(partner) || !pawn.CanReserve(partner))
             {
                 return null;
             }
@@ -51,7 +72,8 @@ namespace SocialInteractions
                 .Where(p => p != null && p != pawn && p.relations != null &&
                             (p.relations.DirectRelationExists(PawnRelationDefOf.Lover, pawn) ||
                              p.relations.DirectRelationExists(PawnRelationDefOf.Fiance, pawn) ||
-                             p.relations.DirectRelationExists(PawnRelationDefOf.Spouse, pawn)))
+                             p.relations.DirectRelationExists(PawnRelationDefOf.Spouse, pawn) ||
+                             p.relations.OpinionOf(pawn) > 10)) // Good opinion threshold
                 .FirstOrDefault();
         }
     }

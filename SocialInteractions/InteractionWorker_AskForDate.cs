@@ -34,11 +34,13 @@ namespace SocialInteractions
                 return 100f; // A high weight to strongly prioritize partners
             }
 
-            // If not a partner, calculate the romance chance for a "cheating" attempt
-            float romanceChance = InteractionWorker_RomanceAttempt.SuccessChance(initiator, recipient, 1f);
-
-            // Use the romance chance as the weight, with a small random factor
-            return romanceChance * Rand.Range(0.8f, 1.0f);
+            // If not a partner, use opinion as the weight
+            float opinion = initiator.relations.OpinionOf(recipient);
+            if (opinion > 0) // Only consider positive opinions
+            {
+                return opinion * Rand.Range(0.1f, 0.5f); // Scale opinion to a reasonable weight
+            }
+            return 0f;
         }
 
         public override void Interacted(Pawn initiator, Pawn recipient, List<RulePackDef> extraSentencePacks, out string letterText, out string letterLabel, out LetterDef letterDef, out LookTargets lookTargets)
@@ -58,7 +60,7 @@ namespace SocialInteractions
             JobDef goOnDateJobDef = DefDatabase<JobDef>.GetNamed("GoOnDate");
             if (goOnDateJobDef != null && initiator.jobs != null)
             {
-                Job job = JobMaker.MakeJob(goOnDateJobDef, recipient);
+                Job job = JobMaker.MakeJob(goOnDateJobDef, initiator, recipient);
                 initiator.jobs.TryTakeOrderedJob(job, JobTag.Misc);
             }
         }

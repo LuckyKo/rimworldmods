@@ -32,6 +32,21 @@ namespace SocialInteractions
             initialCheck.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return initialCheck;
 
+            // New range check
+            Toil rangeCheck = new Toil();
+            rangeCheck.initAction = () =>
+            {
+                Pawn recipient = (Pawn)this.job.targetA.Thing;
+                int maxDistance = 20; // 20x20 tiles
+                if ((Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)) > maxDistance)
+                {
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Aborting job. Recipient {0} is too far from initiator {1}. Distance: {2}, Max Distance: {3}", recipient.Name.ToStringShort, this.pawn.Name.ToStringShort, (Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)), maxDistance));
+                    this.EndJobWith(JobCondition.Incompletable);
+                }
+            };
+            rangeCheck.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return rangeCheck;
+
             yield return Toils_Goto.GotoThing(TargetIndex.A, PathEndMode.InteractionCell); // Go to Recipient
 
             Job initiatorJob = null;
@@ -119,25 +134,6 @@ namespace SocialInteractions
             {
                 Pawn recipient = (Pawn)this.job.targetA.Thing;
                 if (this.pawn == null || recipient == null) return;
-                Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Cleaning up OnDate hediffs for {0} and {1}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
-                Hediff hediff = null;
-                if (this.pawn.health != null && this.pawn.health.hediffSet != null)
-                {
-                    hediff = this.pawn.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
-                }
-                if (hediff != null)
-                {
-                    this.pawn.health.RemoveHediff(hediff);
-                }
-                Hediff recipientHediff = null;
-                if (recipient.health != null && recipient.health.hediffSet != null)
-                {
-                    recipientHediff = recipient.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
-                }
-                if (recipientHediff != null)
-                {
-                    recipient.health.RemoveHediff(recipientHediff);
-                }
                 DatingManager.EndDate(this.pawn);
             };
             finalToil.defaultCompleteMode = ToilCompleteMode.Instant;
