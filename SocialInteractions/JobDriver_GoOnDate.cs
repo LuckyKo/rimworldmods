@@ -26,12 +26,16 @@ namespace SocialInteractions
 
             Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: MakeNewToils started for Initiator: {0}, Partner: {1}", this.job.targetA.Thing.LabelShort, this.job.targetB.Thing.LabelShort));
 
+            // Start the date in DatingManager
+            DatingManager.StartDate((Pawn)this.job.targetA.Thing, (Pawn)this.job.targetB.Thing);
+
             this.FailOnDespawnedOrNull(TargetIndex.A); // Initiator
             this.FailOnDespawnedOrNull(TargetIndex.B); // Partner
 
             Toil assignJoyJob = new Toil();
             assignJoyJob.initAction = () =>
             {
+                Log.Message("[SocialInteractions] JobDriver_GoOnDate: Entering assignJoyJob toil.");
                 Pawn initiator = (Pawn)this.job.targetA.Thing;
                 Pawn partner = (Pawn)this.job.targetB.Thing;
 
@@ -40,94 +44,63 @@ namespace SocialInteractions
                     return;
                 }
 
-                // Find a suitable joy spot for the date
                 System.Collections.Generic.List<System.Tuple<Thing, JoyGiverDef, IntVec3>> joySpots = DatingManager.FindJoySpotFor(initiator, partner);
+                Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: FindJoySpotFor returned {0} joy spots.", joySpots != null ? joySpots.Count : 0));
 
                 if (joySpots != null && joySpots.Any())
                 {
-                    // For simplicity, pick the first available joy spot
                     System.Tuple<Thing, JoyGiverDef, IntVec3> chosenSpot = joySpots.First();
                     Thing joyThing = chosenSpot.Item1;
                     JoyGiverDef joyGiver = chosenSpot.Item2;
                     IntVec3 joyCell = chosenSpot.Item3;
 
-                    if (joyGiver != null && joyGiver.jobDef != null && initiator.jobs != null && partner.jobs != null)
+                    if (joyGiver != null && joyGiver.jobDef != null && initiator.jobs != null)
                     {
-                        // Add checks for joyThing validity
-                        if (joyThing == null || !joyThing.Spawned || !joyThing.Position.IsValid || joyThing.Map == null || !initiator.CanReserve(joyThing) || joyThing.Destroyed)
-                        {
-                            Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Invalid joyThing found. JoyThing: {0}, Spawned: {1}, Position Valid: {2}, Map: {3}, Destroyed: {4}. Ending date.", joyThing != null ? joyThing.LabelShort : "NULL", joyThing != null ? joyThing.Spawned.ToString() : "NULL", joyThing != null ? joyThing.Position.IsValid.ToString() : "NULL", joyThing != null && joyThing.Map != null ? joyThing.Map.ToString() : "NULL", joyThing != null ? joyThing.Destroyed.ToString() : "NULL"));
-                            DatingManager.EndDate(initiator);
-                            this.EndJobWith(JobCondition.Incompletable);
-                            Messages.Message(string.Format("{0} tried to go on a date with {1}, but the joy spot was invalid.", initiator.LabelShort, partner.LabelShort), new LookTargets(initiator, partner), MessageTypeDefOf.NegativeEvent);
-                            return; // Exit initAction
-                        }
-
-                        // NEW CHECK: Ensure joyThing is not destroyed and still on a map
-                        if (joyThing.Destroyed || joyThing.Map == null)
-                        {
-                            Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: JoyThing {0} is destroyed or has no map. Ending date.", joyThing.LabelShort));
-                            DatingManager.EndDate(initiator);
-                            this.EndJobWith(JobCondition.Incompletable);
-                            Messages.Message(string.Format("{0} tried to go on a date with {1}, but the joy spot was no longer available.", initiator.LabelShort, partner.LabelShort), new LookTargets(initiator, partner), MessageTypeDefOf.NegativeEvent);
-                            return; // Exit initAction
-                        }
-
-                        Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Assigning initiator joy job. JoyGiver: {0}, JoyThing: {1}, Position: {2}, Map: {3}", joyGiver.defName, joyThing.LabelShort, joyThing.Position, joyThing.Map));
-                        Log.Message(string.Format("[SocialInteractions] JoyThing Details: X={0}, Y={1}, Z={2}, MapSizeX={3}, MapSizeZ={4}, InBounds={5}, JoyCell: {6}", joyThing.Position.x, joyThing.Position.y, joyThing.Position.z, joyThing.Map.Size.x, joyThing.Map.Size.z, joyThing.Position.InBounds(joyThing.Map), joyCell));
-                        // Assign joy job to initiator
                         Job initiatorJoyJob = JobMaker.MakeJob(joyGiver.jobDef, joyThing, joyCell);
-                        try
-                        {
-                            initiator.jobs.StartJob(initiatorJoyJob, JobCondition.InterruptForced);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(string.Format("[SocialInteractions] JobDriver_GoOnDate: Exception assigning initiator joy job for {0} with {1}: {2}. Ending date.", initiator.LabelShort, joyThing.LabelShort, ex.Message));
-                            DatingManager.EndDate(initiator);
-                            this.EndJobWith(JobCondition.Incompletable);
-                            Messages.Message(string.Format("{0} tried to go on a date with {1}, but encountered an error assigning a joy job.", initiator.LabelShort, partner.LabelShort), new LookTargets(initiator, partner), MessageTypeDefOf.NegativeEvent);
-                            return; // Exit initAction
-                        }
-
-                        Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Assigning partner follow job. Initiator: {0}, JoyThing: {1}", initiator.LabelShort, joyThing.LabelShort));
-                        // Assign follow and watch job to partner
-                        partner.jobs.StartJob(JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, initiator, joyThing), JobCondition.InterruptForced);
-                        Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner {0} assigned job {1}.", partner.LabelShort, SI_JobDefOf.FollowAndWatchInitiator.defName));
-
-                        // Check if the partner actually took the FollowAndWatchInitiator job
-                        if (partner.CurJobDef != SI_JobDefOf.FollowAndWatchInitiator)
-                        {
-                            Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner {0} failed to take FollowAndWatchInitiator job. Current job: {1}. Ending date.", partner.LabelShort, partner.CurJobDef != null ? partner.CurJobDef.defName : "None"));
-                            DatingManager.EndDate(initiator);
-                            this.EndJobWith(JobCondition.Incompletable);
-                            Messages.Message(string.Format("{0} tried to go on a date with {1}, but {1} was too busy.", initiator.LabelShort, partner.LabelShort), new LookTargets(initiator, partner), MessageTypeDefOf.NegativeEvent);
-                            return; // Exit initAction
-                        }
-
-                        
-                    }
-                    else
-                    {
-                        Log.Message("[SocialInteractions] JobDriver_GoOnDate: Invalid joyGiver or jobs. Ending date.");
-                        DatingManager.EndDate(initiator);
-                        this.EndJobWith(JobCondition.Incompletable);
+                        initiator.jobs.StartJob(initiatorJoyJob, JobCondition.InterruptForced); // Revert to original
+                        Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Initiator {0} assigned joy job {1} at {2}.", initiator.Name.ToStringShort, initiatorJoyJob.def.defName, joyCell));
                     }
                 }
                 else
                 {
-                    // If no joy spot is found, end the date
-                    Log.Message("[SocialInteractions] JobDriver_GoOnDate: No suitable joy spot found. Ending date.");
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: No suitable joy spot found for {0} and {1}. Ending date.", initiator.Name.ToStringShort, partner.Name.ToStringShort));
                     DatingManager.EndDate(initiator);
                     this.EndJobWith(JobCondition.Incompletable);
                 }
             };
             assignJoyJob.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return assignJoyJob;
+            Log.Message("[SocialInteractions] JobDriver_GoOnDate: assignJoyJob completed. Attempting to yield assignPartnerJob.");
+
+            Toil assignPartnerJob = new Toil();
+            assignPartnerJob.initAction = () =>
+            {
+                Log.Message("[SocialInteractions] JobDriver_GoOnDate: Entering assignPartnerJob toil.");
+                Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: assignPartnerJob.initAction started for Initiator: {0}, Partner: {1}", ((Pawn)this.job.targetA.Thing).Name.ToStringShort, ((Pawn)this.job.targetB.Thing).Name.ToStringShort));
+                Pawn initiator = (Pawn)this.job.targetA.Thing;
+                Pawn partner = (Pawn)this.job.targetB.Thing;
+
+                if (initiator.CurJob != null && initiator.CurJob.def.joyKind != null)
+                {
+                    Job partnerFollowJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, initiator, initiator.CurJob.targetA.Thing);
+                    partner.jobs.StartJob(partnerFollowJob, JobCondition.InterruptForced);
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner {0} assigned job {1}.", partner.Name.ToStringShort, partnerFollowJob.def.defName));
+                }
+                else
+                {
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Initiator {0} has no valid joy job. Ending date for {1}.", initiator.Name.ToStringShort, partner.Name.ToStringShort));
+                    DatingManager.EndDate(initiator);
+                    this.EndJobWith(JobCondition.Incompletable);
+                }
+            };
+            assignPartnerJob.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return assignPartnerJob;
 
             Toil waitForJoyJob = new Toil();
             waitForJoyJob.initAction = () =>
             {
+                Log.Message("[SocialInteractions] JobDriver_GoOnDate: Entering waitForJoyJob toil.");
+                Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: waitForJoyJob.initAction started for Initiator: {0}, Partner: {1}", ((Pawn)this.job.targetA.Thing).Name.ToStringShort, ((Pawn)this.job.targetB.Thing).Name.ToStringShort));
                 Log.Message("[SocialInteractions] JobDriver_GoOnDate: Starting waitForJoyJob toil.");
             };
             waitForJoyJob.tickAction = () =>
@@ -139,11 +112,16 @@ namespace SocialInteractions
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
+                Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: waitForJoyJob.tickAction - Initiator: {0} (Job: {1}), Partner: {2} (Job: {3})", initiator.Name.ToStringShort, initiator.CurJob != null ? initiator.CurJob.def.defName : "None", partner.Name.ToStringShort, partner.CurJob != null ? partner.CurJob.def.defName : "None"));
 
                 if (initiator.CurJob != null && initiator.CurJob.def != null && initiator.CurJob.def.joyKind == null && partner.CurJob != null && partner.CurJob.def != SI_JobDefOf.FollowAndWatchInitiator)
                 {
                     Log.Message("[SocialInteractions] JobDriver_GoOnDate: Joy job finished, advancing to next toil.");
                     this.ReadyForNextToil();
+                }
+                else
+                {
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: waitForJoyJob not advancing. Initiator JoyKind: {0}, Partner Job: {1}", initiator.CurJob != null && initiator.CurJob.def != null ? initiator.CurJob.def.joyKind.defName : "N/A", partner.CurJob != null && partner.CurJob.def != null ? partner.CurJob.def.defName : "N/A"));
                 }
             };
             waitForJoyJob.defaultCompleteMode = ToilCompleteMode.Never;
@@ -152,9 +130,19 @@ namespace SocialInteractions
             Toil advanceDate = new Toil();
             advanceDate.initAction = () =>
             {
+                Log.Message("[SocialInteractions] JobDriver_GoOnDate: Entering advanceDate toil.");
                 Log.Message("[SocialInteractions] JobDriver_GoOnDate: Initiating advanceDate toil.");
                 Pawn initiator = (Pawn)this.job.targetA.Thing;
-                if (initiator != null) DatingManager.AdvanceDateStage(initiator);
+                if (initiator != null)
+                {
+                    DatingManager.AdvanceDateStage(initiator);
+                    Date date = DatingManager.GetDateWith(initiator);
+                    if (date != null && date.Stage == DateStage.Joy)
+                    {
+                        Log.Message("[SocialInteractions] JobDriver_GoOnDate: Date could not advance to Lovin' stage. Ending date.");
+                        DatingManager.EndDate(initiator);
+                    }
+                }
             };
             advanceDate.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return advanceDate;
@@ -162,6 +150,7 @@ namespace SocialInteractions
             Toil waitForLovinJob = new Toil();
             waitForLovinJob.initAction = () =>
             {
+                Log.Message("[SocialInteractions] JobDriver_GoOnDate: Entering waitForLovinJob toil.");
                 Log.Message("[SocialInteractions] JobDriver_GoOnDate: Starting waitForLovinJob toil.");
             };
             waitForLovinJob.tickAction = () =>
@@ -205,6 +194,7 @@ namespace SocialInteractions
             Toil finishDate = new Toil();
             finishDate.initAction = () =>
             {
+                Log.Message("[SocialInteractions] JobDriver_GoOnDate: Entering finishDate toil.");
                 Log.Message("[SocialInteractions] JobDriver_GoOnDate: Initiating finishDate toil.");
                 Pawn initiator = (Pawn)this.job.targetA.Thing;
                 if (initiator != null) DatingManager.AdvanceDateStage(initiator);
@@ -216,11 +206,13 @@ namespace SocialInteractions
             Toil cleanup = new Toil();
             cleanup.initAction = () =>
             {
+                Log.Message("[SocialInteractions] JobDriver_GoOnDate: Entering cleanup toil.");
                 Pawn initiator = (Pawn)this.job.targetA.Thing;
                 if (initiator != null)
                 {
                     DatingManager.EndDate(initiator);
                 }
+                Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Job finished for Initiator: {0}", initiator.Name.ToStringShort));
             };
             cleanup.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return cleanup;

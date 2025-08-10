@@ -40,11 +40,19 @@ namespace SocialInteractions
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             if (pawn == null || Partner == null || Bed == null) return false;
-            if (pawn.Reserve(Partner, job, 1, -1, null, errorOnFailed))
+
+            if (pawn == DatingManager.GetInitiatorOfDateWith(pawn))
             {
-                return pawn.Reserve(Bed, job, Bed.SleepingSlotsCount, 0, null, errorOnFailed);
+                if (pawn.Reserve(Partner, job, 1, -1, null, errorOnFailed))
+                {
+                    return pawn.Reserve(Bed, job, Bed.SleepingSlotsCount, 0, null, errorOnFailed);
+                }
+                return false;
             }
-            return false;
+            else
+            {
+                return pawn.Reserve(Partner, job, 1, -1, null, errorOnFailed);
+            }
         }
 
         public override bool CanBeginNowWhileLyingDown()

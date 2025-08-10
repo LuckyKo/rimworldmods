@@ -10,6 +10,7 @@ namespace SocialInteractions
     public class SpeechBubbleManager : GameComponent
     {
         private static Queue<SpeechBubble> speechBubbleQueue = new Queue<SpeechBubble>();
+        private static readonly object queueLock = new object();
         private static Dictionary<Pawn, float> pawnBubbleEndTimes = new Dictionary<Pawn, float>();
         private static float nextQueuedBubbleDisplayTime = 0f;
         private static int currentConversationId = 0;
@@ -50,7 +51,13 @@ namespace SocialInteractions
             // Process queued bubbles
             if (speechBubbleQueue.Count > 0 && Time.time >= nextQueuedBubbleDisplayTime)
             {
-                SpeechBubble bubble = speechBubbleQueue.Dequeue();
+                SpeechBubble bubble;
+                lock (queueLock)
+                {
+                    if (speechBubbleQueue.Count == 0) return;
+                    bubble = speechBubbleQueue.Dequeue();
+                }
+
                 nextQueuedBubbleDisplayTime = Time.time + bubble.duration;
                 if (bubble.speaker != null && bubble.speaker.Map != null)
                 {
@@ -65,7 +72,12 @@ namespace SocialInteractions
                 }
 
                 // Use a copy of the queue for safe iteration
-                if (!new Queue<SpeechBubble>(speechBubbleQueue).Any(b => b.conversationId == bubble.conversationId))
+                Queue<SpeechBubble> queueCopy;
+                lock (queueLock)
+                {
+                    queueCopy = new Queue<SpeechBubble>(speechBubbleQueue);
+                }
+                if (!queueCopy.Any(b => b.conversationId == bubble.conversationId))
                 {
                     EndConversation(bubble.conversationId);
                 }
@@ -132,7 +144,10 @@ namespace SocialInteractions
 
         public static void Enqueue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId, Color? color = null)
         {
-            speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color));
+            lock (queueLock)
+            {
+                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color));
+            }
         }
 
         // For instant messages (combat taunts)

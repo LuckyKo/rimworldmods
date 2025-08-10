@@ -1,3 +1,4 @@
+using System;
 using RimWorld;
 using Verse;
 using Verse.AI;
@@ -48,6 +49,14 @@ namespace SocialInteractions
             Pawn partner = FindPartnerFor(pawn);
             if (partner == null)
             {
+                return null;
+            }
+
+            // Add distance check
+            int maxDistance = SocialInteractionsMod.Settings.maxDateDistance;
+            if ((Math.Abs(pawn.Position.x - partner.Position.x) + Math.Abs(pawn.Position.z - partner.Position.z)) > maxDistance)
+            {
+                Log.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate: Not giving job. Recipient {0} is too far from initiator {1}. Distance: {2}, Max Distance: {3}", partner.Name.ToStringShort, pawn.Name.ToStringShort, (Math.Abs(pawn.Position.x - partner.Position.x) + Math.Abs(pawn.Position.z - partner.Position.z)), maxDistance));
                 return null;
             }
 

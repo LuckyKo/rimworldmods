@@ -460,10 +460,9 @@ namespace SocialInteractions
             }
         }
 
-        public static void HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
+        public static void HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject, bool bypassSpamCheck = false)
         {
-            Log.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy));
-            if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
+            if (!bypassSpamCheck && Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
 
             Task.Run(async () => {
                 try

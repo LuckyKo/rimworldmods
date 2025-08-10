@@ -60,7 +60,7 @@ namespace SocialInteractions
                 InteractionDef caughtCheatingInteractionDef = DefDatabase<InteractionDef>.GetNamed("CaughtCheating");
                 if (caughtCheatingInteractionDef != null)
                 {
-                    SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, caughtCheatingInteractionDef, subject);
+                    SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, caughtCheatingInteractionDef, subject, true);
                 }
             }
         }

@@ -60,7 +60,7 @@ namespace SocialInteractions
                 {
                     Pawn doctor = __instance.pawn;
                     Pawn patient = (Pawn)__instance.job.targetA.Thing;
-                    SocialInteractions.HandleNonStoppingInteraction(doctor, patient, SI_InteractionDefOf.TendPatient, "Tending to patient");
+                    SocialInteractions.HandleNonStoppingInteraction(doctor, patient, SI_InteractionDefOf.TendPatient, string.Format("{0} is tending to {1}", doctor.Name.ToStringShort, patient.Name.ToStringShort));
                 });
             }
             else

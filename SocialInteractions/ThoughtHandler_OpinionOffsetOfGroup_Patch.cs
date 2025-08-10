@@ -10,12 +10,13 @@ namespace SocialInteractions
     {
         public static bool Prefix(ISocialThought group, ref int __result)
         {
-            if (group == null)
+            Thought thought = group as Thought;
+            if (thought != null && thought.def != null && thought.def.defName == "OnDate")
             {
-                __result = 0; // Return 0 opinion offset if the group is null
-                return false; // Skip the original method
+                __result = 0;
+                return false;
             }
-            return true; // Continue with the original method
+            return true;
         }
     }
 }
