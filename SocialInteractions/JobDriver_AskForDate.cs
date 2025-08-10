@@ -16,7 +16,6 @@ namespace SocialInteractions
 
         protected override IEnumerable<Toil> MakeNewToils()
         {
-            Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: MakeNewToils started for Initiator: {0}, Recipient: {1}", this.pawn.Name.ToStringShort, ((Pawn)this.job.targetA.Thing).Name.ToStringShort));
             this.FailOnDespawnedOrNull(TargetIndex.A); // Recipient
 
             // Add this check at the very beginning of the job driver
@@ -24,12 +23,6 @@ namespace SocialInteractions
             initialCheck.initAction = () =>
             {
                 Pawn recipient = (Pawn)this.job.targetA.Thing;
-                if (this.job.targetA == null || this.job.targetA.Thing == null)
-                {
-                    Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Aborting job due to null recipient. Job: {0}", this.job));
-                    this.EndJobWith(JobCondition.Incompletable);
-                    return; // Exit the initAction
-                }
                 if (DatingManager.IsOnDate(this.pawn) || DatingManager.IsOnDate(recipient))
                 {
                     Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Aborting job due to existing date. Initiator: {0}, Recipient: {1}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
@@ -38,6 +31,21 @@ namespace SocialInteractions
             };
             initialCheck.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return initialCheck;
+
+            // New range check
+            Toil rangeCheck = new Toil();
+            rangeCheck.initAction = () =>
+            {
+                Pawn recipient = (Pawn)this.job.targetA.Thing;
+                int maxDistance = 50; // 50x50 tiles
+                if ((Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)) > maxDistance)
+                {
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Aborting job. Recipient {0} is too far from initiator {1}. Distance: {2}, Max Distance: {3}", recipient.Name.ToStringShort, this.pawn.Name.ToStringShort, (Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)), maxDistance));
+                    this.EndJobWith(JobCondition.Incompletable);
+                }
+            };
+            rangeCheck.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return rangeCheck;
 
             yield return Toils_Goto.GotoThing(TargetIndex.A, PathEndMode.InteractionCell); // Go to Recipient
 
@@ -60,23 +68,53 @@ namespace SocialInteractions
 
                 if (accepted)
                 {
-                    // Instead of assigning joy job directly, assign JobDriver_GoOnDate
-                    JobDef goOnDateJobDef = DefDatabase<JobDef>.GetNamed("GoOnDate");
-                    if (goOnDateJobDef != null)
-                    {
-                        Job goOnDateJob = JobMaker.MakeJob(goOnDateJobDef, this.pawn, recipient);
-                        this.pawn.jobs.TryTakeOrderedJob(goOnDateJob, JobTag.Misc);
-                        Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Assigned JobDriver_GoOnDate to Initiator: {0}, Recipient: {1}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
+                    initiatorJob = GetBestJoyJob(this.pawn, recipient);
 
-                        // The rest of the logic (StartDate, Hediffs, Messages, SpeechBubble) should be handled by JobDriver_GoOnDate
-                        // However, for immediate feedback, we can keep the message and speech bubble here.
+                    if (initiatorJob != null && initiatorJob.targetA.IsValid)
+                    {
+                        Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Assigning main jobs. Initiator: {0}, Recipient: {1}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
+                        if (this.pawn.jobs != null) this.pawn.jobs.StartJob(initiatorJob, JobCondition.InterruptForced);
+                        Log.Message(string.Format("[SocialInteractions] Initiator {0} assigned job {1}", this.pawn.Name.ToStringShort, initiatorJob.def.defName));
+
+                        HediffDef onDateHediffDef = HediffDef.Named("OnDate");
+                        if (onDateHediffDef != null)
+                        {
+                            if (this.pawn.health != null) this.pawn.health.AddHediff(onDateHediffDef);
+                            if (recipient.health != null) recipient.health.AddHediff(onDateHediffDef);
+                        }
+                        DatingManager.StartDate(this.pawn, recipient);
+
+                        if (SI_InteractionDefOf.DateAccepted != null && Find.PlayLog != null)
+                        {
+                            Find.PlayLog.Add(new PlayLogEntry_Interaction(SI_InteractionDefOf.DateAccepted, this.pawn, recipient, null));
+                        }
+
                         Messages.Message(string.Format("{0} and {1} are now going on a date.", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
-                        string subject = SpeechBubbleManager.GetDateSubject(this.pawn, recipient, new LocalTargetInfo(this.pawn.Position)); // Simplified subject for now
+                        string subject = SpeechBubbleManager.GetDateSubject(this.pawn, recipient, initiatorJob.targetA.Thing != null ? initiatorJob.targetA.Thing : new LocalTargetInfo(this.pawn.Position));
                         SocialInteractions.HandleNonStoppingInteraction(this.pawn, recipient, SI_InteractionDefOf.DateAccepted, subject);
+
+                        // Assign recipient's job immediately
+                        if (recipient.jobs != null && this.pawn != null && initiatorJob.targetA.IsValid)
+                        {
+                            Job recipientJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn, initiatorJob.targetA);
+                            recipient.jobs.StartJob(recipientJob, JobCondition.InterruptForced);
+                        }
                     }
                     else
                     {
-                        Log.Error("[SocialInteractions] JobDriver_AskForDate: 'GoOnDate' JobDef not found. Cannot assign date job.");
+                        Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Falling back to FollowAndWatchInitiator. Initiator: {0}, Recipient: {1}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort));
+                        // Fallback to FollowAndWatchInitiator
+                        Job initiatorWaitJob = new Job(JobDefOf.Wait, this.pawn.Position);
+                        if (this.pawn.jobs != null) this.pawn.jobs.StartJob(initiatorWaitJob, JobCondition.InterruptForced);
+                        Log.Message(string.Format("[SocialInteractions] Initiator {0} assigned wait job {1}", this.pawn.Name.ToStringShort, initiatorWaitJob.def.defName));
+
+                        Job recipientFollowJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn, this.pawn.Position);
+                        if (recipient.jobs != null)
+                        {
+                            recipient.jobs.StartJob(recipientFollowJob, JobCondition.InterruptForced);
+                            Log.Message(string.Format("[SocialInteractions] Recipient {0} assigned job {1}", recipient.Name.ToStringShort, recipientFollowJob.def.defName));
+                        }
+                        Messages.Message(string.Format("{0} and {1} are now going on a date (fallback: following and watching).", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort), new LookTargets(this.pawn, recipient), MessageTypeDefOf.PositiveEvent);
                     }
                 }
                 else
@@ -89,7 +127,17 @@ namespace SocialInteractions
             yield return askToil;
 
 
-            }
+            // Add a final action to remove the OnDate hediffs
+            Toil finalToil = new Toil();
+            finalToil.initAction = () =>
+            {
+                Pawn recipient = (Pawn)this.job.targetA.Thing;
+                if (this.pawn == null || recipient == null) return;
+                DatingManager.EndDate(this.pawn);
+            };
+            finalToil.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return finalToil;
+        }
 
         private Job GetBestJoyJob(Pawn initiator, Pawn recipient)
         {

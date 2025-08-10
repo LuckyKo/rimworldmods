@@ -34,21 +34,15 @@ namespace SocialInteractions
 
         public static void StartDate(Pawn initiator, Pawn partner)
         {
-            Log.Message(string.Format("[SocialInteractions] DatingManager.StartDate called for Initiator: {0}, Partner: {1}", initiator.Name.ToStringShort, partner.Name.ToStringShort));
             if (!IsOnDate(initiator) && !IsOnDate(partner))
             {
                 Log.Message(string.Format("[SocialInteractions] Starting date between {0} and {1}.", initiator.Name.ToStringShort, partner.Name.ToStringShort));
                 dates.Add(new Date(initiator, partner));
             }
-            else
-            {
-                Log.Message(string.Format("[SocialInteractions] DatingManager.StartDate: Not starting date because one or both pawns are already on a date. Initiator: {0} (OnDate: {1}), Partner: {2} (OnDate: {3})", initiator.Name.ToStringShort, IsOnDate(initiator), partner.Name.ToStringShort, IsOnDate(partner)));
-            }
         }
 
         public static void EndDate(Pawn pawn)
         {
-            Log.Message(string.Format("[SocialInteractions] DatingManager.EndDate called for Pawn: {0}", pawn.Name.ToStringShort));
             Date date = GetDateWith(pawn);
             if (date != null)
             {
@@ -112,7 +106,6 @@ namespace SocialInteractions
 
         public static void AdvanceDateStage(Pawn pawn)
         {
-            Log.Message(string.Format("[SocialInteractions] DatingManager.AdvanceDateStage called for Pawn: {0}", pawn.Name.ToStringShort));
             Date date = GetDateWith(pawn);
             if (date != null)
             {
@@ -127,22 +120,11 @@ namespace SocialInteractions
                     }
 
                     // Attempt to transition to the lovin' stage.
-                    bool canLovin = CanHaveLovin(date.Initiator, date.Partner);
-                    Log.Message(string.Format("[SocialInteractions] DatingManager.CanHaveLovin returned: {0}", canLovin));
-                    if (canLovin)
+                    if (CanHaveLovin(date.Initiator, date.Partner))
                     {
                         Log.Message("[SocialInteractions] Conditions for lovin' met. Assigning lovin' job.");
                         date.Stage = DateStage.Lovin;
-                        Building_Bed bed = date.Initiator.ownership.OwnedBed;
-                        if (bed == null || bed.SleepingSlotsCount < 2)
-                        {
-                            bed = date.Partner.ownership.OwnedBed;
-                        }
-
-                        if (bed == null || bed.SleepingSlotsCount < 2)
-                        {
-                            bed = RestUtility.FindBedFor(date.Initiator, date.Partner, checkSocialProperness: false, ignoreOtherReservations: false);
-                        }
+                        Building_Bed bed = RestUtility.FindBedFor(date.Initiator);
 
                         // End any existing lovin' jobs for initiator and partner
                         if (date.Initiator != null && date.Initiator.jobs != null && date.Initiator.CurJobDef == JobDefOf.Lovin) date.Initiator.jobs.EndCurrentJob(JobCondition.Succeeded);
@@ -170,8 +152,10 @@ namespace SocialInteractions
                     }
                     else
                     {
-                        Log.Message("[SocialInteractions] Conditions for lovin' not met. Date will continue in Joy stage.");
-                        // Do not change stage or end date. Let it continue in Joy stage.
+                        Log.Message("[SocialInteractions] Conditions for lovin' not met. Ending date.");
+                        // If they can't have lovin', end the date.
+                        date.Stage = DateStage.Finished;
+                        EndDate(pawn);
                     }
                 }
                 else if (date.Stage == DateStage.Lovin)
@@ -184,49 +168,21 @@ namespace SocialInteractions
             }
         }
 
+        private static bool AreRomanticallyCompatible(Pawn p1, Pawn p2)
+        {
+            if (p1 == null || p2 == null || p1.relations == null) return false;
+
+            return p1.relations.DirectRelationExists(PawnRelationDefOf.Lover, p2) ||
+                   p1.relations.DirectRelationExists(PawnRelationDefOf.Fiance, p2) ||
+                   p1.relations.DirectRelationExists(PawnRelationDefOf.Spouse, p2);
+        }
+
         private static bool CanHaveLovin(Pawn initiator, Pawn partner)
         {
-            if (initiator == null || partner == null) return false;
-
-            // Bed check
-            Building_Bed bed = initiator.ownership.OwnedBed;
-            if (bed == null || bed.SleepingSlotsCount < 2)
-            {
-                bed = partner.ownership.OwnedBed;
-            }
-            if (bed == null || bed.SleepingSlotsCount < 2)
-            {
-                bed = RestUtility.FindBedFor(initiator, partner, checkSocialProperness: false, ignoreOtherReservations: false);
-            }
-            if (bed == null)
-            {
-                Log.Message(string.Format("[SocialInteractions] CanHaveLovin: No suitable bed found for {0} and {1}.", initiator.Name.ToStringShort, partner.Name.ToStringShort));
-                return false;
-            }
-            Log.Message(string.Format("[SocialInteractions] CanHaveLovin: Suitable bed found for {0} and {1}. Bed: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, bed.LabelShort));
-
-            // Probability check
-            float baseChance = 0.75f;
-
-            // Opinion factor
-            float opinionFactor = UnityEngine.Mathf.InverseLerp(-100f, 100f, initiator.relations.OpinionOf(partner));
-            opinionFactor *= UnityEngine.Mathf.InverseLerp(-100f, 100f, partner.relations.OpinionOf(initiator));
-            Log.Message(string.Format("[SocialInteractions] CanHaveLovin: Opinion Factor for {0} and {1}: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, opinionFactor));
-
-            // Mood factor
-            float moodFactor = (initiator.needs.mood.CurLevel + partner.needs.mood.CurLevel) / 2f;
-            Log.Message(string.Format("[SocialInteractions] CanHaveLovin: Mood Factor for {0} and {1}: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, moodFactor));
-
-            // Secondary Lovin Chance Factor
-            float slcFactor = initiator.relations.SecondaryLovinChanceFactor(partner);
-            slcFactor *= partner.relations.SecondaryLovinChanceFactor(initiator);
-            Log.Message(string.Format("[SocialInteractions] CanHaveLovin: Secondary Lovin Chance Factor for {0} and {1}: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, slcFactor));
-
-
-            float finalChance = baseChance * opinionFactor * moodFactor * slcFactor;
-            Log.Message(string.Format("[SocialInteractions] CanHaveLovin: Final Chance for {0} and {1}: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, finalChance));
-
-            return Rand.Value < finalChance;
+            bool hasBed = (initiator != null && RestUtility.FindBedFor(initiator) != null) && (partner != null && RestUtility.FindBedFor(partner) != null);
+            bool romanticallyCompatible = AreRomanticallyCompatible(initiator, partner);
+            Log.Message(string.Format("[SocialInteractions] CanHaveLovin check for {0} and {1}. HasBed: {2}, RomanticallyCompatible: {3}", initiator.Name.ToStringShort, partner.Name.ToStringShort, hasBed, romanticallyCompatible));
+            return hasBed && romanticallyCompatible;
         }
 
         public static List<Tuple<Thing, JoyGiverDef, IntVec3>> FindJoySpotFor(Pawn pawn, Pawn partner)
@@ -317,13 +273,6 @@ namespace SocialInteractions
                                         // Only add to foundSpots if the edifice is the expected building and it's spawned.
                                         if (edifice == building && building.Spawned)
                                         {
-                                            // Add explicit reservation check for the building itself
-                                            if (!pawn.CanReserve(building) || !partner.CanReserve(building))
-                                            {
-                                                Log.Message(string.Format("[SocialInteractions] FindJoySpotFor: Building {0} at {1} cannot be reserved by both pawns. Skipping.", building.LabelShort, building.Position));
-                                                continue; // Skip this building if it cannot be reserved
-                                            }
-
                                             // NEW LOGIC: Find an accessible interaction cell
                                             IntVec3 interactionCell = IntVec3.Invalid;
 

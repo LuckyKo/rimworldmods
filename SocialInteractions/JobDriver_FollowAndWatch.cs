@@ -55,6 +55,7 @@ namespace SocialInteractions
                 // Also, if the initiator is no longer on a date, the job should end.
                 if (initiator.CurJob == null || initiator.CurJob.targetA.Thing != joySpot || !DatingManager.IsOnDate(initiator))
                 {
+                    DatingManager.AdvanceDateStage(initiator);
                     this.ReadyForNextToil(); // End the FollowAndWatch job
                     return;
                 }

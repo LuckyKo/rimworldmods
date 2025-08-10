@@ -12,9 +12,9 @@ namespace SocialInteractions
         public override float RandomSelectionWeight(Pawn initiator, Pawn recipient)
         {
             if (initiator == null || recipient == null) return 0f;
+            if (initiator.Drafted || recipient.Drafted) return 0f;
             if (DatingManager.IsOnDate(initiator) || DatingManager.IsOnDate(recipient)) return 0f;
             if (initiator == recipient) return 0f;
-            if (IsPawnBusyWithCriticalJob(initiator) || IsPawnBusyWithCriticalJob(recipient)) return 0f; // New check
             if (initiator.jobs != null && initiator.jobs.curJob != null && (initiator.jobs.curJob.def.defName == "AskForDate" || initiator.jobs.curJob.def.defName == "FollowAndWatchInitiator")) return 0f;
             if (recipient.jobs != null && recipient.jobs.curJob != null && (recipient.jobs.curJob.def.defName == "AskForDate" || recipient.jobs.curJob.def.defName == "FollowAndWatchInitiator")) return 0f;
             if (initiator.needs == null || initiator.needs.joy == null) return 0f;
@@ -64,32 +64,6 @@ namespace SocialInteractions
                 Job job = JobMaker.MakeJob(goOnDateJobDef, initiator, recipient);
                 initiator.jobs.TryTakeOrderedJob(job, JobTag.Misc);
             }
-        }
-
-        private bool IsPawnBusyWithCriticalJob(Pawn pawn)
-        {
-            if (pawn == null || pawn.jobs == null || pawn.jobs.curJob == null) return false;
-
-            JobDef currentJobDef = pawn.jobs.curJob.def;
-
-            // Check for drafted pawns
-            if (pawn.Drafted) return true;
-
-            // List of critical/uninterruptible job defs
-            List<JobDef> criticalJobDefs = new List<JobDef>
-            {
-                JobDefOf.LayDown, // Sleeping
-                JobDefOf.Ingest, // Eating
-                JobDefOf.TendPatient,
-                JobDefOf.Flee,
-                JobDefOf.AttackMelee,
-                JobDefOf.AttackStatic,
-                JobDefOf.Wait_Combat,
-                JobDefOf.Flick,
-                JobDefOf.HaulToContainer
-            };
-
-            return criticalJobDefs.Contains(currentJobDef);
         }
     }
 }
