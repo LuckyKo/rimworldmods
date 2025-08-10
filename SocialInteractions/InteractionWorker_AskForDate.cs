@@ -12,6 +12,7 @@ namespace SocialInteractions
         public override float RandomSelectionWeight(Pawn initiator, Pawn recipient)
         {
             if (initiator == null || recipient == null) return 0f;
+            if (initiator.Drafted || recipient.Drafted) return 0f;
             if (DatingManager.IsOnDate(initiator) || DatingManager.IsOnDate(recipient)) return 0f;
             if (initiator == recipient) return 0f;
             if (initiator.jobs != null && initiator.jobs.curJob != null && (initiator.jobs.curJob.def.defName == "AskForDate" || initiator.jobs.curJob.def.defName == "FollowAndWatchInitiator")) return 0f;

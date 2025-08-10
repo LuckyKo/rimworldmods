@@ -20,12 +20,8 @@ SI_InteractionDefOf.cs
 CombatPatches.cs
 JobDriver_AskForDate.cs
 InteractionWorker_AskForDate.cs
-
 JobDriver_FollowAndWatch.cs
-
-
 JobGiver_GetJoy_Patch.cs
-
 JoyGiver_GoOnDate.cs
 DatingManager.cs
 InteractionWorker_CaughtCheating.cs
@@ -35,10 +31,4 @@ SI_JobDefOf.cs
 JobDriver_GoOnDate.cs
 JobDriver_DateLovin.cs
 ThoughtHandler_OpinionOffsetOfGroup_Patch.cs
-
-
-
-
-
-
-
+Pawn_DraftController_Drafted_Patch.cs

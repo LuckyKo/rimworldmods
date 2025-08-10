@@ -367,7 +367,7 @@ namespace SocialInteractions
             }
 
             var significantHediffs = pawn.health.hediffSet.hediffs
-                .Where(h => h.Visible && !(h is Hediff_MissingPart) && !(h is Hediff_Implant) && (h.def.isBad || h.def.makesSickThought))
+                .Where(h => h.Visible && h.def.defName != "OnDate" && h.def.defName != "ImplantedIUD" && !(h is Hediff_MissingPart) && !(h is Hediff_Implant) && (h.def.isBad || h.def.makesSickThought))
                 .OrderByDescending(h => h.Severity)
                 .Take(3)
                 .Select(h => h.LabelCap);

@@ -5,7 +5,7 @@
     <defName>DateRejected</defName>
     <label>asking for a date and getting rejected</label>
     <workerClass>SocialInteractions.InteractionWorker_AskForDate</workerClass>
-    <symbol>Things/Mote/SpeechSymbols/Insult</symbol>
+    <symbol>Things/Mote/SpeechSymbols/Slight</symbol>
     <logRulesInitiator>
       <rulesStrings>
         <li>r_logentry->Asked [RECIPIENT_nameDef] on a date and was rejected.</li>

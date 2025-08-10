@@ -35,6 +35,7 @@
     <defName>CaughtCheating</defName>
     <label>caught cheating</label>
     <workerClass>SocialInteractions.InteractionWorker_CaughtCheating</workerClass>
+    <symbol>Things/Mote/SpeechSymbols/Insult</symbol>
     <logRulesInitiator>
       <rulesStrings>
         <li>r_logentry->[INITIATOR_nameDef] caught [RECIPIENT_nameDef] cheating.</li>

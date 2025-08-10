@@ -37,7 +37,7 @@ namespace SocialInteractions
             rangeCheck.initAction = () =>
             {
                 Pawn recipient = (Pawn)this.job.targetA.Thing;
-                int maxDistance = 20; // 20x20 tiles
+                int maxDistance = 50; // 50x50 tiles
                 if ((Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)) > maxDistance)
                 {
                     Log.Message(string.Format("[SocialInteractions] JobDriver_AskForDate: Aborting job. Recipient {0} is too far from initiator {1}. Distance: {2}, Max Distance: {3}", recipient.Name.ToStringShort, this.pawn.Name.ToStringShort, (Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)), maxDistance));
@@ -94,11 +94,10 @@ namespace SocialInteractions
                         SocialInteractions.HandleNonStoppingInteraction(this.pawn, recipient, SI_InteractionDefOf.DateAccepted, subject);
 
                         // Assign recipient's job immediately
-                        if (recipient.jobs != null && this.pawn != null && initiatorJob.targetA.Thing != null)
+                        if (recipient.jobs != null && this.pawn != null && initiatorJob.targetA.IsValid)
                         {
-                            Job recipientJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn, initiatorJob.targetA.Thing);
+                            Job recipientJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn, initiatorJob.targetA);
                             recipient.jobs.StartJob(recipientJob, JobCondition.InterruptForced);
-                            Log.Message(string.Format("[SocialInteractions] Recipient {0} assigned job {1} immediately", recipient.Name.ToStringShort, recipientJob.def.defName));
                         }
                     }
                     else

@@ -83,7 +83,20 @@ namespace SocialInteractions
 
                 public static string GetDateSubject(Pawn initiator, Pawn recipient, LocalTargetInfo joySpot)
         {
-            return string.Format("A date between {0} and {1} at the {2}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort, joySpot.Thing != null ? joySpot.Thing.Label : joySpot.Cell.ToString());
+            bool isRomantic = initiator.relations.DirectRelationExists(PawnRelationDefOf.Lover, recipient) ||
+                              initiator.relations.DirectRelationExists(PawnRelationDefOf.Fiance, recipient) ||
+                              initiator.relations.DirectRelationExists(PawnRelationDefOf.Spouse, recipient);
+
+            string joySpotLabel = joySpot.Thing != null ? joySpot.Thing.Label : "a specific spot";
+
+            if (isRomantic)
+            {
+                return string.Format("A date between {0} and {1} at {2}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort, joySpotLabel);
+            }
+            else
+            {
+                return string.Format("Hanging out together, {0} and {1}, at {2}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort, joySpotLabel);
+            }
         }
 
         public static string GetDateEndSubject(Pawn initiator, Pawn recipient)

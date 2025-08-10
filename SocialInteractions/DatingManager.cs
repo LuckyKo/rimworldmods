@@ -337,5 +337,7 @@ namespace SocialInteractions
             
             return foundSpots;
         }
+
+        
     }
 }
