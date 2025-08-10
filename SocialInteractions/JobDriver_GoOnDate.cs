@@ -82,6 +82,8 @@ namespace SocialInteractions
                             Messages.Message(string.Format("{0} tried to go on a date with {1}, but {1} was too busy.", initiator.LabelShort, partner.LabelShort), new LookTargets(initiator, partner), MessageTypeDefOf.NegativeEvent);
                             return; // Exit initAction
                         }
+
+                        
                     }
                     else
                     {

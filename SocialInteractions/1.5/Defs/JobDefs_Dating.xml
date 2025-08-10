@@ -12,6 +12,8 @@
     <reportString>going on a date</reportString>
   </JobDef>
 
+  
+
   <JobDef>
     <defName>FollowAndWatchInitiator</defName>
     <driverClass>SocialInteractions.JobDriver_FollowAndWatch</driverClass>
