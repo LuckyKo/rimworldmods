@@ -12,9 +12,9 @@ namespace SocialInteractions
         public override float RandomSelectionWeight(Pawn initiator, Pawn recipient)
         {
             if (initiator == null || recipient == null) return 0f;
-            if (initiator.Drafted || recipient.Drafted) return 0f;
             if (DatingManager.IsOnDate(initiator) || DatingManager.IsOnDate(recipient)) return 0f;
             if (initiator == recipient) return 0f;
+            if (IsPawnBusyWithCriticalJob(initiator) || IsPawnBusyWithCriticalJob(recipient)) return 0f; // New check
             if (initiator.jobs != null && initiator.jobs.curJob != null && (initiator.jobs.curJob.def.defName == "AskForDate" || initiator.jobs.curJob.def.defName == "FollowAndWatchInitiator")) return 0f;
             if (recipient.jobs != null && recipient.jobs.curJob != null && (recipient.jobs.curJob.def.defName == "AskForDate" || recipient.jobs.curJob.def.defName == "FollowAndWatchInitiator")) return 0f;
             if (initiator.needs == null || initiator.needs.joy == null) return 0f;
@@ -27,20 +27,21 @@ namespace SocialInteractions
                 isPartner = initiator.relations.DirectRelationExists(PawnRelationDefOf.Lover, recipient) ||
                             initiator.relations.DirectRelationExists(PawnRelationDefOf.Fiance, recipient) ||
                             initiator.relations.DirectRelationExists(PawnRelationDefOf.Spouse, recipient);
+
+                // If they are a partner, give a very high chance
+                if (isPartner)
+                {
+                    return 100f; // A high weight to strongly prioritize partners
+                }
+
+                // If not a partner, use opinion as the weight
+                float opinion = initiator.relations.OpinionOf(recipient);
+                if (opinion > 0) // Only consider positive opinions
+                {
+                    return opinion * Rand.Range(0.1f, 0.5f); // Scale opinion to a reasonable weight
+                }
             }
 
-            // If they are a partner, give a very high chance
-            if (isPartner)
-            {
-                return 100f; // A high weight to strongly prioritize partners
-            }
-
-            // If not a partner, use opinion as the weight
-            float opinion = initiator.relations.OpinionOf(recipient);
-            if (opinion > 0) // Only consider positive opinions
-            {
-                return opinion * Rand.Range(0.1f, 0.5f); // Scale opinion to a reasonable weight
-            }
             return 0f;
         }
 
@@ -51,6 +52,8 @@ namespace SocialInteractions
             letterDef = null;
             lookTargets = null;
 
+            if (initiator == null || recipient == null) return;
+
             // Add this check as a final safeguard
             if (DatingManager.IsOnDate(initiator) || DatingManager.IsOnDate(recipient))
             {
@@ -58,12 +61,40 @@ namespace SocialInteractions
                 return; // Do nothing if either pawn is already on a date
             }
 
-            JobDef goOnDateJobDef = DefDatabase<JobDef>.GetNamed("GoOnDate");
-            if (goOnDateJobDef != null && initiator.jobs != null)
+            Log.Message(string.Format("[SocialInteractions] InteractionWorker_AskForDate: Interacted. Initiating AskForDate job for {0} targeting {1}.", initiator.LabelShort, recipient.LabelShort));
+
+            JobDef askForDateJobDef = DefDatabase<JobDef>.GetNamed("AskForDate");
+            if (askForDateJobDef != null && initiator.jobs != null)
             {
-                Job job = JobMaker.MakeJob(goOnDateJobDef, initiator, recipient);
+                Job job = JobMaker.MakeJob(askForDateJobDef, recipient);
                 initiator.jobs.TryTakeOrderedJob(job, JobTag.Misc);
             }
+        }
+
+        private bool IsPawnBusyWithCriticalJob(Pawn pawn)
+        {
+            if (pawn == null || pawn.jobs == null || pawn.jobs.curJob == null) return false;
+
+            JobDef currentJobDef = pawn.jobs.curJob.def;
+
+            // Check for drafted pawns
+            if (pawn.Drafted) return true;
+
+            // List of critical/uninterruptible job defs
+            List<JobDef> criticalJobDefs = new List<JobDef>
+            {
+                JobDefOf.LayDown, // Sleeping
+                JobDefOf.Ingest, // Eating
+                JobDefOf.TendPatient,
+                JobDefOf.Flee,
+                JobDefOf.AttackMelee,
+                JobDefOf.AttackStatic,
+                JobDefOf.Wait_Combat,
+                JobDefOf.Flick,
+                JobDefOf.HaulToContainer
+            };
+
+            return criticalJobDefs.Contains(currentJobDef);
         }
     }
 }

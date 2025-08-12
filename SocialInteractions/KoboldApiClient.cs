@@ -67,19 +67,19 @@ namespace SocialInteractions
             }
         }
 
-        public async Task<string> GenerateText(string prompt, int maxLength, float temperature, List<string> stopSequence, bool enableXtcSampling)
+        public async Task<string> GenerateText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, bool? enableXtcSampling = null)
         {
             try
             {
                 var request = new KoboldApiRequest
                 {
                     Prompt = prompt,
-                    MaxLength = maxLength,
-                    Temperature = temperature,
-                    StopSequence = stopSequence
+                    MaxLength = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
+                    Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
+                    StopSequence = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
                 };
 
-                if (enableXtcSampling)
+                if (enableXtcSampling ?? SocialInteractions.Settings.enableXtcSampling)
                 {
                     request.SamplerOrder = new int[] { 6,0,1,3,4,2,5 };
                     request.XtcProbability = 0.5f;

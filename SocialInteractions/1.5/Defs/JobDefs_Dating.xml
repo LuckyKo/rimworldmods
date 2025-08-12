@@ -10,7 +10,10 @@
     <defName>GoOnDate</defName>
     <driverClass>SocialInteractions.JobDriver_GoOnDate</driverClass>
     <reportString>going on a date</reportString>
+    <suspendable>false</suspendable>
   </JobDef>
+
+  
 
   
 

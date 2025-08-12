@@ -1,0 +1,117 @@
+Mono path[0] = 'M:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/Managed'
+Mono config path = 'M:/Games/Rimworld.v1.6.4518/Rimworld/MonoBleedingEdge/etc'
+[PhysX] Initialized MultithreadedTaskDispatcher with 16 workers.
+Initialize engine version: 2022.3.35f1 (011206c7a712)
+[Subsystems] Discovering subsystems at path M:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/UnitySubsystems
+GfxDevice: creating device client; threaded=1; jobified=0
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: NVIDIA GeForce GTX 1080 Ti (ID=0x1b06)
+    Vendor:   NVIDIA
+    VRAM:     11106 MB
+    Driver:   32.0.15.6636
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.133 seconds
+- Finished resetting the current domain, in  0.002 seconds
+<RI> Initializing input.
+<RI> Input initialized.
+<RI> Initialized touch support.
+[PhysX] Initialized MultithreadedTaskDispatcher with 16 workers.
+UnloadTime: 0.775600 ms
+RimWorld 1.6.4518 rev84
+Mod  is missing supported versions list in About.xml! (example: <supportedVersions><li>1.0</li></supportedVersions>)
+Mod vanillahairexpanded is missing packageId in About.xml! (example: <packageId>AuthorName.ModName.Specific</packageId>)
+Fallback handler could not load library M:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/MonoBleedingEdge/data-0000021EBF3B3070.dll
+Fallback handler could not load library M:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/MonoBleedingEdge/data-0000021EC058BAF0.dll
+Unloading 5 Unused Serialized files (Serialized files now loaded: 5)
+MVCF successfully applied 0 patches
+Unloading 99 unused Assets to reduce memory usage. Loaded Objects now: 31715.
+Total: 324.774000 ms (FindLiveObjects: 2.124800 ms CreateObjectMapping: 2.989600 ms MarkObjects: 319.296100 ms  DeleteObjects: 0.363300 ms)
+
+Unloading 3 Unused Serialized files (Serialized files now loaded: 5)
+[PhysX] Initialized MultithreadedTaskDispatcher with 16 workers.
+UnloadTime: 0.792000 ms
+Unloading 2 unused Assets to reduce memory usage. Loaded Objects now: 31911.
+Total: 208.511600 ms (FindLiveObjects: 1.321600 ms CreateObjectMapping: 2.661500 ms MarkObjects: 204.452200 ms  DeleteObjects: 0.076000 ms)
+
+Loading game from file Sena Compact eeee with mods:
+  - brrainz.harmony
+  - Ludeon.RimWorld
+  - Ludeon.RimWorld.Royalty
+  - Ludeon.RimWorld.Ideology
+  - Ludeon.RimWorld.Biotech
+  - Ludeon.RimWorld.Anomaly
+  - Ludeon.RimWorld.Odyssey
+  - Andromeda.NiceHairs
+  - sakama.RoppoiHair
+  - OskarPotocki.VanillaFactionsExpanded.Core
+  - vanillaracesexpanded.highmate
+  - Xeva.XevaFBpack.11
+  - Gemini.SocialInteractions
+Could not resolve reference to object with loadID Lord_626 of type Verse.AI.Group.Lord. Was it compressed away, destroyed, had no ID number, or not saved/loaded right? curParent=VEF.Storyteller.RaidGroup curPathRelToParent=/lords
+Unloading 0 Unused Serialized files (Serialized files now loaded: 5)
+Unloading 1 unused Assets to reduce memory usage. Loaded Objects now: 40673.
+Total: 404.644100 ms (FindLiveObjects: 1.774000 ms CreateObjectMapping: 3.249000 ms MarkObjects: 399.542800 ms  DeleteObjects: 0.078200 ms)
+
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] InteractionWorker_AskForDate: Interacted. Initiating AskForDate job for Pollard targeting Stepan.
+[SocialInteractions] JobDriver_AskForDate: MakeNewToils started for Pollard targeting Stepan.
+[SocialInteractions] JobDriver_AskForDate: Rolled for acceptance. Chance: 0.73, Result: False
+[SocialInteractions] IsLlmInteractionEnabled called for: DeepTalk
+[SocialInteractions] InteractionWorker_AskForDate: Interacted. Initiating AskForDate job for Briggs targeting Manu.
+[SocialInteractions] JobDriver_AskForDate: MakeNewToils started for Briggs targeting Manu.
+[SocialInteractions] IsLlmInteractionEnabled called for: DateRejected
+[SocialInteractions] HandleNonStoppingInteraction called for: DateRejected. preventSpam: True, isLlmBusy: False
+[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for DateRejected: True
+[SocialInteractions] JobDriver_AskForDate: Rolled for acceptance. Chance: 0.545, Result: False
+[SocialInteractions] JoyGiver_GoOnDate: Running for Briggs at tick 40698856.
+[SocialInteractions] JoyGiver_GoOnDate: Successfully created new AskForDate job for Briggs targeting Stepan.
+[SocialInteractions] JobDriver_AskForDate: MakeNewToils started for Briggs targeting Stepan.
+[SocialInteractions] JobDriver_AskForDate: Aborting job. Recipient Stepan is too far from initiator Briggs. Distance: 97, Max Distance: 50
+[SocialInteractions] JoyGiver_GoOnDate: Running for Briggs at tick 40698856.
+[SocialInteractions] JoyGiver_GoOnDate: Successfully created new AskForDate job for Briggs targeting Stepan.
+[SocialInteractions] JobDriver_AskForDate: MakeNewToils started for Briggs targeting Stepan.
+[SocialInteractions] JobDriver_AskForDate: Aborting job. Recipient Stepan is too far from initiator Briggs. Distance: 97, Max Distance: 50
+[SocialInteractions] InteractionWorker_AskForDate: Interacted. Initiating AskForDate job for Kiki targeting Stepan.
+[SocialInteractions] JobDriver_AskForDate: MakeNewToils started for Kiki targeting Stepan.
+[SocialInteractions] JobDriver_AskForDate: Rolled for acceptance. Chance: 0.705, Result: True
+[SocialInteractions] DatingManager.StartDate called for Initiator: Kiki, Partner: Stepan
+[SocialInteractions] Starting date between Kiki and Stepan.
+[SocialInteractions] HandleNonStoppingInteraction called for: DateAccepted. preventSpam: True, isLlmBusy: True
+[SocialInteractions] JobDriver_FollowAndWatch: Starting watch toil.
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] DatingManager.AdvanceDateStage called for Pawn: Kiki
+[SocialInteractions] Advancing date stage for Kiki and Stepan. Current stage: Joy
+[SocialInteractions] Transitioning from Joy to Lovin stage.
+[SocialInteractions] JobDriver_FollowAndWatch: Job finished, ending date.
+[SocialInteractions] DatingManager.EndDate called for Pawn: Kiki
+[SocialInteractions] Ending date for Kiki and Stepan. Removing OnDate hediffs.
+[SocialInteractions] Adding date cooldown for Kiki and Stepan until tick 40704917.
+[SocialInteractions] CanHaveLovin: Suitable bed found for Kiki and Stepan. Bed: granite double bed (excellent)
+[SocialInteractions] CanHaveLovin: Opinion Factor for Kiki and Stepan: 0.50055
+[SocialInteractions] CanHaveLovin: Mood Factor for Kiki and Stepan: 0.9391999
+[SocialInteractions] CanHaveLovin: Secondary Lovin Chance Factor for Kiki and Stepan: 1
+[SocialInteractions] CanHaveLovin: Final Chance for Kiki and Stepan: 0.3525874
+[SocialInteractions] DatingManager.CanHaveLovin returned: False
+[SocialInteractions] Conditions for lovin' not met. Ending date.
+[SocialInteractions] DatingManager.EndDate called for Pawn: Kiki
+[SocialInteractions] InteractionWorker_AskForDate: Interacted. Initiating AskForDate job for Pollard targeting Hilda.
+[SocialInteractions] JobDriver_AskForDate: MakeNewToils started for Pollard targeting Hilda.
+[SocialInteractions] IsLlmInteractionEnabled called for: DateRejected
+[SocialInteractions] HandleNonStoppingInteraction called for: DateRejected. preventSpam: True, isLlmBusy: False
+[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for DateRejected: True
+[SocialInteractions] JobDriver_AskForDate: Rolled for acceptance. Chance: 0.6, Result: False
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] HandleNonStoppingInteraction called for: Lovin. preventSpam: True, isLlmBusy: True
+[SocialInteractions] InteractionWorker_AskForDate: Interacted. Initiating AskForDate job for Manu targeting Tom.
+[SocialInteractions] JobDriver_AskForDate: MakeNewToils started for Manu targeting Tom.
+[SocialInteractions] JobDriver_AskForDate: Rolled for acceptance. Chance: 0.46, Result: True
+[SocialInteractions] DatingManager.StartDate called for Initiator: Manu, Partner: Tom
+[SocialInteractions] Starting date between Manu and Tom.
+[SocialInteractions] HandleNonStoppingInteraction called for: DateAccepted. preventSpam: True, isLlmBusy: True
+[SocialInteractions] IsLlmInteractionEnabled called for: DeepTalk
+[SocialInteractions] JobDriver_FollowAndWatch: Starting watch toil.
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat

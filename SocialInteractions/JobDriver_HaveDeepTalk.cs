@@ -123,12 +123,7 @@ namespace SocialInteractions
                             if (!string.IsNullOrEmpty(prompt))
                             {
                                 KoboldApiClient client = new KoboldApiClient(SocialInteractions.Settings.llmApiUrl, SocialInteractions.Settings.llmApiKey);
-                                List<string> stoppingStrings = new List<string>();
-                                if (SocialInteractions.Settings.llmStoppingStrings != null)
-                                {
-                                    stoppingStrings = new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
-                                }
-                                llmResponse = await client.GenerateText(prompt, SocialInteractions.Settings.llmMaxTokens, SocialInteractions.Settings.llmTemperature, stoppingStrings, SocialInteractions.Settings.enableXtcSampling);
+                                llmResponse = await client.GenerateText(prompt);
                                 if (!string.IsNullOrEmpty(llmResponse))
                                 {
                                     messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();

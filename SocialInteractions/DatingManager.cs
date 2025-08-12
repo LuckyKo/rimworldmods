@@ -31,162 +31,278 @@ namespace SocialInteractions
     public static class DatingManager
     {
         private static List<Date> dates = new List<Date>();
+        private static readonly object datesLock = new object();
+        private static Dictionary<Pawn, int> dateCooldowns = new Dictionary<Pawn, int>();
+        private const int DateCooldownTicks = 300; // 5 min
 
         public static void StartDate(Pawn initiator, Pawn partner)
         {
-            if (!IsOnDate(initiator) && !IsOnDate(partner))
+            lock (datesLock)
             {
-                Log.Message(string.Format("[SocialInteractions] Starting date between {0} and {1}.", initiator.Name.ToStringShort, partner.Name.ToStringShort));
-                dates.Add(new Date(initiator, partner));
+                if (initiator == null || partner == null) return;
+                Log.Message(string.Format("[SocialInteractions] DatingManager.StartDate called for Initiator: {0}, Partner: {1}", initiator.Name.ToStringShort, partner.Name.ToStringShort));
+                if (!IsOnDate(initiator) && !IsOnDate(partner))
+                {
+                    Log.Message(string.Format("[SocialInteractions] Starting date between {0} and {1}.", initiator.Name.ToStringShort, partner.Name.ToStringShort));
+                    HediffDef onDateHediffDef = HediffDef.Named("OnDate");
+                    if (onDateHediffDef != null)
+                    {
+                        if (initiator.health != null) initiator.health.AddHediff(onDateHediffDef);
+                        if (partner.health != null) partner.health.AddHediff(onDateHediffDef);
+                    }
+                    dates.Add(new Date(initiator, partner));
+                }
+                else
+                {
+                    Log.Message(string.Format("[SocialInteractions] DatingManager.StartDate: Not starting date because one or both pawns are already on a date. Initiator: {0} (OnDate: {1}), Partner: {2} (OnDate: {3})", initiator.Name.ToStringShort, IsOnDate(initiator), partner.Name.ToStringShort, IsOnDate(partner)));
+                }
             }
         }
 
         public static void EndDate(Pawn pawn)
         {
-            Date date = GetDateWith(pawn);
-            if (date != null)
+            lock (datesLock)
             {
-                Log.Message(string.Format("[SocialInteractions] Ending date for {0} and {1}. Removing OnDate hediffs.", date.Initiator.Name.ToStringShort, date.Partner.Name.ToStringShort));
+                if (pawn == null) return;
+                Log.Message(string.Format("[SocialInteractions] DatingManager.EndDate called for Pawn: {0}", pawn.Name.ToStringShort));
+                Date date = GetDateWith(pawn);
+                if (date != null)
+                {
+                    Log.Message(string.Format("[SocialInteractions] Ending date for {0} and {1}. Removing OnDate hediffs.", date.Initiator.Name.ToStringShort, date.Partner.Name.ToStringShort));
 
-                // Remove OnDate hediff from initiator
-                Hediff hediffInitiator = null;
-                if (date.Initiator.health != null && date.Initiator.health.hediffSet != null)
-                {
-                    hediffInitiator = date.Initiator.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
-                }
-                if (hediffInitiator != null)
-                {
-                    date.Initiator.health.RemoveHediff(hediffInitiator);
-                }
+                    int expiryTick = Find.TickManager.TicksGame + DateCooldownTicks;
+                    Log.Message(string.Format("[SocialInteractions] Adding date cooldown for {0} and {1} until tick {2}.", date.Initiator.LabelShort, date.Partner.LabelShort, expiryTick));
+                    dateCooldowns[date.Initiator] = expiryTick;
+                    dateCooldowns[date.Partner] = expiryTick;
 
-                // Remove OnDate hediff from partner
-                Hediff hediffPartner = null;
-                if (date.Partner.health != null && date.Partner.health.hediffSet != null)
-                {
-                    hediffPartner = date.Partner.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
-                }
-                if (hediffPartner != null)
-                {
-                    date.Partner.health.RemoveHediff(hediffPartner);
-                }
+                    // Remove OnDate hediff from initiator
+                    Hediff hediffInitiator = null;
+                    if (date.Initiator.health != null && date.Initiator.health.hediffSet != null)
+                    {
+                        hediffInitiator = date.Initiator.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
+                    }
+                    if (hediffInitiator != null)
+                    {
+                        date.Initiator.health.RemoveHediff(hediffInitiator);
+                    }
 
-                dates.RemoveAll(d => d.Initiator == pawn || d.Partner == pawn);
+                    // Remove OnDate hediff from partner
+                    Hediff hediffPartner = null;
+                    if (date.Partner.health != null && date.Partner.health.hediffSet != null)
+                    {
+                        hediffPartner = date.Partner.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("OnDate"));
+                    }
+                    if (hediffPartner != null)
+                    {
+                        date.Partner.health.RemoveHediff(hediffPartner);
+                    }
+
+                    dates.RemoveAll(d => d.Initiator == pawn || d.Partner == pawn);
+                }
             }
         }
 
-        public static bool IsOnDate(Pawn pawn)
-        {
-            return GetDateWith(pawn) != null;
-        }
-
-        public static Date GetDateWith(Pawn pawn)
+        private static Date GetDateWith_Unlocked(Pawn pawn)
         {
             return dates.FirstOrDefault(d => d.Initiator == pawn || d.Partner == pawn);
         }
 
-        public static Pawn GetPartnerOnDateWith(Pawn pawn)
+        public static bool IsOnDate(Pawn pawn)
         {
-            Date date = GetDateWith(pawn);
-            if (date != null)
-            {
-                return date.Initiator == pawn ? date.Partner : date.Initiator;
-            }
-            return null;
+            if (pawn == null || pawn.health == null || pawn.health.hediffSet == null) return false;
+            HediffDef onDateDef = HediffDef.Named("OnDate");
+            if (onDateDef == null) return false;
+            return pawn.health.hediffSet.HasHediff(onDateDef);
         }
 
-        public static Pawn GetInitiatorOfDateWith(Pawn pawn)
+        public static Date GetDateWith(Pawn pawn)
         {
-            Date date = GetDateWith(pawn);
-            if (date != null)
+            lock (datesLock)
             {
-                return date.Initiator;
+                return GetDateWith_Unlocked(pawn);
             }
-            return null;
+        }
+
+        public static Pawn GetPartnerOnDateWith(Pawn pawn)
+        {
+            lock (datesLock)
+            {
+                if (pawn == null) return null;
+                Date date = GetDateWith(pawn);
+                if (date != null)
+                {
+                    return date.Initiator == pawn ? date.Partner : date.Initiator;
+                }
+                return null;
+            }
+        }
+
+                public static Pawn GetInitiatorOfDateWith(Pawn pawn)
+        {
+            lock (datesLock)
+            {
+                if (pawn == null) return null;
+                Date date = GetDateWith_Unlocked(pawn);
+                if (date != null)
+                {
+                    return date.Initiator;
+                }
+                return null;
+            }
+        }
+
+        public static bool IsOnDateCooldown(Pawn pawn)
+        {
+            if (pawn == null) return true;
+            int expiryTick;
+            if (dateCooldowns.TryGetValue(pawn, out expiryTick))
+            {
+                bool onCooldown = Find.TickManager.TicksGame < expiryTick;
+                Log.Message(string.Format("[SocialInteractions] IsOnDateCooldown check for {0}: Found expiry tick {1}. Current tick: {2}. On cooldown: {3}", pawn.LabelShort, expiryTick, Find.TickManager.TicksGame, onCooldown));
+                if (onCooldown)
+                {
+                    return true;
+                }
+                else
+                {
+                    dateCooldowns.Remove(pawn);
+                    return false;
+                }
+            }
+            return false;
         }
 
         public static void AdvanceDateStage(Pawn pawn)
         {
-            Date date = GetDateWith(pawn);
-            if (date != null)
+            lock (datesLock)
             {
-                Log.Message(string.Format("[SocialInteractions] Advancing date stage for {0} and {1}. Current stage: {2}", date.Initiator.Name.ToStringShort, date.Partner.Name.ToStringShort, date.Stage));
-                if (date.Stage == DateStage.Joy)
+                if (pawn == null) return;
+                Log.Message(string.Format("[SocialInteractions] DatingManager.AdvanceDateStage called for Pawn: {0}", pawn.Name.ToStringShort));
+                Date date = GetDateWith(pawn);
+                if (date != null && date.Initiator != null && date.Partner != null)
                 {
-                    Log.Message("[SocialInteractions] Transitioning from Joy to Lovin stage.");
-                    // End the partner's FollowAndWatch job.
-                    if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == SI_JobDefOf.FollowAndWatchInitiator)
+                    Log.Message(string.Format("[SocialInteractions] Advancing date stage for {0} and {1}. Current stage: {2}", date.Initiator.Name.ToStringShort, date.Partner.Name.ToStringShort, date.Stage));
+                    if (date.Stage == DateStage.Joy)
                     {
-                        date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
-                    }
-
-                    // Attempt to transition to the lovin' stage.
-                    if (CanHaveLovin(date.Initiator, date.Partner))
-                    {
-                        Log.Message("[SocialInteractions] Conditions for lovin' met. Assigning lovin' job.");
-                        date.Stage = DateStage.Lovin;
-                        Building_Bed bed = RestUtility.FindBedFor(date.Initiator);
-
-                        // End any existing lovin' jobs for initiator and partner
-                        if (date.Initiator != null && date.Initiator.jobs != null && date.Initiator.CurJobDef == JobDefOf.Lovin) date.Initiator.jobs.EndCurrentJob(JobCondition.Succeeded);
-                        if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == JobDefOf.Lovin) date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
-
-                        if (bed != null)
+                        Log.Message("[SocialInteractions] Transitioning from Joy to Lovin stage.");
+                        // End the partner's FollowAndWatch job.
+                        if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == SI_JobDefOf.FollowAndWatchInitiator)
                         {
-                            Job lovinJob = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Partner, bed);
-                            Log.Message(string.Format("[SocialInteractions] Initiator Lovin Job created: {0}", lovinJob));
-                            date.Initiator.jobs.StartJob(lovinJob, JobCondition.InterruptForced);
-                            Job lovinJobPartner = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Initiator, bed);
-                            Log.Message(string.Format("[SocialInteractions] Partner Lovin Job created: {0}", lovinJobPartner));
-                            date.Partner.jobs.StartJob(lovinJobPartner, JobCondition.InterruptForced);
+                            date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
+                        }
+
+                        // Attempt to transition to the lovin' stage.
+                        bool canLovin = CanHaveLovin(date.Initiator, date.Partner);
+                        Log.Message(string.Format("[SocialInteractions] DatingManager.CanHaveLovin returned: {0}", canLovin));
+                        if (canLovin)
+                        {
+                            Log.Message("[SocialInteractions] Conditions for lovin' met. Assigning lovin' job.");
+                            date.Stage = DateStage.Lovin;
+                            Building_Bed bed = (date.Initiator.ownership != null) ? date.Initiator.ownership.OwnedBed : null;
+                            if (bed == null || bed.SleepingSlotsCount < 2)
+                            {
+                                bed = (date.Partner.ownership != null) ? date.Partner.ownership.OwnedBed : null;
+                            }
+
+                            if (bed == null || bed.SleepingSlotsCount < 2)
+                            {
+                                bed = RestUtility.FindBedFor(date.Initiator, date.Partner, checkSocialProperness: false, ignoreOtherReservations: false);
+                            }
+
+                            // End any existing lovin' jobs for initiator and partner
+                            if (date.Initiator != null && date.Initiator.jobs != null && date.Initiator.CurJobDef == JobDefOf.Lovin) date.Initiator.jobs.EndCurrentJob(JobCondition.Succeeded);
+                            if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == JobDefOf.Lovin) date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
+
+                            if (bed != null)
+                            {
+                                Job lovinJob = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Partner, bed);
+                                Log.Message(string.Format("[SocialInteractions] Initiator Lovin Job created: {0}", lovinJob));
+                                date.Initiator.jobs.StartJob(lovinJob, JobCondition.InterruptForced);
+                                Job lovinJobPartner = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Initiator, bed);
+                                Log.Message(string.Format("[SocialInteractions] Partner Lovin Job created: {0}", lovinJobPartner));
+                                date.Partner.jobs.StartJob(lovinJobPartner, JobCondition.InterruptForced);
+                            }
+                            else
+                            {
+                                Log.Message("[SocialInteractions] No suitable bed found for lovin'. Ending date.");
+                                date.Stage = DateStage.Finished;
+                                EndDate(pawn);
+                                return;
+                            }
+
+                            string subject = SpeechBubbleManager.GetDateEndSubject(date.Initiator, date.Partner);
+                            SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, subject);
                         }
                         else
                         {
-                            Log.Message("[SocialInteractions] No suitable bed found for lovin'. Ending date.");
+                            Log.Message("[SocialInteractions] Conditions for lovin' not met. Ending date.");
                             date.Stage = DateStage.Finished;
                             EndDate(pawn);
-                            return;
                         }
-
-                        string subject = SpeechBubbleManager.GetDateEndSubject(date.Initiator, date.Partner);
-                        SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, subject);
                     }
-                    else
+                    else if (date.Stage == DateStage.Lovin)
                     {
-                        Log.Message("[SocialInteractions] Conditions for lovin' not met. Ending date.");
-                        // If they can't have lovin', end the date.
+                        Log.Message("[SocialInteractions] Lovin' stage finished. Ending date.");
+                        // After lovin', the date is finished.
                         date.Stage = DateStage.Finished;
                         EndDate(pawn);
                     }
                 }
-                else if (date.Stage == DateStage.Lovin)
-                {
-                    Log.Message("[SocialInteractions] Lovin' stage finished. Ending date.");
-                    // After lovin', the date is finished.
-                    date.Stage = DateStage.Finished;
-                    EndDate(pawn);
-                }
             }
-        }
-
-        private static bool AreRomanticallyCompatible(Pawn p1, Pawn p2)
-        {
-            if (p1 == null || p2 == null || p1.relations == null) return false;
-
-            return p1.relations.DirectRelationExists(PawnRelationDefOf.Lover, p2) ||
-                   p1.relations.DirectRelationExists(PawnRelationDefOf.Fiance, p2) ||
-                   p1.relations.DirectRelationExists(PawnRelationDefOf.Spouse, p2);
         }
 
         private static bool CanHaveLovin(Pawn initiator, Pawn partner)
         {
-            bool hasBed = (initiator != null && RestUtility.FindBedFor(initiator) != null) && (partner != null && RestUtility.FindBedFor(partner) != null);
-            bool romanticallyCompatible = AreRomanticallyCompatible(initiator, partner);
-            Log.Message(string.Format("[SocialInteractions] CanHaveLovin check for {0} and {1}. HasBed: {2}, RomanticallyCompatible: {3}", initiator.Name.ToStringShort, partner.Name.ToStringShort, hasBed, romanticallyCompatible));
-            return hasBed && romanticallyCompatible;
+            if (initiator == null || partner == null) return false;
+
+            if (initiator.ownership == null || partner.ownership == null) return false;
+
+            // Bed check
+            Building_Bed bed = initiator.ownership.OwnedBed;
+            if (bed == null || bed.SleepingSlotsCount < 2)
+            {
+                bed = partner.ownership.OwnedBed;
+            }
+            if (bed == null || bed.SleepingSlotsCount < 2)
+            {
+                bed = RestUtility.FindBedFor(initiator, partner, checkSocialProperness: false, ignoreOtherReservations: false);
+            }
+            if (bed == null)
+            {
+                Log.Message(string.Format("[SocialInteractions] CanHaveLovin: No suitable bed found for {0} and {1}.", initiator.Name.ToStringShort, partner.Name.ToStringShort));
+                return false;
+            }
+            Log.Message(string.Format("[SocialInteractions] CanHaveLovin: Suitable bed found for {0} and {1}. Bed: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, bed.LabelShort));
+
+            // Probability check
+            float baseChance = 0.75f;
+
+            // Opinion factor
+            if (initiator.relations == null || partner.relations == null) return false;
+            float opinionFactor = UnityEngine.Mathf.InverseLerp(-100f, 100f, initiator.relations.OpinionOf(partner));
+            opinionFactor *= UnityEngine.Mathf.InverseLerp(-100f, 100f, partner.relations.OpinionOf(initiator));
+            Log.Message(string.Format("[SocialInteractions] CanHaveLovin: Opinion Factor for {0} and {1}: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, opinionFactor));
+
+            // Mood factor
+            if (initiator.needs == null || initiator.needs.mood == null || partner.needs == null || partner.needs.mood == null) return false;
+            float moodFactor = (initiator.needs.mood.CurLevel + partner.needs.mood.CurLevel) / 2f;
+            Log.Message(string.Format("[SocialInteractions] CanHaveLovin: Mood Factor for {0} and {1}: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, moodFactor));
+
+            // Secondary Lovin Chance Factor
+            float slcFactor = initiator.relations.SecondaryLovinChanceFactor(partner);
+            slcFactor *= partner.relations.SecondaryLovinChanceFactor(initiator);
+            Log.Message(string.Format("[SocialInteractions] CanHaveLovin: Secondary Lovin Chance Factor for {0} and {1}: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, slcFactor));
+
+
+            float finalChance = baseChance * opinionFactor * moodFactor * slcFactor;
+            Log.Message(string.Format("[SocialInteractions] CanHaveLovin: Final Chance for {0} and {1}: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, finalChance));
+
+            return Rand.Value < finalChance;
         }
 
         public static List<Tuple<Thing, JoyGiverDef, IntVec3>> FindJoySpotFor(Pawn pawn, Pawn partner)
         {
+            if (pawn == null || partner == null) return new List<Tuple<Thing, JoyGiverDef, IntVec3>>();
             List<Tuple<Thing, JoyGiverDef, IntVec3>> foundSpots = new List<Tuple<Thing, JoyGiverDef, IntVec3>>();
 
             // 1. Filter for suitable social JoyGiverDefs
@@ -273,6 +389,13 @@ namespace SocialInteractions
                                         // Only add to foundSpots if the edifice is the expected building and it's spawned.
                                         if (edifice == building && building.Spawned)
                                         {
+                                            // Add explicit reservation check for the building itself
+                                            if (!pawn.CanReserve(building) || !partner.CanReserve(building))
+                                            {
+                                                Log.Message(string.Format("[SocialInteractions] FindJoySpotFor: Building {0} at {1} cannot be reserved by both pawns. Skipping.", building.LabelShort, building.Position));
+                                                continue; // Skip this building if it cannot be reserved
+                                            }
+
                                             // NEW LOGIC: Find an accessible interaction cell
                                             IntVec3 interactionCell = IntVec3.Invalid;
 

@@ -1,5 +1,7 @@
 using Verse;
 using UnityEngine;
+using System.Collections.Generic; // New using directive
+using System;
 
 namespace SocialInteractions
 {
@@ -40,13 +42,17 @@ It's currently [time], on [date] and the weather is [weather].
         public bool enableVisitSickPawn = true;
         public bool enableLovin = true;
         public bool preventSpam = false;
-        public string llmStoppingStrings = @"</start>
+        public string llmStoppingStrings = @"<end>
+</end>
+</start>
 <start>
-<end>
-</end>";
+—END—
+**end**
+(end)";
         public bool enableCombatTaunts = true;
         public bool enableXtcSampling = false;
         public bool enableDating = true;
+        public float joyThresholdForDate = 0.6f; // New setting
 
 
         public override void ExposeData()
@@ -78,18 +84,24 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);
             Scribe_Values.Look(ref enableXtcSampling, "enableXtcSampling", false);
             Scribe_Values.Look(ref enableDating, "enableDating", true);
+            Scribe_Values.Look(ref joyThresholdForDate, "joyThresholdForDate", 0.8f); // New setting
         }
     }
 
     public class SocialInteractionsMod : Mod
     {
-        SocialInteractionsModSettings settings;
         private Vector2 scrollPosition = Vector2.zero;
+        private string llmApiUrlBuffer;
+        private string llmApiKeyBuffer;
+        private string llmPromptTemplateBuffer;
 
         public SocialInteractionsMod(ModContentPack content)
             : base(content)
         {
-            this.settings = GetSettings<SocialInteractionsModSettings>();
+            SocialInteractions.Settings = GetSettings<SocialInteractionsModSettings>();
+            llmApiUrlBuffer = SocialInteractions.Settings.llmApiUrl;
+            llmApiKeyBuffer = SocialInteractions.Settings.llmApiKey;
+            llmPromptTemplateBuffer = SocialInteractions.Settings.llmPromptTemplate;
         }
 
         public override string SettingsCategory()
@@ -104,68 +116,87 @@ It's currently [time], on [date] and the weather is [weather].
 
             Listing_Standard listingStandard = new Listing_Standard();
             listingStandard.Begin(viewRect);
-            listingStandard.CheckboxLabeled("Pawns stop on interaction", ref settings.pawnsStopOnInteraction, "If enabled, pawns will stop their current activities during social interactions.");
+            listingStandard.CheckboxLabeled("Pawns stop on interaction", ref SocialInteractions.Settings.pawnsStopOnInteraction, "If enabled, pawns will stop their current activities during social interactions.");
 
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Enable Combat Taunts", ref settings.enableCombatTaunts, "If enabled, pawns will taunt each other in combat.");
+            listingStandard.CheckboxLabeled("Enable Combat Taunts", ref SocialInteractions.Settings.enableCombatTaunts, "If enabled, pawns will taunt each other in combat.");
 
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Enable LLM Interactions", ref settings.llmInteractionsEnabled, "If enabled, Deep Talk interactions will use the configured LLM API.");
-            listingStandard.CheckboxLabeled("Prevent Spam", ref settings.preventSpam, "If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.");
+            listingStandard.CheckboxLabeled("Enable LLM Interactions", ref SocialInteractions.Settings.llmInteractionsEnabled, "If enabled, Deep Talk interactions will use the configured LLM API.");
+            listingStandard.CheckboxLabeled("Prevent Spam", ref SocialInteractions.Settings.preventSpam, "If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.");
 
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Enable XTC Sampling", ref settings.enableXtcSampling, "If enabled, XTC (Exclude Top Choices) sampling will be used for LLM requests to encourage more creative responses.");
+            listingStandard.CheckboxLabeled("Enable XTC Sampling", ref SocialInteractions.Settings.enableXtcSampling, "If enabled, XTC (Exclude Top Choices) sampling will be used for LLM requests to encourage more creative responses.");
 
             listingStandard.Gap();
             listingStandard.Label("LLM API Configuration");
 
             listingStandard.Label("API URL:");
-            settings.llmApiUrl = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), settings.llmApiUrl);
+            string newApiUrl = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), llmApiUrlBuffer);
+            if (newApiUrl != llmApiUrlBuffer)
+            {
+                llmApiUrlBuffer = newApiUrl;
+                SocialInteractions.Settings.llmApiUrl = newApiUrl;
+            }
 
             listingStandard.Label("API Key (stored in plain text):");
-            settings.llmApiKey = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), settings.llmApiKey);
+            string newApiKey = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), llmApiKeyBuffer);
+            if (newApiKey != llmApiKeyBuffer)
+            {
+                llmApiKeyBuffer = newApiKey;
+                SocialInteractions.Settings.llmApiKey = newApiKey;
+            }
 
             listingStandard.Label("Prompt Template:");
-            settings.llmPromptTemplate = Widgets.TextArea(listingStandard.GetRect(200f), settings.llmPromptTemplate);
+            string newPromptTemplate = Widgets.TextArea(listingStandard.GetRect(200f), llmPromptTemplateBuffer);
+            if (newPromptTemplate != llmPromptTemplateBuffer)
+            {
+                llmPromptTemplateBuffer = newPromptTemplate;
+                SocialInteractions.Settings.llmPromptTemplate = newPromptTemplate;
+            }
 
             listingStandard.Gap();
             listingStandard.Label("LLM Stopping Strings (one per line):");
-            settings.llmStoppingStrings = Widgets.TextArea(listingStandard.GetRect(100f), settings.llmStoppingStrings);
+            SocialInteractions.Settings.llmStoppingStrings = Widgets.TextArea(listingStandard.GetRect(100f), SocialInteractions.Settings.llmStoppingStrings);
 
             listingStandard.Gap();
             listingStandard.Label("Words per line limit (for speech bubbles):");
-            string wordsPerLineBuffer = settings.wordsPerLineLimit.ToString();
-            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref settings.wordsPerLineLimit, ref wordsPerLineBuffer, 1, 50);
+            string wordsPerLineBuffer = SocialInteractions.Settings.wordsPerLineLimit.ToString();
+            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.wordsPerLineLimit, ref wordsPerLineBuffer, 1, 50);
 
             listingStandard.Gap();
             listingStandard.Label("Words per second (for speech bubble duration):");
-            string wordsPerSecondBuffer = settings.wordsPerSecond.ToString();
-            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref settings.wordsPerSecond, ref wordsPerSecondBuffer, 1.0f, 20.0f);
+            string wordsPerSecondBuffer = SocialInteractions.Settings.wordsPerSecond.ToString();
+            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.wordsPerSecond, ref wordsPerSecondBuffer, 1.0f, 20.0f);
+
+            listingStandard.Gap();
+            listingStandard.Label(string.Format("Joy threshold for date (0.0 - 1.0): {0}", SocialInteractions.Settings.joyThresholdForDate.ToString("F2")));
+            SocialInteractions.Settings.joyThresholdForDate = listingStandard.Slider(SocialInteractions.Settings.joyThresholdForDate, 0f, 1f);
 
             listingStandard.Gap();
             listingStandard.Label("LLM Temperature (0.1 - 2.0):");
-            string temperatureBuffer = settings.llmTemperature.ToString();
-            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref settings.llmTemperature, ref temperatureBuffer, 0.1f, 2.0f);
+            string temperatureBuffer = SocialInteractions.Settings.llmTemperature.ToString();
+            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmTemperature, ref temperatureBuffer, 0.1f, 2.0f);
 
             listingStandard.Gap();
             listingStandard.Label("LLM Max Tokens (1 - 2000):");
-            string maxTokensBuffer = settings.llmMaxTokens.ToString();
-            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref settings.llmMaxTokens, ref maxTokensBuffer, 1, 2000);
+            string maxTokensBuffer = SocialInteractions.Settings.llmMaxTokens.ToString();
+            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmMaxTokens, ref maxTokensBuffer, 1, 2000);
 
             listingStandard.Gap();
             listingStandard.Label("Enabled LLM Interaction Types:");
-            listingStandard.CheckboxLabeled("Chitchat", ref settings.enableChitchat);
-            listingStandard.CheckboxLabeled("DeepTalk", ref settings.enableDeepTalk);
-            listingStandard.CheckboxLabeled("Insult", ref settings.enableInsult);
-            listingStandard.CheckboxLabeled("RomanceAttempt", ref settings.enableRomanceAttempt);
-            listingStandard.CheckboxLabeled("MarriageProposal", ref settings.enableMarriageProposal);
-            listingStandard.CheckboxLabeled("Reassure", ref settings.enableReassure);
-            listingStandard.CheckboxLabeled("DisturbingChat", ref settings.enableDisturbingChat);
-            listingStandard.CheckboxLabeled("TendPatient", ref settings.enableTendPatient);
-            listingStandard.CheckboxLabeled("Rescue", ref settings.enableRescue);
-            listingStandard.CheckboxLabeled("VisitSickPawn", ref settings.enableVisitSickPawn);
-            listingStandard.CheckboxLabeled("Lovin", ref settings.enableLovin);
-            listingStandard.CheckboxLabeled("Dating", ref settings.enableDating);
+            listingStandard.CheckboxLabeled("Chitchat", ref SocialInteractions.Settings.enableChitchat);
+            listingStandard.CheckboxLabeled("DeepTalk", ref SocialInteractions.Settings.enableDeepTalk);
+            listingStandard.CheckboxLabeled("Insult", ref SocialInteractions.Settings.enableInsult);
+            listingStandard.CheckboxLabeled("RomanceAttempt", ref SocialInteractions.Settings.enableRomanceAttempt);
+            listingStandard.CheckboxLabeled("MarriageProposal", ref SocialInteractions.Settings.enableMarriageProposal);
+            listingStandard.CheckboxLabeled("Reassure", ref SocialInteractions.Settings.enableReassure);
+            listingStandard.CheckboxLabeled("DisturbingChat", ref SocialInteractions.Settings.enableDisturbingChat);
+            listingStandard.CheckboxLabeled("TendPatient", ref SocialInteractions.Settings.enableTendPatient);
+            listingStandard.CheckboxLabeled("Rescue", ref SocialInteractions.Settings.enableRescue);
+            listingStandard.CheckboxLabeled("VisitSickPawn", ref SocialInteractions.Settings.enableVisitSickPawn);
+            listingStandard.CheckboxLabeled("Lovin", ref SocialInteractions.Settings.enableLovin);
+            listingStandard.CheckboxLabeled("Dating", ref SocialInteractions.Settings.enableDating);
 
             listingStandard.End();
 

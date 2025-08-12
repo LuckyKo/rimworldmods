@@ -56,7 +56,7 @@ namespace SocialInteractions
         {
             this.FailOnDespawnedOrNull(BedInd);
             this.FailOnDespawnedOrNull(PartnerInd);
-            this.FailOn(() => !Partner.health.capacities.CanBeAwake);
+            this.FailOn(() => Partner == null || Partner.health == null || Partner.health.capacities == null || !Partner.health.capacities.CanBeAwake);
             this.KeepLyingDown(BedInd);
             yield return Toils_Bed.ClaimBedIfNonMedical(BedInd);
             yield return Toils_Bed.GotoBed(BedInd);
@@ -103,13 +103,10 @@ namespace SocialInteractions
             toil2.AddFinishAction(delegate
             {
                 if (pawn == null) return;
-                Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
-                if (pawn == initiator)
+
+                Date date = DatingManager.GetDateWith(pawn);
+                if (date != null && date.Stage == DateStage.Lovin)
                 {
-                    if (Partner != null && Partner.jobs != null)
-                    {
-                        Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
-                    }
                     DatingManager.AdvanceDateStage(pawn);
                 }
 

@@ -16,14 +16,14 @@ namespace SocialInteractions
     [StaticConstructorOnStartup]
     public static class SocialInteractions
     {
-        public static SocialInteractionsModSettings Settings;
+                        public static SocialInteractionsModSettings Settings { get; set; }
         public static bool isShowingBubble = false;
 
         static SocialInteractions()
         {
             var harmony = new Harmony("com.gemini.socialinteractions");
             harmony.PatchAll();
-            Settings = LoadedModManager.GetMod<SocialInteractionsMod>().GetSettings<SocialInteractionsModSettings>();
+            // Settings are now initialized in SocialInteractionsMod constructor
         }
 
         public static bool IsLlmInteractionEnabled(InteractionDef interactionDef)
@@ -57,9 +57,13 @@ namespace SocialInteractions
 
         public static string GenerateDeepTalkPrompt(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
-            if (initiator == null || recipient == null || interactionDef == null || subject == null)
+            if (initiator == null || recipient == null || interactionDef == null)
             {
                 return null;
+            }
+            if (subject == null)
+            {
+                subject = interactionDef.label;
             }
 
             if (!Settings.llmInteractionsEnabled)
@@ -472,8 +476,7 @@ namespace SocialInteractions
                     if (!string.IsNullOrEmpty(prompt))
                     {
                         KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
-                        List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
-                        string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings, Settings.enableXtcSampling);
+                        string llmResponse = await client.GenerateText(prompt);
                         if (!string.IsNullOrEmpty(llmResponse))
                         {
                             string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
@@ -532,8 +535,7 @@ namespace SocialInteractions
                     if (!string.IsNullOrEmpty(prompt))
                     {
                         KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
-                        List<string> stoppingStrings = new List<string>(Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
-                        string llmResponse = await client.GenerateText(prompt, Settings.llmMaxTokens, Settings.llmTemperature, stoppingStrings, Settings.enableXtcSampling);
+                        string llmResponse = await client.GenerateText(prompt);
                         Log.Message(string.Format("[SocialInteractions] LLM Response: {0}", llmResponse != null ? llmResponse.Substring(0, Math.Min(llmResponse.Length, 200)) : "NULL"));
                         if (!string.IsNullOrEmpty(llmResponse))
                         {
