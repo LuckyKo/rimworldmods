@@ -8,6 +8,7 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         public bool pawnsStopOnInteraction = true;
+        public bool enableDatingFeature = true;
         public string llmApiUrl = "http://localhost:5001";
         public string llmApiKey = "1234";
         public string llmPromptTemplate = @"The following is a [topic] interraction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
@@ -29,6 +30,7 @@ It's currently [time], on [date] and the weather is [weather].
         public float wordsPerSecond = 4.0f; // Default to 5 words per second
         public float llmTemperature = 0.7f; // Default temperature
         public int llmMaxTokens = 300; // Default max tokens
+        public bool preventSpam = false;
 
         public bool enableChitchat = true;
         public bool enableDeepTalk = true;
@@ -41,7 +43,7 @@ It's currently [time], on [date] and the weather is [weather].
         public bool enableRescue = true;
         public bool enableVisitSickPawn = true;
         public bool enableLovin = true;
-        public bool preventSpam = false;
+        public bool enableDating = true;
         public string llmStoppingStrings = @"<end>
 </end>
 </start>
@@ -51,7 +53,6 @@ It's currently [time], on [date] and the weather is [weather].
 (end)";
         public bool enableCombatTaunts = true;
         public bool enableXtcSampling = false;
-        public bool enableDating = true;
         public float joyThresholdForDate = 0.6f; // New setting
 
 
@@ -80,10 +81,11 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref enableRescue, "enableRescue", true);
             Scribe_Values.Look(ref enableVisitSickPawn, "enableVisitSickPawn", true);
             Scribe_Values.Look(ref enableLovin, "enableLovin", true);
+            Scribe_Values.Look(ref enableDating, "enableDating", true);
+            Scribe_Values.Look(ref enableDatingFeature, "enableDatingFeature", true);
             Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);
             Scribe_Values.Look(ref enableXtcSampling, "enableXtcSampling", false);
-            Scribe_Values.Look(ref enableDating, "enableDating", true);
             Scribe_Values.Look(ref joyThresholdForDate, "joyThresholdForDate", 0.8f); // New setting
         }
     }
@@ -120,6 +122,9 @@ It's currently [time], on [date] and the weather is [weather].
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable Combat Taunts", ref SocialInteractions.Settings.enableCombatTaunts, "If enabled, pawns will taunt each other in combat.");
+
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("Enable Dating Feature", ref SocialInteractions.Settings.enableDatingFeature, "If enabled, pawns will be able to go on dates.");
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable LLM Interactions", ref SocialInteractions.Settings.llmInteractionsEnabled, "If enabled, Deep Talk interactions will use the configured LLM API.");

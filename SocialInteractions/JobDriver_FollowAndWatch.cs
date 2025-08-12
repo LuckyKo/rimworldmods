@@ -8,6 +8,7 @@ namespace SocialInteractions
 {
     public class JobDriver_FollowAndWatch : JobDriver
     {
+        private int ticksSinceNotInJoy = 0;
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             return true;
@@ -35,8 +36,27 @@ namespace SocialInteractions
             watch.tickAction = () =>
             {
                 Pawn initiator = this.job.targetA.Thing as Pawn;
-                if (initiator == null || this.pawn == null || this.job == null || this.job.targetB == null)
+                if (initiator == null)
                 {
+                    Log.Message("[SocialInteractions] JobDriver_FollowAndWatch: initiator is null, ending job.");
+                    this.ReadyForNextToil();
+                    return;
+                }
+                if (this.pawn == null)
+                {
+                    Log.Message("[SocialInteractions] JobDriver_FollowAndWatch: pawn is null, ending job.");
+                    this.ReadyForNextToil();
+                    return;
+                }
+                if (this.job == null)
+                {
+                    Log.Message("[SocialInteractions] JobDriver_FollowAndWatch: job is null, ending job.");
+                    this.ReadyForNextToil();
+                    return;
+                }
+                if (this.job.targetB == null)
+                {
+                    Log.Message("[SocialInteractions] JobDriver_FollowAndWatch: job.targetB is null, ending job.");
                     this.ReadyForNextToil();
                     return;
                 }
@@ -48,10 +68,32 @@ namespace SocialInteractions
                     this.pawn.pather.StartPath(initiator, PathEndMode.InteractionCell);
                 }
 
-                if (initiator.CurJob == null || initiator.CurJob.targetA.Thing != joySpot || !DatingManager.IsOnDate(initiator))
+                if (initiator.needs.joy.CurLevelPercentage >= 1f)
                 {
-                    DatingManager.AdvanceDateStage(initiator);
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: initiator ({0}) joy is full, ending job.", initiator.Name.ToStringShort));
                     this.ReadyForNextToil();
+                    return;
+                }
+
+                if (initiator.CurJob == null || initiator.CurJob.def.joyKind == null || initiator.CurJob.targetA.Thing != joySpot)
+                {
+                    ticksSinceNotInJoy++;
+                    if (ticksSinceNotInJoy > 60)
+                    {
+                        Log.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: initiator ({0}) job changed ({1}) for too long, ending job.", initiator.Name.ToStringShort, initiator.CurJob != null ? initiator.CurJob.def.defName : "null"));
+                        this.ReadyForNextToil(); // End the FollowAndWatch job
+                        return;
+                    }
+                }
+                else
+                {
+                    ticksSinceNotInJoy = 0;
+                }
+
+                if (!DatingManager.IsOnDate(initiator))
+                {
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: date ended for initiator ({0}), ending job.", initiator.Name.ToStringShort));
+                    this.ReadyForNextToil(); // End the FollowAndWatch job
                     return;
                 }
             

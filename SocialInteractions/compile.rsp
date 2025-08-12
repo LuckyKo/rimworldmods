@@ -32,3 +32,4 @@ JobDriver_GoOnDate.cs
 JobDriver_DateLovin.cs
 ThoughtHandler_OpinionOffsetOfGroup_Patch.cs
 Pawn_DraftController_Drafted_Patch.cs
+Thought_CaughtCheating.cs

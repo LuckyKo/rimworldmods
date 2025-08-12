@@ -20,11 +20,12 @@
 
   <ThoughtDef>
     <defName>CaughtCheating</defName>
+    <thoughtClass>SocialInteractions.Thought_CaughtCheating</thoughtClass>
     <durationDays>2</durationDays>
     <stackLimit>1</stackLimit>
     <stages>
       <li>
-        <label>caught cheating</label>
+        <label>Caught {0} cheating</label>
         <description>I can't believe I saw them with my own eyes...</description>
         <baseMoodEffect>-25</baseMoodEffect>
       </li>

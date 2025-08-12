@@ -31,12 +31,31 @@ namespace SocialInteractions
                 Pawn cheatingPartner = DatingManager.GetPartnerOnDateWith(partner);
                 if (cheatingPartner != null && cheatingPartner != initiator)
                 {
-                    // 50% chance to notice
-                    return 0.5f;
+                    if (IsRomanticallyCompatible(partner, cheatingPartner))
+                    {
+                        // 50% chance to notice
+                        return 0.5f;
+                    }
                 }
             }
 
             return 0f;
+        }
+
+        private bool IsRomanticallyCompatible(Pawn pawn, Pawn otherPawn)
+        {
+            if (pawn.story.traits.HasTrait(TraitDefOf.Bisexual))
+            {
+                return true;
+            }
+
+            if (pawn.story.traits.HasTrait(TraitDefOf.Gay))
+            {
+                return pawn.gender == otherPawn.gender;
+            }
+
+            // Straight
+            return pawn.gender != otherPawn.gender;
         }
 
         public override void Interacted(Pawn initiator, Pawn recipient, List<RulePackDef> extraSentencePacks, out string letterText, out string letterLabel, out LetterDef letterDef, out LookTargets lookTargets)

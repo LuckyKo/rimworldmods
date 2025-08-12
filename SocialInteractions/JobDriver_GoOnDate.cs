@@ -52,6 +52,10 @@ namespace SocialInteractions
                 this.job.targetA = chosenSpot.Item1; // Set the joy spot as TargetA
                 this.pawn.Reserve(this.job.targetA, this.job);
 
+                JoyGiverDef joyGiver = chosenSpot.Item2;
+                Job initiatorJoyJob = JobMaker.MakeJob(joyGiver.jobDef, this.job.targetA);
+                this.pawn.jobs.StartJob(initiatorJoyJob, JobCondition.InterruptForced);
+
                 // Tell partner to follow
                 Job partnerJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn, this.job.targetA);
                 this.Partner.jobs.StartJob(partnerJob, JobCondition.InterruptForced);
@@ -68,18 +72,49 @@ namespace SocialInteractions
 
             // Do the joy activity
             Toil doJoy = new Toil();
-            doJoy.defaultCompleteMode = ToilCompleteMode.Delay;
-            doJoy.defaultDuration = 4000; // Approx 1.5 game hours
+            doJoy.defaultCompleteMode = ToilCompleteMode.Never; // Will complete when initiator's joy job ends
             doJoy.tickAction = () =>
             {
-                this.pawn.rotationTracker.FaceCell(JoySpot.InteractionCell);
-                if (this.pawn.needs != null && this.pawn.needs.joy != null)
-                {
-                    this.pawn.needs.joy.GainJoy(0.000144f, JoyKindDefOf.Social);
-                }
-                if (this.Partner.CurJobDef != SI_JobDefOf.FollowAndWatchInitiator)
+                Pawn initiator = this.pawn; // Initiator is this.pawn in JobDriver_GoOnDate
+                Pawn partner = this.Partner;
+                Thing joySpot = this.JoySpot;
+
+                // Ensure pawns and targets are valid
+                if (initiator == null || partner == null || joySpot == null)
                 {
                     this.EndJobWith(JobCondition.Incompletable);
+                    return;
+                }
+
+                // Face the joy spot
+                initiator.rotationTracker.FaceCell(joySpot.InteractionCell);
+
+                // Gain joy
+                if (initiator.needs != null && initiator.needs.joy != null)
+                {
+                    initiator.needs.joy.GainJoy(0.000144f, JoyKindDefOf.Social);
+                }
+
+                // Check if partner is still following
+                if (partner.CurJobDef != SI_JobDefOf.FollowAndWatchInitiator)
+                {
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner ({0}) is no longer following. Advancing date stage.", partner.Name.ToStringShort));
+                    this.ReadyForNextToil();
+                    return;
+                }
+
+                if (initiator.needs.joy.CurLevelPercentage >= 1f)
+                {
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Initiator ({0}) joy is full. Advancing date stage.", initiator.Name.ToStringShort));
+                    this.ReadyForNextToil();
+                    return;
+                }
+
+                // Check if initiator's joy job has ended or changed
+                if (initiator.CurJob == null || initiator.CurJob.def.joyKind == null || initiator.CurJob.targetA.Thing != joySpot)
+                {
+                    Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Initiator ({0}) joy job ended or changed. Advancing date stage.", initiator.Name.ToStringShort));
+                    this.ReadyForNextToil(); // Advance to the next toil (advanceDate)
                 }
             };
             yield return doJoy;

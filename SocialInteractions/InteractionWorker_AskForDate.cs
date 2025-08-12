@@ -11,6 +11,10 @@ namespace SocialInteractions
     {
         public override float RandomSelectionWeight(Pawn initiator, Pawn recipient)
         {
+            if (!SocialInteractions.Settings.enableDatingFeature)
+            {
+                return 0f;
+            }
             if (initiator == null || recipient == null) return 0f;
             if (DatingManager.IsOnDate(initiator) || DatingManager.IsOnDate(recipient)) return 0f;
             if (initiator == recipient) return 0f;

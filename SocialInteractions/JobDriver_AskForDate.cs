@@ -121,16 +121,7 @@ namespace SocialInteractions
             yield return askToil;
 
 
-            // Add a final action to remove the OnDate hediffs
-            Toil finalToil = new Toil();
-            finalToil.initAction = () =>
-            {
-                Pawn recipient = (Pawn)this.job.targetA.Thing;
-                if (this.pawn == null || recipient == null) return;
-                DatingManager.EndDate(this.pawn);
-            };
-            finalToil.defaultCompleteMode = ToilCompleteMode.Instant;
-            yield return finalToil;
+            
         }
 
         private Job GetBestJoyJob(Pawn initiator, Pawn recipient)
