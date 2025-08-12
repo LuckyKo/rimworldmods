@@ -294,7 +294,7 @@ namespace SocialInteractions
             Log.Message(string.Format("[SocialInteractions] CanHaveLovin: Secondary Lovin Chance Factor for {0} and {1}: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, slcFactor));
 
 
-            float finalChance = baseChance * opinionFactor * moodFactor * slcFactor;
+            float finalChance = baseChance * ((opinionFactor + moodFactor) / 2f) * slcFactor;
             Log.Message(string.Format("[SocialInteractions] CanHaveLovin: Final Chance for {0} and {1}: {2}", initiator.Name.ToStringShort, partner.Name.ToStringShort, finalChance));
 
             return Rand.Value < finalChance;

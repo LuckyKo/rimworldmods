@@ -236,7 +236,8 @@ namespace SocialInteractions
                 currentDate = string.Format("{0} of {1}, {2}", day, quadrum.Label(), year);
                 int hour = (int)(GenDate.DayPercent(absTicks, longitude) * 24f);
                 currentTime = hour.ToString("D2") + ":00";
-                currentWeather = initiator.Map.weatherManager.curWeather.label;
+                float temperature = initiator.Map.mapTemperature.OutdoorTemp;
+                currentWeather = string.Format("{0} ({1}°C)", initiator.Map.weatherManager.curWeather.label, temperature.ToString("F0"));
             }
 
             // Replace placeholders

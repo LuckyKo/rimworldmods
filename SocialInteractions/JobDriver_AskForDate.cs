@@ -76,12 +76,6 @@ namespace SocialInteractions
                         if (this.pawn.jobs != null) this.pawn.jobs.StartJob(initiatorJob, JobCondition.InterruptForced);
                         Log.Message(string.Format("[SocialInteractions] Initiator {0} assigned job {1}", this.pawn.Name.ToStringShort, initiatorJob.def.defName));
 
-                        HediffDef onDateHediffDef = HediffDef.Named("OnDate");
-                        if (onDateHediffDef != null)
-                        {
-                            if (this.pawn.health != null) this.pawn.health.AddHediff(onDateHediffDef);
-                            if (recipient.health != null) recipient.health.AddHediff(onDateHediffDef);
-                        }
                         DatingManager.StartDate(this.pawn, recipient);
 
                         if (SI_InteractionDefOf.DateAccepted != null && Find.PlayLog != null)
