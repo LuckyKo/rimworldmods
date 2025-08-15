@@ -6,7 +6,7 @@ namespace SocialInteractions
     [DefOf]
     public static class SI_InteractionDefOf
     {
-        public static InteractionDef AskForDate;
+        
         public static InteractionDef DateRejected;
         public static InteractionDef DateAccepted;
         public static InteractionDef TendPatient;

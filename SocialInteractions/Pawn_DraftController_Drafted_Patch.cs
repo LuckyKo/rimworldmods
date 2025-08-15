@@ -24,7 +24,8 @@ namespace SocialInteractions
                 // Also end the date in the manager to be safe
                 if (DatingManager.IsOnDate(pawn))
                 {
-                    DatingManager.EndDate(pawn);
+                    Date date = DatingManager.GetDateWith(pawn);
+                    if (date != null) DatingManager.EndDate(date);
                 }
             }
         }

@@ -1,0 +1,332 @@
+# Social Interactions Mod - Implementation Flow Graph
+
+## 1. Core Architecture
+
+```
+[Mod Initialization]
+        |
+        v
+[Harmony Patching] --> [Settings Initialization]
+        |
+        v
+[Game Components Registration]
+        |
+        v
+[Main Game Loop Integration]
+```
+
+## 2. Main Entry Points
+
+### A. Social Interactions Core System
+```
+[SocialInteractions.cs Static Constructor]
+        |
+        v
+[Harmony Instance Creation]
+        |
+        v
+[Harmony.PatchAll() - Applies All Patches]
+        |
+        v
+[Settings Initialized via Mod Constructor]
+```
+
+### B. Game Component Integration
+```
+[SpeechBubbleManager.cs GameComponent]
+        |
+        v
+[GameComponentTick() - Runs Every Game Tick]
+        |
+        v
+[Bubble Queue Processing] --> [LLM Busy State Management]
+        |
+        v
+[Pending Jobs Processing]
+```
+
+## 3. Interaction Flow
+
+### A. Standard Interaction Processing
+```
+[Interaction Occurs in Game]
+        |
+        v
+[PlayLog_Add_Patch.Postfix()] --> [Extract Interaction Data]
+        |
+        v
+[SocialInteractions.HandleInteraction()]
+        |
+        +--> [Is LLM Enabled for Interaction Type?]
+        |           |
+        |           +--> [Yes] --> [HandleNonStoppingInteraction()]
+        |           |               |
+        |           |               v
+        |           |       [Generate LLM Prompt] --> [KoboldApiClient Call]
+        |           |               |
+        |           |               v
+        |           |       [Process LLM Response] --> [Parse Dialogue Lines]
+        |           |               |
+        |           |               v
+        |           |       [Enqueue Speech Bubbles] --> [SpeechBubbleManager]
+        |           |
+        |           +--> [No] --> [Show Default Bubble]
+        |
+        v
+[End]
+```
+
+### B. LLM Processing Pipeline
+```
+[HandleNonStoppingInteraction()]
+        |
+        v
+[GenerateDeepTalkPrompt()] --> [Collect Pawn Data]
+        |
+        v
+[Build Prompt with Placeholders] --> [Replace Placeholders]
+        |       |
+        |       +--> [Pawn Attributes]
+        |       +--> [Relationship Data]
+        |       +--> [World Info]
+        |       +--> [Mood/Traits/etc.]
+        |
+        v
+[KoboldApiClient.GenerateText()] --> [API Request]
+        |
+        v
+[Process Response] --> [Parse Dialogue Lines]
+        |
+        v
+[EnqueueJob()] --> [SpeechBubbleManager.Enqueue()]
+```
+
+## 4. Dating System Flow
+
+### A. Date Initiation
+```
+[JobDriver_GoOnDate]
+        |
+        v
+[Ask For Date] --> [Opinion-Based Acceptance Check]
+        |
+        +--> [Accepted] --> [DatingManager.StartDate()]
+        |               |
+        |               v
+        |       [Add "OnDate" Hediff to Both Pawns]
+        |               |
+        |               v
+        |       [Create Date Object in Manager]
+        |               |
+        |               v
+        |       [Handle Date Accepted Interaction]
+        |
+        +--> [Rejected] --> [Handle Date Rejected Interaction]
+        |
+        v
+[Find Joy Spot] --> [Assign Joy Activities]
+        |
+        v
+[Partner Follows Initiator]
+        |
+        v
+[Perform Joy Activity] --> [Wait for Completion]
+        |
+        v
+[Advance Date Stage] --> [DatingManager.AdvanceDateStage()]
+```
+
+### B. Date Progression
+```
+[DatingManager.AdvanceDateStage()]
+        |
+        v
+[Check Current Date Stage]
+        |
+        +--> [Joy Stage] --> [Check Lovin' Conditions]
+        |               |
+        |               +--> [Conditions Met] --> [Transition to Lovin']
+        |               |               |
+        |               |               v
+        |               |       [Assign DateLovin Jobs to Both]
+        |               |               |
+        |               |               v
+        |               |       [Handle Lovin' Interaction]
+        |               |
+        |               +--> [Conditions Not Met] --> [End Date]
+        |
+        +--> [Lovin' Stage] --> [End Date]
+```
+
+## 5. Combat Taunts System
+
+### A. Attack Taunts
+```
+[Verb_MeleeAttack/Verb_Shoot TryCastShot]
+        |
+        v
+[Postfix Patch] --> [Random Chance Check]
+        |
+        v
+[Select Random Taunt] --> [EnqueueInstant Speech Bubble]
+```
+
+### B. Damage Responses
+```
+[Pawn_HealthTracker.PostApplyDamage]
+        |
+        v
+[Damage Validation] --> [Random Chance Check]
+        |
+        v
+[Select Random Complaint] --> [EnqueueInstant Speech Bubble]
+```
+
+### C. Downed Calls
+```
+[Pawn_HealthTracker.MakeDowned]
+        |
+        v
+[Random Chance Check]
+        |
+        v
+[Select Random Help Call] --> [EnqueueInstant Speech Bubble]
+```
+
+## 6. Special Job Interactions
+
+### A. Tend Patient
+```
+[JobDriver_TendPatient.MakeNewToils Patch]
+        |
+        v
+[Find Tend Toil] --> [Add Finish Action]
+        |
+        v
+[Handle TendPatient Interaction]
+```
+
+### B. Rescue
+```
+[JobGiver_RescueNearby.TryGiveJob Patch]
+        |
+        v
+[Job Assignment] --> [Handle Rescue Interaction]
+```
+
+### C. Visit Sick Pawn
+```
+[JoyGiver_VisitSickPawn.TryGiveJob Patch]
+        |
+        v
+[Job Assignment] --> [Handle VisitSickPawn Interaction]
+```
+
+### D. Lovin'
+```
+[JobDriver_Lovin.MakeNewToils Patch]
+        |
+        v
+[Insert Dialogue Toil] --> [Handle Lovin' Interaction]
+        |
+        v
+[Add Finish Action] --> [Advance Date Stage if Applicable]
+```
+
+## 7. Speech Bubble Management
+
+### A. Queue Processing
+```
+[SpeechBubbleManager.GameComponentTick()]
+        |
+        v
+[Clean Up Expired Bubbles]
+        |
+        v
+[Process Queued Bubbles] --> [Display via MoteMaker]
+        |
+        v
+[Update Conversation States]
+        |
+        v
+[Process Pending Jobs]
+```
+
+### B. Bubble Types
+```
+Speech Bubble Types:
+        |
+        +--> [Queued Bubbles] - Sequential display
+        |
+        +--> [Instant Bubbles] - Immediate display (combat)
+        |
+        +--> [Default Bubbles] - Summary text display
+```
+
+## 8. LLM Integration
+
+### A. API Client Flow
+```
+[KoboldApiClient.GenerateText()]
+        |
+        v
+[Build Request Object] --> [Serialize to JSON]
+        |
+        v
+[HTTP POST to API] --> [Process Response]
+        |
+        v
+[Deserialize Response] --> [Extract Text]
+        |
+        v
+[Return Generated Text]
+```
+
+### B. Prompt Generation
+```
+[GenerateDeepTalkPrompt()]
+        |
+        v
+[Validate Parameters] --> [Check Enabled Status]
+        |
+        v
+[Collect Comprehensive Pawn Data]
+        |       |
+        |       +--> [Basic Info] (age, gender)
+        |       +--> [Traits]
+        |       +--> [Mood]
+        |       +--> [Likes/Dislikes]
+        |       +--> [Afflictions]
+        |       +--> [Skills/Proficiencies]
+        |       +--> [Genes/Xenotypes]
+        |       +--> [Current Actions]
+        |
+        v
+[Collect World Data] --> [Date, Time, Weather]
+        |
+        v
+[Replace Placeholders in Template] --> [Return Final Prompt]
+```
+
+## 9. Settings Management
+
+### A. Configuration Flow
+```
+[SocialInteractionsModSettings]
+        |
+        v
+[ExposeData()] --> [Save/Load Settings]
+        |
+        v
+[Mod Settings UI] --> [User Configuration]
+        |       |
+        |       +--> [Toggle Features]
+        |       +--> [Configure LLM API]
+        |       +--> [Adjust Timing]
+        |       +--> [Set Thresholds]
+        |
+        v
+[Settings Accessed by Other Components]
+```
+
+This flow graph shows how the Social Interactions mod integrates with RimWorld to enhance social interactions with LLM-generated dialogue, adds a dating system, and implements combat taunts. The system is modular, with clear separation between the core interaction handling, the LLM integration, the dating system, and the UI presentation through speech bubbles.

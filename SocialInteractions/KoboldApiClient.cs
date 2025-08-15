@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Verse;
+using RimWorld;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.IO;
@@ -49,26 +50,78 @@ namespace SocialInteractions
         public string Text { get; set; }
     }
 
-    public class KoboldApiClient
+    public class KoboldApiClient : IDisposable
     {
+        private static readonly HttpClient SharedHttpClient = new HttpClient();
         private readonly HttpClient _httpClient;
         private readonly string _apiUrl;
         private readonly string _apiKey;
+        private bool _disposed = false;
 
         public KoboldApiClient(string apiUrl, string apiKey)
         {
             _apiUrl = apiUrl;
-            _apiKey = apiKey;
-            _httpClient = new HttpClient();
+            // Trim whitespace which can cause header issues
+            _apiKey = (apiKey != null) ? apiKey.Trim() : null;
+            _httpClient = SharedHttpClient;
+            
             // Add default request headers if needed, e.g., for API key
             if (!string.IsNullOrEmpty(_apiKey))
             {
-                _httpClient.DefaultRequestHeaders.Add("Authorization", string.Format("Bearer {0}", _apiKey));
+                try
+                {
+                    // Validate that the API key doesn't contain invalid characters
+                    if (IsValidHeaderValue(_apiKey))
+                    {
+                        _httpClient.DefaultRequestHeaders.Add("Authorization", string.Format("Bearer {0}", _apiKey));
+                    }
+                    else
+                    {
+                        // --- Enhanced Logging ---
+                        Log.Warning(string.Format("[SocialInteractions] Invalid API key format after trimming, skipping Authorization header. Key length: {0}, Key (first 10 chars): '{1}'", _apiKey.Length, _apiKey.Length > 0 ? _apiKey.Substring(0, System.Math.Min(10, _apiKey.Length)) : ""));
+                        // --- End Enhanced Logging ---
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // --- Enhanced Logging ---
+                    int apiKeyLength = (_apiKey != null) ? _apiKey.Length : 0;
+                    string apiKeyPreview = "";
+                    if (_apiKey != null && _apiKey.Length > 0)
+                    {
+                        apiKeyPreview = _apiKey.Substring(0, System.Math.Min(10, _apiKey.Length));
+                    }
+                    Log.Warning(string.Format("[SocialInteractions] Failed to add Authorization header. API Key Length: {0}, API Key Preview (first 10 chars): '{1}'. Error: {2}", apiKeyLength, apiKeyPreview, ex.Message));
+                    // --- End Enhanced Logging ---
+                }
             }
+            else
+            {
+                // Log if key is null/empty, might be intentional
+                // Log.Message("[SocialInteractions] KoboldApiClient constructed with null or empty API key. Authorization header will not be added.");
+            }
+        }
+
+        private bool IsValidHeaderValue(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return false;
+            
+            // Check for control characters and other invalid characters
+            foreach (char c in value)
+            {
+                if (char.IsControl(c) || c == '\r' || c == '\n' || c == '\t')
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public async Task<string> GenerateText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, bool? enableXtcSampling = null)
         {
+            if (_disposed)
+                throw new ObjectDisposedException("KoboldApiClient");
+
             try
             {
                 var request = new KoboldApiRequest
@@ -114,13 +167,31 @@ namespace SocialInteractions
                 }
                 return null;
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
+                Log.Warning(string.Format("[SocialInteractions] KoboldApiClient: HTTP request failed: {0}", ex.Message));
                 return null;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Log.Warning(string.Format("[SocialInteractions] KoboldApiClient: Unexpected error during text generation: {0}", ex.Message));
                 return null;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                // Note: We don't dispose the shared HttpClient as it's shared
+                // In a more sophisticated implementation, we might use HttpClientFactory
+                _disposed = true;
             }
         }
     }

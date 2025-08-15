@@ -53,7 +53,7 @@ It's currently [time], on [date] and the weather is [weather].
 (end)";
         public bool enableCombatTaunts = true;
         public bool enableXtcSampling = false;
-        public float joyThresholdForDate = 0.6f; // New setting
+        public float joyThresholdForDate = 0.5f; // New setting
 
 
         public override void ExposeData()
@@ -125,6 +125,9 @@ It's currently [time], on [date] and the weather is [weather].
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable Dating Feature", ref SocialInteractions.Settings.enableDatingFeature, "If enabled, pawns will be able to go on dates.");
+            listingStandard.Label(string.Format("Joy threshold for date (0.0 - 1.0): {0}", SocialInteractions.Settings.joyThresholdForDate.ToString("F2")));
+            SocialInteractions.Settings.joyThresholdForDate = listingStandard.Slider(SocialInteractions.Settings.joyThresholdForDate, 0f, 1f);
+
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable LLM Interactions", ref SocialInteractions.Settings.llmInteractionsEnabled, "If enabled, Deep Talk interactions will use the configured LLM API.");
@@ -173,10 +176,6 @@ It's currently [time], on [date] and the weather is [weather].
             listingStandard.Label("Words per second (for speech bubble duration):");
             string wordsPerSecondBuffer = SocialInteractions.Settings.wordsPerSecond.ToString();
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.wordsPerSecond, ref wordsPerSecondBuffer, 1.0f, 20.0f);
-
-            listingStandard.Gap();
-            listingStandard.Label(string.Format("Joy threshold for date (0.0 - 1.0): {0}", SocialInteractions.Settings.joyThresholdForDate.ToString("F2")));
-            SocialInteractions.Settings.joyThresholdForDate = listingStandard.Slider(SocialInteractions.Settings.joyThresholdForDate, 0f, 1f);
 
             listingStandard.Gap();
             listingStandard.Label("LLM Temperature (0.1 - 2.0):");

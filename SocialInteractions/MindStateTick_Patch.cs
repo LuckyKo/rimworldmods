@@ -11,6 +11,11 @@ namespace SocialInteractions
         public static void Postfix(Pawn_MindState __instance)
         {
             Pawn pawn = __instance.pawn;
+            if (pawn.relations == null)
+            {
+                return;
+            }
+            
             if (pawn.IsHashIntervalTick(60)) // Check every second
             {
                 Pawn partner = pawn.relations.GetFirstDirectRelationPawn(PawnRelationDefOf.Lover, (p) => !p.Dead);

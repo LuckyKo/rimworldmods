@@ -4,12 +4,9 @@
   <JoyGiverDef>
     <defName>GoOnDate</defName>
     <giverClass>SocialInteractions.JoyGiver_GoOnDate</giverClass>
-    <baseChance>50</baseChance>
-    
-    <jobDef>SocialRelax</jobDef>
-    <joyKind>Social</joyKind>
+    <baseChance>4</baseChance>
+    <joyKind>Dating</joyKind>
+    <jobDef>GoOnDate</jobDef>
   </JoyGiverDef>
-
-  
 
 </Defs>

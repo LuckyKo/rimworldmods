@@ -1,0 +1,57 @@
+using RimWorld;
+using Verse;
+
+namespace SocialInteractions
+{
+    public class DateTracker_MapComponent : MapComponent
+    {
+        private int lastCleanupTick = 0;
+        private const int CleanupInterval = 1800; // 30 seconds
+
+        public DateTracker_MapComponent(Map map) : base(map)
+        {
+        }
+
+        public override void MapComponentTick()
+        {
+            base.MapComponentTick();
+
+            // Check every second
+            if (Find.TickManager.TicksGame % 60 == 0)
+            {
+                // Check for stuck dates
+                DatingManager.CheckForStuckDates(this.map);
+                
+                // Create a snapshot of all pawns to avoid collection modification during iteration
+                List<Pawn> allPawns = new List<Pawn>(this.map.mapPawns.AllPawns);
+                
+                foreach (Pawn pawn in allPawns)
+                {
+                    if (DatingManager.IsOnDate(pawn))
+                    {
+                        Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
+                        // Check if the initiator is still doing the GoOnDate job
+                        JobDef goOnDateJobDef = DefDatabase<JobDef>.GetNamed("GoOnDate", false);
+                        if (initiator != null && (initiator.CurJob == null || initiator.CurJobDef != goOnDateJobDef))
+                        {
+                            // Initiator is no longer doing the GoOnDate job, so advance the date stage
+                            DatingManager.AdvanceDateStage(pawn);
+                        }
+                        // Additional check: if either pawn is dead or downed, end the date
+                        else if (pawn.Dead || pawn.Downed || (initiator != null && (initiator.Dead || initiator.Downed)))
+                        {
+                            DatingManager.EndDate(DatingManager.GetDateWith(pawn));
+                        }
+                    }
+                }
+            }
+
+            // Periodically clean up expired date cooldowns
+            if (Find.TickManager.TicksGame - lastCleanupTick >= CleanupInterval)
+            {
+                DatingManager.CleanupExpiredDateCooldowns();
+                lastCleanupTick = Find.TickManager.TicksGame;
+            }
+        }
+    }
+}

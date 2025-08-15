@@ -9,6 +9,7 @@ namespace SocialInteractions
 {
     public class SpeechBubbleManager : GameComponent
     {
+        private static readonly object queueLock = new object();
         private static Queue<SpeechBubble> speechBubbleQueue = new Queue<SpeechBubble>();
         private static Dictionary<Pawn, float> pawnBubbleEndTimes = new Dictionary<Pawn, float>();
         private static float nextQueuedBubbleDisplayTime = 0f;
@@ -20,13 +21,16 @@ namespace SocialInteractions
 
         public SpeechBubbleManager(Game game)
         {
-            speechBubbleQueue.Clear();
+            lock (queueLock)
+            {
+                speechBubbleQueue.Clear();
+                pendingJobs.Clear();
+            }
             pawnBubbleEndTimes.Clear();
             nextQueuedBubbleDisplayTime = 0f;
             currentConversationId = 0;
             activeConversations.Clear();
             isLlmBusy = false;
-            pendingJobs.Clear();
         }
 
         public override void GameComponentTick()
@@ -48,40 +52,49 @@ namespace SocialInteractions
             }
 
             // Process queued bubbles
-            if (speechBubbleQueue.Count > 0 && Time.time >= nextQueuedBubbleDisplayTime)
+            lock (queueLock)
             {
-                SpeechBubble bubble = speechBubbleQueue.Dequeue();
-                nextQueuedBubbleDisplayTime = Time.time + bubble.duration;
-                if (bubble.speaker != null && bubble.speaker.Map != null)
+                if (speechBubbleQueue.Count > 0 && Time.time >= nextQueuedBubbleDisplayTime)
                 {
-                    if (bubble.color.HasValue)
+                    SpeechBubble bubble = speechBubbleQueue.Dequeue();
+                    nextQueuedBubbleDisplayTime = Time.time + bubble.duration;
+                    if (bubble.speaker != null && bubble.speaker.Map != null)
                     {
-                        MoteMaker.ThrowText(bubble.speaker.DrawPos, bubble.speaker.Map, bubble.text, bubble.color.Value, bubble.duration);
+                        if (bubble.color.HasValue)
+                        {
+                            MoteMaker.ThrowText(bubble.speaker.DrawPos, bubble.speaker.Map, bubble.text, bubble.color.Value, bubble.duration);
+                        }
+                        else
+                        {
+                            MoteMaker.ThrowText(bubble.speaker.DrawPos, bubble.speaker.Map, bubble.text, bubble.duration);
+                        }
                     }
-                    else
-                    {
-                        MoteMaker.ThrowText(bubble.speaker.DrawPos, bubble.speaker.Map, bubble.text, bubble.duration);
-                    }
-                }
 
-                // Use a copy of the queue for safe iteration
-                if (!new Queue<SpeechBubble>(speechBubbleQueue).Any(b => b.conversationId == bubble.conversationId))
-                {
-                    EndConversation(bubble.conversationId);
+                    // Use a copy of the queue for safe iteration
+                    if (!new Queue<SpeechBubble>(speechBubbleQueue).Any(b => b.conversationId == bubble.conversationId))
+                    {
+                        EndConversation(bubble.conversationId);
+                    }
                 }
             }
 
             // Set isLlmBusy based on whether there are any active bubbles or conversations
-            isLlmBusy = speechBubbleQueue.Count > 0 || activeConversations.Count > 0;
+            lock (queueLock)
+            {
+                isLlmBusy = speechBubbleQueue.Count > 0 || activeConversations.Count > 0;
+            }
 
             // Process pending jobs
-            while (pendingJobs.Count > 0)
+            lock (queueLock)
             {
-                pendingJobs.Dequeue()();
+                while (pendingJobs.Count > 0)
+                {
+                    pendingJobs.Dequeue()();
+                }
             }
         }
 
-                public static string GetDateSubject(Pawn initiator, Pawn recipient, LocalTargetInfo joySpot)
+        public static string GetDateSubject(Pawn initiator, Pawn recipient, LocalTargetInfo joySpot)
         {
             bool isRomantic = initiator.relations.DirectRelationExists(PawnRelationDefOf.Lover, recipient) ||
                               initiator.relations.DirectRelationExists(PawnRelationDefOf.Fiance, recipient) ||
@@ -106,7 +119,10 @@ namespace SocialInteractions
 
         public static void EnqueueJob(Action jobAction)
         {
-            pendingJobs.Enqueue(jobAction);
+            lock (queueLock)
+            {
+                pendingJobs.Enqueue(jobAction);
+            }
         }
 
         public static int StartConversation()
@@ -132,7 +148,10 @@ namespace SocialInteractions
 
         public static void Enqueue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId, Color? color = null)
         {
-            speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color));
+            lock (queueLock)
+            {
+                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color));
+            }
         }
 
         // For instant messages (combat taunts)

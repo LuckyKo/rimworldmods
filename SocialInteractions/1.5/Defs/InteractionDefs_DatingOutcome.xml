@@ -4,7 +4,7 @@
   <InteractionDef>
     <defName>DateRejected</defName>
     <label>asking for a date and getting rejected</label>
-    <workerClass>SocialInteractions.InteractionWorker_AskForDate</workerClass>
+    <workerClass>InteractionWorker</workerClass>
     <symbol>Things/Mote/SpeechSymbols/Slight</symbol>
     <logRulesInitiator>
       <rulesStrings>
@@ -21,7 +21,7 @@
   <InteractionDef>
     <defName>DateAccepted</defName>
     <label>going on a date</label>
-    <workerClass>SocialInteractions.InteractionWorker_AskForDate</workerClass>
+    <workerClass>InteractionWorker</workerClass>
     <symbol>Things/Mote/SpeechSymbols/Romance</symbol>
     <logRulesInitiator>
       <rulesStrings>

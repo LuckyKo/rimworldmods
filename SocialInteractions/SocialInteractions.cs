@@ -41,6 +41,7 @@ namespace SocialInteractions
             if (interactionDef.defName == "GoOnDate" && Settings.enableDating) return true;
             if (interactionDef == SI_InteractionDefOf.DateRejected && Settings.enableDating) return true;
             if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) return true;
+            if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating) return true;
             return false;
         }
 
@@ -84,6 +85,7 @@ namespace SocialInteractions
             else if (interactionDef.defName == "GoOnDate" && Settings.enableDating) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.DateRejected && Settings.enableDating) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) isEnabled = true;
+            else if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating) isEnabled = true;
 
             Log.Message(string.Format("[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for {0}: {1}", interactionDef.defName, isEnabled));
             if (!isEnabled)
@@ -317,21 +319,35 @@ namespace SocialInteractions
         private static string GetRelationship(Pawn initiator, Pawn recipient)
         {
             // Check for the most important direct relationships first
+            if (initiator.relations == null || recipient == null) return "Acquaintance";
             if (initiator.relations.DirectRelationExists(PawnRelationDefOf.Spouse, recipient)) return "Spouse";
             if (initiator.relations.DirectRelationExists(PawnRelationDefOf.Lover, recipient)) return "Lover";
             if (initiator.relations.DirectRelationExists(PawnRelationDefOf.Fiance, recipient)) return "Fiance";
 
-            // Check for family relationships
-            PawnRelationDef relationDef = initiator.GetRelations(recipient).FirstOrDefault();
-            if (relationDef != null) return relationDef.label;
+            // Check for family relationships - Convert to List to avoid enumeration issues
+            // The IEnumerable from GetRelations can throw if the underlying collection is modified during enumeration.
+            try
+            {
+                var relationsList = initiator.GetRelations(recipient).ToList(); // Force enumeration here
+                PawnRelationDef relationDef = relationsList.FirstOrDefault();
+                if (relationDef != null) return relationDef.label;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(string.Format("[SocialInteractions] GetRelationship: Exception while getting relations list for {0} and {1}: {2}", initiator.LabelShort, recipient.LabelShort, ex.Message));
+                // Fall through to other checks
+            }
 
             // Check for bond
             if (initiator.relations.DirectRelationExists(PawnRelationDefOf.Bond, recipient)) return "Bonded";
 
             // Fallback to opinion-based relationship
-            int opinion = recipient.relations.OpinionOf(initiator);
-            if (opinion >= 20) return "Friend";
-            if (opinion <= -20) return "Rival";
+            if (recipient.relations != null)
+            {
+                int opinion = recipient.relations.OpinionOf(initiator);
+                if (opinion >= 20) return "Friend";
+                if (opinion <= -20) return "Rival";
+            }
 
             return "Acquaintance";
         }
@@ -471,13 +487,24 @@ namespace SocialInteractions
             if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
 
             Task.Run(async () => {
+                KoboldApiClient client = null;
                 try
                 {
                     string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
                     if (!string.IsNullOrEmpty(prompt))
                     {
-                        KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
+                        client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
                         string llmResponse = await client.GenerateText(prompt);
+                        
+                        if (llmResponse == null)
+                        {
+                            Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: LLM API returned null response for interaction {0}", interactionDef.defName));
+                            // Fallback to default interaction text
+                            string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+                            SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, 0, null));
+                            return;
+                        }
+                        
                         if (!string.IsNullOrEmpty(llmResponse))
                         {
                             string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
@@ -507,21 +534,52 @@ namespace SocialInteractions
                                         string formattedMessage = FormatLlmText(rawMessage);
                                         string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
                                         float duration = EstimateReadingTime(rawMessage);
-                                        SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0, null);
+                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0, null));
                                     }
                                 }
                             }
+                            else
+                            {
+                                Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: LLM API returned empty messages for interaction {0}", interactionDef.defName));
+                                // Fallback to default interaction text
+                                string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+                                SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, 0, null));
+                            }
                         }
+                    }
+                    else
+                    {
+                        Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: Failed to generate prompt for interaction {0}", interactionDef.defName));
+                        // Fallback to default interaction text
+                        string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, 0, null));
                     }
                 }
                 catch (Exception ex)
                 {
                     Log.Error(string.Format("Error in HandleNonStoppingInteraction: {0} {1}", ex.Message, ex.StackTrace));
+                    // Fallback to default interaction text
+                    try
+                    {
+                        string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, 0, null));
+                    }
+                    catch (Exception fallbackEx)
+                    {
+                        Log.Error(string.Format("Error in HandleNonStoppingInteraction fallback: {0} {1}", fallbackEx.Message, fallbackEx.StackTrace));
+                    }
+                }
+                finally
+                {
+                    if (client != null)
+                    {
+                        client.Dispose();
+                    }
                 }
             });
         }
 
-		public static void HandleJobGiverInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
+        public static void HandleJobGiverInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
             // Always show a default bubble immediately
             SpeechBubbleManager.ShowDefaultBubble(initiator, interactionDef.label);
@@ -529,15 +587,26 @@ namespace SocialInteractions
             if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
 
             Task.Run(async () => {
+                KoboldApiClient client = null;
                 try
                 {
                     string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
                     Log.Message(string.Format("[SocialInteractions] Generated prompt: {0}", prompt != null ? prompt.Substring(0, Math.Min(prompt.Length, 200)) : "NULL"));
                     if (!string.IsNullOrEmpty(prompt))
                     {
-                        KoboldApiClient client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
+                        client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
                         string llmResponse = await client.GenerateText(prompt);
                         Log.Message(string.Format("[SocialInteractions] LLM Response: {0}", llmResponse != null ? llmResponse.Substring(0, Math.Min(llmResponse.Length, 200)) : "NULL"));
+                        
+                        if (llmResponse == null)
+                        {
+                            Log.Warning(string.Format("[SocialInteractions] HandleJobGiverInteraction: LLM API returned null response for interaction {0}", interactionDef.defName));
+                            // Fallback to default interaction text
+                            string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+                            SpeechBubbleManager.EnqueueInstant(initiator, fallbackText, 2f);
+                            return;
+                        }
+                        
                         if (!string.IsNullOrEmpty(llmResponse))
                         {
                             string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
@@ -568,12 +637,43 @@ namespace SocialInteractions
                                     SpeechBubbleManager.EnqueueInstant(speaker, wrappedMessage, duration);
                                 }
                             }
+                            else
+                            {
+                                Log.Warning(string.Format("[SocialInteractions] HandleJobGiverInteraction: LLM API returned empty messages for interaction {0}", interactionDef.defName));
+                                // Fallback to default interaction text
+                                string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+                                SpeechBubbleManager.EnqueueInstant(initiator, fallbackText, 2f);
+                            }
                         }
+                    }
+                    else
+                    {
+                        Log.Warning(string.Format("[SocialInteractions] HandleJobGiverInteraction: Failed to generate prompt for interaction {0}", interactionDef.defName));
+                        // Fallback to default interaction text
+                        string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+                        SpeechBubbleManager.EnqueueInstant(initiator, fallbackText, 2f);
                     }
                 }
                 catch (Exception ex)
                 {
                     Log.Error(string.Format("Error in HandleJobGiverInteraction: {0} {1}", ex.Message, ex.StackTrace));
+                    // Fallback to default interaction text
+                    try
+                    {
+                        string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+                        SpeechBubbleManager.EnqueueInstant(initiator, fallbackText, 2f);
+                    }
+                    catch (Exception fallbackEx)
+                    {
+                        Log.Error(string.Format("Error in HandleJobGiverInteraction fallback: {0} {1}", fallbackEx.Message, fallbackEx.StackTrace));
+                    }
+                }
+                finally
+                {
+                    if (client != null)
+                    {
+                        client.Dispose();
+                    }
                 }
             });
         }

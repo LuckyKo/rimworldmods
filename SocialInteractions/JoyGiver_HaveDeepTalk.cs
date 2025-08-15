@@ -8,7 +8,7 @@ namespace SocialInteractions
     {
         public override Job TryGiveJob(Pawn pawn)
         {
-            if (!SocialInteractionUtility.CanInitiateInteraction(pawn))
+            if (!SocialInteractionUtility.CanInitiateInteraction(pawn) || pawn.relations == null)
             {
                 return null;
             }

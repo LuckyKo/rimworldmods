@@ -89,6 +89,7 @@ namespace SocialInteractions
                     }
 
                     Task.Run(async () => {
+                        KoboldApiClient client = null;
                         try
                         {
                             if (recipientForTask == null)
@@ -122,12 +123,28 @@ namespace SocialInteractions
                             string prompt = SocialInteractions.GenerateDeepTalkPrompt(pawn, recipientForTask, interactionDefForTask, subjectForTask);
                             if (!string.IsNullOrEmpty(prompt))
                             {
-                                KoboldApiClient client = new KoboldApiClient(SocialInteractions.Settings.llmApiUrl, SocialInteractions.Settings.llmApiKey);
+                                client = new KoboldApiClient(SocialInteractions.Settings.llmApiUrl, SocialInteractions.Settings.llmApiKey);
                                 llmResponse = await client.GenerateText(prompt);
+                                
+                                if (llmResponse == null)
+                                {
+                                    Log.Warning("[SocialInteractions] JobDriver_HaveDeepTalk: LLM API returned null response");
+                                    llmTaskComplete = true;
+                                    return;
+                                }
+                                
                                 if (!string.IsNullOrEmpty(llmResponse))
                                 {
                                     messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
                                 }
+                                else
+                                {
+                                    Log.Warning("[SocialInteractions] JobDriver_HaveDeepTalk: LLM API returned empty response");
+                                }
+                            }
+                            else
+                            {
+                                Log.Warning("[SocialInteractions] JobDriver_HaveDeepTalk: Failed to generate prompt");
                             }
                         }
                         catch (Exception ex)
@@ -136,6 +153,10 @@ namespace SocialInteractions
                         }
                         finally
                         {
+                            if (client != null)
+                            {
+                                client.Dispose();
+                            }
                             llmTaskComplete = true;
                         }
                     });
