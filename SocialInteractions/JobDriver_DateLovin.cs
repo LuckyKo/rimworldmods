@@ -3,153 +3,177 @@ using Verse;
 using Verse.AI;
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 namespace SocialInteractions
 {
-    public static class LovinBouncer
-    {
-        public static Dictionary<Pawn, float> bounces = new Dictionary<Pawn, float>();
-    }
-
-    public static class CustomToils_Bed
-    {
-        public static Toil GotoBed(TargetIndex bedIndex, TargetIndex partnerIndex)
-        {
-            Toil toil = new Toil();
-            toil.initAction = delegate ()
-            {
-                Pawn actor = toil.actor;
-                Building_Bed bed = (Building_Bed)actor.CurJob.GetTarget(bedIndex).Thing;
-                Pawn partner = (Pawn)actor.CurJob.GetTarget(partnerIndex).Thing;
-
-                Pawn initiator = DatingManager.GetInitiatorOfDateWith(actor);
-                int slotIndex = (actor == initiator) ? 0 : 0;
-
-                actor.pather.StartPath(bed.GetSleepingSlotPos(slotIndex), PathEndMode.OnCell);
-            };
-            toil.defaultCompleteMode = ToilCompleteMode.PatherArrival;
-            return toil;
-        }
-    }
-
     public class JobDriver_DateLovin : JobDriver
     {
+        private int ticksLeft;
+
         private TargetIndex PartnerInd = TargetIndex.A;
         private TargetIndex BedPosInd = TargetIndex.B;
 
         private Pawn Partner { get { return (Pawn)(Thing)job.GetTarget(PartnerInd); } }
         private IntVec3 BedPos { get { return job.GetTarget(BedPosInd).Cell; } }
 
+        public override void ExposeData()
+        {
+            base.ExposeData();
+            Scribe_Values.Look(ref ticksLeft, "ticksLeft", 0);
+        }
+
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
-            // Add null checks to prevent NullReferenceException
             if (pawn == null || Partner == null)
             {
-                Log.Warning("[SocialInteractions] JobDriver_DateLovin: pawn or Partner is null in TryMakePreToilReservations.");
                 return false;
             }
-            // Only reserve the partner, not the bed position
             return pawn.Reserve(Partner, job, 1, -1, null, errorOnFailed);
         }
 
         protected override IEnumerable<Toil> MakeNewToils()
         {
-            // Add null checks
-            if (pawn == null || Partner == null)
-            {
-                Log.Warning("[SocialInteractions] JobDriver_DateLovin: pawn or Partner is null in MakeNewToils.");
-                yield break;
-            }
-            
             this.FailOnDespawnedOrNull(PartnerInd);
             this.FailOn(() => !Partner.health.capacities.CanBeAwake);
 
-            // Go to the bed position
             yield return Toils_Goto.GotoCell(BedPosInd, PathEndMode.OnCell);
 
             Toil lovinToil = ToilMaker.MakeToil("LovinToil");
-            lovinToil.defaultCompleteMode = ToilCompleteMode.Delay;
-            lovinToil.defaultDuration = 2500;
             lovinToil.initAction = delegate
             {
-                // Add null checks
-                if (pawn == null || Partner == null)
-                {
-                    Log.Warning("[SocialInteractions] JobDriver_DateLovin: pawn or Partner is null in lovinToil initAction.");
-                    return;
-                }
-                
-                pawn.pather.StopDead();
-                Partner.pather.StopDead();
-                LovinBouncer.bounces.Add(pawn, 0f);
-                LovinBouncer.bounces.Add(Partner, 0f);
+                ticksLeft = 2500;
             };
             lovinToil.tickAction = delegate
             {
-                // Add null checks
-                if (pawn == null || Partner == null)
+                // Add null checks to prevent NullReferenceException
+                if (pawn == null || pawn.jobs == null)
                 {
-                    Log.Warning("[SocialInteractions] JobDriver_DateLovin: pawn or Partner is null in lovinToil tickAction.");
                     return;
                 }
-                
-                float bounceOffset = Mathf.Sin((float)Find.TickManager.TicksGame * 0.4f) * 1.0f;
-                LovinBouncer.bounces[pawn] = bounceOffset;
-                LovinBouncer.bounces[Partner] = bounceOffset;
 
-                // Show heart emotes for both pawns and gain joy
-                if (pawn.IsHashIntervalTick(100))
+                if (pawn.jobs.curDriver != this)
                 {
-                    FleckMaker.ThrowMetaIcon(pawn.Position, pawn.Map, FleckDefOf.Heart);
-                    // Gain joy for the initiator
-                    if (pawn.needs != null && pawn.needs.joy != null)
-                    {
-                        pawn.needs.joy.GainJoy(0.001f, JoyKindDefOf.Social);
-                    }
+                    return;
                 }
-                if (Partner.IsHashIntervalTick(100))
+
+                ticksLeft--;
+                if (ticksLeft <= 0)
                 {
-                    FleckMaker.ThrowMetaIcon(Partner.Position, Partner.Map, FleckDefOf.Heart);
-                    // Gain joy for the partner
-                    if (Partner.needs != null && Partner.needs.joy != null)
+                    // Handle thought-giving and date advancement here instead of in finishAction
+                    try
                     {
-                        Partner.needs.joy.GainJoy(0.001f, JoyKindDefOf.Social);
+                        // Get the partner from the date
+                        Pawn partner = null;
+                        Date date = DatingManager.GetDateWith(pawn);
+                        
+                        if (date != null)
+                        {
+                            if (date.Initiator == pawn)
+                            {
+                                partner = date.Partner;
+                            }
+                            else if (date.Partner == pawn)
+                            {
+                                partner = date.Initiator;
+                            }
+                            
+                            // Give thoughts to both pawns
+                            if (pawn != null && partner != null)
+                            {
+                                // Give thought to initiator
+                                if (pawn.needs != null && pawn.needs.mood != null && pawn.needs.mood.thoughts != null && pawn.needs.mood.thoughts.memories != null)
+                                {
+                                    var thought = (Thought_Memory)ThoughtMaker.MakeThought(ThoughtDefOf.GotSomeLovin);
+                                    thought.otherPawn = partner;
+                                    pawn.needs.mood.thoughts.memories.TryGainMemory(thought, null);
+                                }
+
+                                // Give thought to partner
+                                if (partner.needs != null && partner.needs.mood != null && partner.needs.mood.thoughts != null && partner.needs.mood.thoughts.memories != null)
+                                {
+                                    var thought = (Thought_Memory)ThoughtMaker.MakeThought(ThoughtDefOf.GotSomeLovin);
+                                    thought.otherPawn = pawn;
+                                    partner.needs.mood.thoughts.memories.TryGainMemory(thought, null);
+                                }
+                            }
+                            
+                            // Advance the date stage
+                            if (date.Stage == DateStage.Lovin)
+                            {
+                                DatingManager.AdvanceDateStage(pawn);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(string.Format("[SocialInteractions] Exception in DateLovin tickAction when handling thoughts/advancement: {0}", ex.Message));
+                    }
+                    
+                    ReadyForNextToil();
+                }
+                else if (pawn.IsHashIntervalTick(100))
+                {
+                    try
+                    {
+                        FleckMaker.ThrowMetaIcon(pawn.Position, pawn.Map, FleckDefOf.Heart);
+                        if (pawn.needs != null && pawn.needs.joy != null)
+                        {
+                            pawn.needs.joy.GainJoy(0.001f, JoyKindDefOf.Social);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(string.Format("[SocialInteractions] Exception in DateLovin tickAction: {0}", ex.Message));
                     }
                 }
             };
-            lovinToil.AddFinishAction(delegate
+            lovinToil.defaultCompleteMode = ToilCompleteMode.Never;
+
+            yield return lovinToil;
+        }
+
+        public override Vector3 ForcedBodyOffset
+        {
+            get
             {
-                // Add null checks
-                if (pawn == null || Partner == null)
+                // Add safety checks to prevent NullReferenceException
+                if (pawn == null)
                 {
-                    Log.Warning("[SocialInteractions] JobDriver_DateLovin: pawn or Partner is null in lovinToil finishAction.");
-                    return;
+                    return Vector3.zero;
                 }
                 
-                LovinBouncer.bounces.Remove(pawn);
-                LovinBouncer.bounces.Remove(Partner);
-
-                // Add thoughts BEFORE advancing the date stage
-                if (pawn != null && Partner != null)
+                float num = Mathf.Sin((float)ticksLeft / 60f * 8f);
+                Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
+                
+                // If we can't get the initiator, just return zero offset
+                if (initiator == null)
                 {
-                    var thought = (Thought_Memory)ThoughtMaker.MakeThought(ThoughtDefOf.GotSomeLovin);
-                    thought.otherPawn = Partner;
-                    if (pawn.needs != null && pawn.needs.mood != null && pawn.needs.mood.thoughts != null && pawn.needs.mood.thoughts.memories != null) 
-                        pawn.needs.mood.thoughts.memories.TryGainMemory(thought, null);
-                    
-                    var thought2 = (Thought_Memory)ThoughtMaker.MakeThought(ThoughtDefOf.GotSomeLovin);
-                    thought2.otherPawn = pawn;
-                    if (Partner.needs != null && Partner.needs.mood != null && Partner.needs.mood.thoughts != null && Partner.needs.mood.thoughts.memories != null) 
-                        Partner.needs.mood.thoughts.memories.TryGainMemory(thought2, null);
+                    return Vector3.zero;
                 }
-
-                Date date = DatingManager.GetDateWith(pawn);
-                if (date != null && date.Stage == DateStage.Lovin)
+                
+                if (pawn == initiator)
                 {
-                    DatingManager.AdvanceDateStage(pawn);
+                    // Initiator bounces on X
+                    float num2 = Mathf.Sign(num);
+                    return new Vector3(EaseInOutQuad(Mathf.Abs(num) * 0.6f) * 0.09f * num2, 0f, 0f);
                 }
-            });
-            yield return lovinToil;
+                else
+                {
+                    // Partner bounces on Z
+                    float z = Mathf.Max(Mathf.Pow((num + 1f) * 0.5f, 2f) * 0.2f - 0.06f, 0f);
+                    return new Vector3(0f, 0f, z);
+                }
+            }
+        }
+
+        private float EaseInOutQuad(float v)
+        {
+            if (!((double)v < 0.5))
+            {
+                return 1f - Mathf.Pow(-2f * v + 2f, 4f) / 2f;
+            }
+            return 8f * v * v * v * v;
         }
     }
 }

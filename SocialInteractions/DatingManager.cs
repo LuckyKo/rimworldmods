@@ -110,32 +110,58 @@ namespace SocialInteractions
                     return; 
                 }
 
-                Log.Message(string.Format("[SocialInteractions] Ending date for {0} and {1}.", date.Initiator.LabelShort, date.Partner.LabelShort));
+                // Add null checks for initiator and partner
+                if (date.Initiator == null && date.Partner == null)
+                {
+                    Log.Warning("[SocialInteractions] DatingManager.EndDate called with date that has null initiator and partner.");
+                    return;
+                }
+
+                string initiatorLabel = (date.Initiator != null) ? date.Initiator.LabelShort : "NULL";
+                string partnerLabel = (date.Partner != null) ? date.Partner.LabelShort : "NULL";
+                
+                Log.Message(string.Format("[SocialInteractions] Ending date for {0} and {1}.", initiatorLabel, partnerLabel));
 
                 // Remove the date from the list first to prevent race conditions
                 if (!dates.Remove(date))
                 {
                     // If the date was already removed, do nothing further.
-                    Log.Message(string.Format("[SocialInteractions] Date for {0} and {1} was already removed.", date.Initiator.LabelShort, date.Partner.LabelShort));
+                    Log.Message(string.Format("[SocialInteractions] Date for {0} and {1} was already removed.", initiatorLabel, partnerLabel));
                     return;
                 }
 
-                // Add cooldown
+                // Add cooldown for non-null pawns
                 int expiryTick = Find.TickManager.TicksGame + DateCooldownTicks;
-                dateCooldowns[date.Initiator.thingIDNumber] = expiryTick;
-                dateCooldowns[date.Partner.thingIDNumber] = expiryTick;
+                if (date.Initiator != null)
+                    dateCooldowns[date.Initiator.thingIDNumber] = expiryTick;
+                if (date.Partner != null)
+                    dateCooldowns[date.Partner.thingIDNumber] = expiryTick;
 
                 // Explicitly end both pawns' jobs if they're still on DateLovin jobs
                 JobDef dateLovinJobDef = SI_JobDefOf.DateLovin;
                 if (date.Initiator != null && date.Initiator.jobs != null && date.Initiator.CurJobDef == dateLovinJobDef)
                 {
-                    Log.Message(string.Format("[SocialInteractions] Ending DateLovin job for initiator {0}.", date.Initiator.LabelShort));
-                    date.Initiator.jobs.EndCurrentJob(JobCondition.Succeeded);
+                    Log.Message(string.Format("[SocialInteractions] Ending DateLovin job for initiator {0}.", initiatorLabel));
+                    try
+                    {
+                        date.Initiator.jobs.EndCurrentJob(JobCondition.Succeeded);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(string.Format("[SocialInteractions] Exception ending DateLovin job for initiator {0}: {1}", initiatorLabel, ex.Message));
+                    }
                 }
                 if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == dateLovinJobDef)
                 {
-                    Log.Message(string.Format("[SocialInteractions] Ending DateLovin job for partner {0}.", date.Partner.LabelShort));
-                    date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
+                    Log.Message(string.Format("[SocialInteractions] Ending DateLovin job for partner {0}.", partnerLabel));
+                    try
+                    {
+                        date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(string.Format("[SocialInteractions] Exception ending DateLovin job for partner {0}: {1}", partnerLabel, ex.Message));
+                    }
                 }
 
                 // Remove hediffs
@@ -144,14 +170,28 @@ namespace SocialInteractions
                 {
                     if (date.Initiator != null && date.Initiator.health != null && date.Initiator.health.hediffSet != null)
                     {
-                        Hediff hediffInitiator = date.Initiator.health.hediffSet.GetFirstHediffOfDef(onDateDef);
-                        if (hediffInitiator != null) date.Initiator.health.RemoveHediff(hediffInitiator);
+                        try
+                        {
+                            Hediff hediffInitiator = date.Initiator.health.hediffSet.GetFirstHediffOfDef(onDateDef);
+                            if (hediffInitiator != null) date.Initiator.health.RemoveHediff(hediffInitiator);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning(string.Format("[SocialInteractions] Exception removing OnDate hediff from initiator {0}: {1}", initiatorLabel, ex.Message));
+                        }
                     }
 
                     if (date.Partner != null && date.Partner.health != null && date.Partner.health.hediffSet != null)
                     {
-                        Hediff hediffPartner = date.Partner.health.hediffSet.GetFirstHediffOfDef(onDateDef);
-                        if (hediffPartner != null) date.Partner.health.RemoveHediff(hediffPartner);
+                        try
+                        {
+                            Hediff hediffPartner = date.Partner.health.hediffSet.GetFirstHediffOfDef(onDateDef);
+                            if (hediffPartner != null) date.Partner.health.RemoveHediff(hediffPartner);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning(string.Format("[SocialInteractions] Exception removing OnDate hediff from partner {0}: {1}", partnerLabel, ex.Message));
+                        }
                     }
                 }
             }
@@ -315,12 +355,17 @@ namespace SocialInteractions
                 {
                     if (date.Stage == DateStage.Finished) 
                     {
-                        Log.Message(string.Format("[SocialInteractions] AdvanceDateStage: Date for {0} and {1} is already finished. No action taken.", date.Initiator.LabelShort, date.Partner.LabelShort));
+                        Log.Message(string.Format("[SocialInteractions] AdvanceDateStage: Date for {0} and {1} is already finished. No action taken.", 
+                            date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
+                            date.Partner != null ? date.Partner.LabelShort : "NULL"));
                         return;
                     }
 
                     date.Stage++;
-                    Log.Message(string.Format("[SocialInteractions] AdvanceDateStage: Advancing date stage for {0} and {1}. New stage: {2}", date.Initiator.LabelShort, date.Partner.LabelShort, date.Stage));
+                    Log.Message(string.Format("[SocialInteractions] AdvanceDateStage: Advancing date stage for {0} and {1}. New stage: {2}", 
+                        date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
+                        date.Partner != null ? date.Partner.LabelShort : "NULL", 
+                        date.Stage));
                     HandleDateStage(date);
                 }
                 else

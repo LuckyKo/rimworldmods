@@ -30,11 +30,11 @@ namespace SocialInteractions
                     if (DatingManager.IsOnDate(pawn))
                     {
                         Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
-                        // Check if the initiator is still doing the GoOnDate job
                         JobDef goOnDateJobDef = DefDatabase<JobDef>.GetNamed("GoOnDate", false);
-                        if (initiator != null && (initiator.CurJob == null || initiator.CurJobDef != goOnDateJobDef))
+                        JobDef dateLovinJobDef = SI_JobDefOf.DateLovin;
+                        if (initiator != null && (initiator.CurJob == null || (initiator.CurJobDef != goOnDateJobDef && initiator.CurJobDef != dateLovinJobDef)))
                         {
-                            // Initiator is no longer doing the GoOnDate job, so advance the date stage
+                            // Initiator is no longer doing the GoOnDate or DateLovin job, so advance the date stage
                             DatingManager.AdvanceDateStage(pawn);
                         }
                         // Additional check: if either pawn is dead or downed, end the date

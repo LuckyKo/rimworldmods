@@ -23,7 +23,6 @@ namespace SocialInteractions
         {
             var harmony = new Harmony("com.gemini.socialinteractions");
             harmony.PatchAll();
-            // Settings are now initialized in SocialInteractionsMod constructor
         }
 
         public static bool IsLlmInteractionEnabled(InteractionDef interactionDef)
@@ -368,7 +367,7 @@ namespace SocialInteractions
                 {
                     if (t != null && t.MoodOffset() < 0) return t.LabelCap;
                 }
-                catch (Exception) { }
+                catch (Exception) {{ }}
                 return null;
             }).Where(l => l != null).Take(3);
 
@@ -438,7 +437,7 @@ namespace SocialInteractions
                 {
                     if (t != null && t.MoodOffset() > 0) return t.LabelCap;
                 }
-                catch (Exception) { }
+                catch (Exception) {{ }}
                 return null;
             }).Where(l => l != null).Take(3);
 
@@ -486,11 +485,12 @@ namespace SocialInteractions
             Log.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy));
             if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
 
+            string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
+
             Task.Run(async () => {
                 KoboldApiClient client = null;
                 try
                 {
-                    string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
                     if (!string.IsNullOrEmpty(prompt))
                     {
                         client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
@@ -692,4 +692,6 @@ namespace SocialInteractions
             return text;
         }
     }
+
+    
 }

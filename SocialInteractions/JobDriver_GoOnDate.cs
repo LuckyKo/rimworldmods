@@ -140,7 +140,7 @@ namespace SocialInteractions
                     return;
                 }
 
-                var chosenSpot = joySpots.First();
+                var chosenSpot = joySpots.RandomElement();
                 this.job.targetB = chosenSpot.Item1; // Set the joy spot as TargetB
                 this.pawn.Reserve(this.job.targetB, this.job);
 
