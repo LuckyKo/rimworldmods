@@ -15,17 +15,29 @@ namespace SocialInteractions
         Finished
     }
 
-    public class Date
+    public class Date : IExposable
     {
         public Pawn Initiator;
         public Pawn Partner;
         public DateStage Stage;
+
+        public Date()
+        {
+            // Default constructor for deserialization
+        }
 
         public Date(Pawn initiator, Pawn partner)
         {
             this.Initiator = initiator;
             this.Partner = partner;
             this.Stage = DateStage.Joy;
+        }
+
+        public void ExposeData()
+        {
+            Scribe_References.Look(ref Initiator, "initiator");
+            Scribe_References.Look(ref Partner, "partner");
+            Scribe_Values.Look(ref Stage, "stage", DateStage.Joy);
         }
     }
 
@@ -35,6 +47,19 @@ namespace SocialInteractions
         private static readonly object datesLock = new object();
         private static Dictionary<int, int> dateCooldowns = new Dictionary<int, int>();
         private const int DateCooldownTicks = 300; // 5 min
+
+        // Add methods for serialization
+        public static void ExposeData()
+        {
+            lock (datesLock)
+            {
+                // Serialize the dates list
+                Scribe_Collections.Look(ref dates, "dates", LookMode.Deep);
+                
+                // Serialize the date cooldowns dictionary
+                Scribe_Collections.Look(ref dateCooldowns, "dateCooldowns", LookMode.Value, LookMode.Value);
+            }
+        }
 
         // Flag to track if AdvanceDateStage was called from within JobDriver_GoOnDate
         // This helps distinguish between successful advancement and interruption.

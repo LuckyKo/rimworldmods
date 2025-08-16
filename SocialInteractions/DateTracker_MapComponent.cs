@@ -1,5 +1,6 @@
 using RimWorld;
 using Verse;
+using System.Collections.Generic;
 
 namespace SocialInteractions
 {
@@ -10,6 +11,13 @@ namespace SocialInteractions
 
         public DateTracker_MapComponent(Map map) : base(map)
         {
+        }
+
+        public override void ExposeData()
+        {
+            base.ExposeData();
+            DatingManager.ExposeData();
+            Scribe_Values.Look(ref lastCleanupTick, "lastCleanupTick", 0);
         }
 
         public override void MapComponentTick()

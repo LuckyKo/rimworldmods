@@ -39,20 +39,56 @@ namespace SocialInteractions
 
             yield return Toils_Goto.GotoCell(BedPosInd, PathEndMode.OnCell);
 
+            // Store references to both pawns to ensure we can access them later
+            Pawn initiator = pawn;
+            Pawn partner = Partner;
+
             Toil lovinToil = ToilMaker.MakeToil("LovinToil");
             lovinToil.initAction = delegate
             {
                 ticksLeft = 2500;
+                Log.Message(string.Format("[SocialInteractions] Adding SI_Naked hediff to {0} and {1}", 
+                    initiator != null ? initiator.LabelShort : "NULL", 
+                    partner != null ? partner.LabelShort : "NULL"));
+                
+                // Add null checks before adding hediff
+                if (initiator != null && initiator.health != null)
+                {
+                    initiator.health.AddHediff(HediffDef.Named("SI_Naked"));
+                    // Verify the hediff was added
+                    if (initiator.health.hediffSet.HasHediff(HediffDef.Named("SI_Naked")))
+                    {
+                        Log.Message(string.Format("[SocialInteractions] SI_Naked hediff successfully added to {0}", initiator.LabelShort));
+                    }
+                    else
+                    {
+                        Log.Message(string.Format("[SocialInteractions] Failed to add SI_Naked hediff to {0}", initiator.LabelShort));
+                    }
+                }
+                
+                if (partner != null && partner.health != null)
+                {
+                    partner.health.AddHediff(HediffDef.Named("SI_Naked"));
+                    // Verify the hediff was added
+                    if (partner.health.hediffSet.HasHediff(HediffDef.Named("SI_Naked")))
+                    {
+                        Log.Message(string.Format("[SocialInteractions] SI_Naked hediff successfully added to {0}", partner.LabelShort));
+                    }
+                    else
+                    {
+                        Log.Message(string.Format("[SocialInteractions] Failed to add SI_Naked hediff to {0}", partner.LabelShort));
+                    }
+                }
             };
             lovinToil.tickAction = delegate
             {
                 // Add null checks to prevent NullReferenceException
-                if (pawn == null || pawn.jobs == null)
+                if (initiator == null || initiator.jobs == null)
                 {
                     return;
                 }
 
-                if (pawn.jobs.curDriver != this)
+                if (initiator.jobs.curDriver != this)
                 {
                     return;
                 }
@@ -64,44 +100,44 @@ namespace SocialInteractions
                     try
                     {
                         // Get the partner from the date
-                        Pawn partner = null;
-                        Date date = DatingManager.GetDateWith(pawn);
+                        Pawn partnerFromDate = null;
+                        Date date = DatingManager.GetDateWith(initiator);
                         
                         if (date != null)
                         {
-                            if (date.Initiator == pawn)
+                            if (date.Initiator == initiator)
                             {
-                                partner = date.Partner;
+                                partnerFromDate = date.Partner;
                             }
-                            else if (date.Partner == pawn)
+                            else if (date.Partner == initiator)
                             {
-                                partner = date.Initiator;
+                                partnerFromDate = date.Initiator;
                             }
                             
                             // Give thoughts to both pawns
-                            if (pawn != null && partner != null)
+                            if (initiator != null && partnerFromDate != null)
                             {
                                 // Give thought to initiator
-                                if (pawn.needs != null && pawn.needs.mood != null && pawn.needs.mood.thoughts != null && pawn.needs.mood.thoughts.memories != null)
+                                if (initiator.needs != null && initiator.needs.mood != null && initiator.needs.mood.thoughts != null && initiator.needs.mood.thoughts.memories != null)
                                 {
                                     var thought = (Thought_Memory)ThoughtMaker.MakeThought(ThoughtDefOf.GotSomeLovin);
-                                    thought.otherPawn = partner;
-                                    pawn.needs.mood.thoughts.memories.TryGainMemory(thought, null);
+                                    thought.otherPawn = partnerFromDate;
+                                    initiator.needs.mood.thoughts.memories.TryGainMemory(thought, null);
                                 }
 
                                 // Give thought to partner
-                                if (partner.needs != null && partner.needs.mood != null && partner.needs.mood.thoughts != null && partner.needs.mood.thoughts.memories != null)
+                                if (partnerFromDate.needs != null && partnerFromDate.needs.mood != null && partnerFromDate.needs.mood.thoughts != null && partnerFromDate.needs.mood.thoughts.memories != null)
                                 {
                                     var thought = (Thought_Memory)ThoughtMaker.MakeThought(ThoughtDefOf.GotSomeLovin);
-                                    thought.otherPawn = pawn;
-                                    partner.needs.mood.thoughts.memories.TryGainMemory(thought, null);
+                                    thought.otherPawn = initiator;
+                                    partnerFromDate.needs.mood.thoughts.memories.TryGainMemory(thought, null);
                                 }
                             }
                             
                             // Advance the date stage
                             if (date.Stage == DateStage.Lovin)
                             {
-                                DatingManager.AdvanceDateStage(pawn);
+                                DatingManager.AdvanceDateStage(initiator);
                             }
                         }
                     }
@@ -110,16 +146,64 @@ namespace SocialInteractions
                         Log.Warning(string.Format("[SocialInteractions] Exception in DateLovin tickAction when handling thoughts/advancement: {0}", ex.Message));
                     }
                     
+                    // Remove the hediff using the stored references
+                    try
+                    {
+                        Log.Message(string.Format("[SocialInteractions] Removing SI_Naked hediff from {0} and {1}", 
+                            initiator != null ? initiator.LabelShort : "NULL", 
+                            partner != null ? partner.LabelShort : "NULL"));
+                        
+                        if (initiator != null && initiator.health != null && initiator.health.hediffSet != null)
+                        {
+                            Log.Message(string.Format("[SocialInteractions] {0} has SI_Naked hediff before removal: {1}", 
+                                initiator.LabelShort, 
+                                initiator.health.hediffSet.HasHediff(HediffDef.Named("SI_Naked"))));
+                            
+                            Hediff hediff = initiator.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
+                            if (hediff != null)
+                            {
+                                initiator.health.RemoveHediff(hediff);
+                                Log.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", initiator.LabelShort));
+                            }
+                            else
+                            {
+                                Log.Message(string.Format("[SocialInteractions] No SI_Naked hediff found on {0}", initiator.LabelShort));
+                            }
+                        }
+                        
+                        if (partner != null && partner.health != null && partner.health.hediffSet != null)
+                        {
+                            Log.Message(string.Format("[SocialInteractions] {0} has SI_Naked hediff before removal: {1}", 
+                                partner.LabelShort, 
+                                partner.health.hediffSet.HasHediff(HediffDef.Named("SI_Naked"))));
+                            
+                            Hediff hediff = partner.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
+                            if (hediff != null)
+                            {
+                                partner.health.RemoveHediff(hediff);
+                                Log.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", partner.LabelShort));
+                            }
+                            else
+                            {
+                                Log.Message(string.Format("[SocialInteractions] No SI_Naked hediff found on {0}", partner.LabelShort));
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(string.Format("[SocialInteractions] Exception removing SI_Naked hediff: {0}", ex.Message));
+                    }
+
                     ReadyForNextToil();
                 }
-                else if (pawn.IsHashIntervalTick(100))
+                else if (initiator.IsHashIntervalTick(100))
                 {
                     try
                     {
-                        FleckMaker.ThrowMetaIcon(pawn.Position, pawn.Map, FleckDefOf.Heart);
-                        if (pawn.needs != null && pawn.needs.joy != null)
+                        FleckMaker.ThrowMetaIcon(initiator.Position, initiator.Map, FleckDefOf.Heart);
+                        if (initiator.needs != null && initiator.needs.joy != null)
                         {
-                            pawn.needs.joy.GainJoy(0.001f, JoyKindDefOf.Social);
+                            initiator.needs.joy.GainJoy(0.001f, JoyKindDefOf.Social);
                         }
                     }
                     catch (Exception ex)

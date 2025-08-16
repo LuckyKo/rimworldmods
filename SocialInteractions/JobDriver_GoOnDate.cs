@@ -44,7 +44,15 @@ namespace SocialInteractions
             string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
             string partnerName = (this.Partner != null && this.Partner.Name != null) ? this.Partner.Name.ToStringShort : "NULL";
             Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations for {0} to date {1}.", pawnName, partnerName));
-            return true;
+            
+            // Make sure we can reserve the partner
+            if (this.pawn == null || this.Partner == null)
+            {
+                return false;
+            }
+            
+            // Reserve the partner for this job
+            return this.pawn.Reserve(this.Partner, this.job, 1, -1, null, errorOnFailed);
         }
 
         

@@ -25,3 +25,5 @@ n:/work/stuff/mine/RimWorldMods/SocialInteractions/InteractionWorker_CaughtCheat
 n:/work/stuff/mine/RimWorldMods/SocialInteractions/JobDriver_LayDown_MakeNewToils_Patch.cs
 n:/work/stuff/mine/RimWorldMods/SocialInteractions/BedUtility_CanReserve_Patch.cs
 n:/work/stuff/mine/RimWorldMods/SocialInteractions/SI_JobDefOf.cs
+n:/work/stuff/mine/RimWorldMods/SocialInteractions/PawnRenderNodeWorker_Apparel_Body_CanDrawNow_Patch.cs
+n:/work/stuff/mine/RimWorldMods/SocialInteractions/PawnRenderNodeWorker_Apparel_Head_HeadgearVisible_Patch.cs

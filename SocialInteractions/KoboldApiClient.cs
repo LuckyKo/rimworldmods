@@ -78,7 +78,7 @@ namespace SocialInteractions
                     else
                     {
                         // --- Enhanced Logging ---
-                        Log.Warning(string.Format("[SocialInteractions] Invalid API key format after trimming, skipping Authorization header. Key length: {0}, Key (first 10 chars): '{1}'", _apiKey.Length, _apiKey.Length > 0 ? _apiKey.Substring(0, System.Math.Min(10, _apiKey.Length)) : ""));
+                        //Log.Warning(string.Format("[SocialInteractions] Invalid API key format after trimming, skipping Authorization header. Key length: {0}, Key (first 10 chars): '{1}'", _apiKey.Length, _apiKey.Length > 0 ? _apiKey.Substring(0, System.Math.Min(10, _apiKey.Length)) : ""));
                         // --- End Enhanced Logging ---
                     }
                 }

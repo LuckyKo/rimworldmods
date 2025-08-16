@@ -21,8 +21,12 @@ namespace SocialInteractions
 
         static SocialInteractions()
         {
+            Harmony.DEBUG = true;
             var harmony = new Harmony("com.gemini.socialinteractions");
             harmony.PatchAll();
+            
+            // Log that patches were applied
+            Log.Message("[SocialInteractions] Harmony patches applied");
         }
 
         public static bool IsLlmInteractionEnabled(InteractionDef interactionDef)

@@ -149,6 +149,13 @@ namespace SocialInteractions
                 return null;
             }
             
+            // Check if the partner is already being targeted for a date by another pawn
+            if (IsPartnerBeingTargeted(partner))
+            {
+                Log.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate: Partner {0} is already being targeted for a date by another pawn.", partner.Name.ToStringShort));
+                return null;
+            }
+            
             // Create the GoOnDate job
             Job job = JobMaker.MakeJob(SI_JobDefOf.GoOnDate, partner);
             return job;
@@ -274,6 +281,44 @@ namespace SocialInteractions
             }
             
             return partner;
+        }
+        
+        /// <summary>
+        /// Checks if a partner is already being targeted for a date by another pawn
+        /// </summary>
+        /// <param name="partner">The potential partner to check</param>
+        /// <returns>True if the partner is already being targeted for a date, false otherwise</returns>
+        private bool IsPartnerBeingTargeted(Pawn partner)
+        {
+            if (partner == null || partner.Map == null || partner.Map.mapPawns == null)
+            {
+                return false;
+            }
+            
+            // Get all pawns on the map
+            IEnumerable<Pawn> allPawns = partner.Map.mapPawns.AllPawnsSpawned;
+            
+            // Check if any pawn has a GoOnDate job targeting this partner
+            foreach (Pawn pawn in allPawns)
+            {
+                if (pawn == null || pawn == partner || pawn.jobs == null)
+                {
+                    continue;
+                }
+                
+                // Check if this pawn has a GoOnDate job
+                if (pawn.jobs.curJob != null && pawn.jobs.curJob.def == SI_JobDefOf.GoOnDate)
+                {
+                    // Check if this job is targeting our partner
+                    Pawn jobTarget = pawn.jobs.curJob.targetA.Thing as Pawn;
+                    if (jobTarget == partner)
+                    {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
         }
     }
 }
