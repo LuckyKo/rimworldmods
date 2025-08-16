@@ -29,3 +29,9 @@ Newtonsoft.Json.dll
 SocialInteractions.dll
 commit_message.txt
 console.txt
+
+# Temporary files
+PawnRenderNodeWorker_Apparel_Body.cs
+PawnRenderNodeWorker_Apparel_Head.cs
+PawnRenderer.cs
+harmony.log.txt

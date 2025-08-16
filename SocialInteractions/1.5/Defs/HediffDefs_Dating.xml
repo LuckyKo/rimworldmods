@@ -12,10 +12,5 @@
     <label>Naked</label>
     <description>This pawn is temporarily naked for visual effect.</description>
     <hediffClass>HediffWithComps</hediffClass>
-    <stages>
-      <li>
-        <becomeVisible>false</becomeVisible>
-      </li>
-    </stages>
   </HediffDef>
 </Defs>

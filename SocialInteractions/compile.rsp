@@ -30,3 +30,5 @@ JobDriver_DateLovin.cs
 ThoughtHandler_OpinionOffsetOfGroup_Patch.cs
 Pawn_DraftController_Drafted_Patch.cs
 Thought_CaughtCheating.cs
+PawnRenderer_GetDrawParms_Patch.cs
+SI_HediffDefOf.cs

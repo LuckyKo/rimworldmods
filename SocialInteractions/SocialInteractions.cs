@@ -21,7 +21,6 @@ namespace SocialInteractions
 
         static SocialInteractions()
         {
-            Harmony.DEBUG = true;
             var harmony = new Harmony("com.gemini.socialinteractions");
             harmony.PatchAll();
             
