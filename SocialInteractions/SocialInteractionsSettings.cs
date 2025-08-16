@@ -54,6 +54,7 @@ It's currently [time], on [date] and the weather is [weather].
         public bool enableCombatTaunts = true;
         public bool enableXtcSampling = false;
         public float joyThresholdForDate = 0.5f; // New setting
+        public bool verboseLogging = false;
 
 
         public override void ExposeData()
@@ -87,6 +88,7 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);
             Scribe_Values.Look(ref enableXtcSampling, "enableXtcSampling", false);
             Scribe_Values.Look(ref joyThresholdForDate, "joyThresholdForDate", 0.8f); // New setting
+            Scribe_Values.Look(ref verboseLogging, "verboseLogging", false);
         }
     }
 
@@ -137,6 +139,7 @@ It's currently [time], on [date] and the weather is [weather].
             listingStandard.CheckboxLabeled("Enable XTC Sampling", ref SocialInteractions.Settings.enableXtcSampling, "If enabled, XTC (Exclude Top Choices) sampling will be used for LLM requests to encourage more creative responses.");
 
             listingStandard.Gap();
+            listingStandard.CheckboxLabeled("Enable Verbose Logging", ref SocialInteractions.Settings.verboseLogging, "If enabled, detailed logs will be written to the Player.log file for debugging purposes.");
             listingStandard.Label("LLM API Configuration");
 
             listingStandard.Label("API URL:");

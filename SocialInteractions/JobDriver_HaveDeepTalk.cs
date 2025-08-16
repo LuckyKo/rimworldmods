@@ -60,14 +60,14 @@ namespace SocialInteractions
                     Job_HaveDeepTalk customJob = this.job as Job_HaveDeepTalk;
                     if (this.job == null)
                     {
-                        Log.Error("Job is null. Ending job.");
+                        SLog.Error("Job is null. Ending job.");
                         pawn.jobs.EndCurrentJob(JobCondition.Errored);
                         return;
                     }
-                    Log.Message(string.Format("[SocialInteractions] JobDriver_HaveDeepTalk: Current job type is {0}", this.job.GetType().Name));
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_HaveDeepTalk: Current job type is {0}", this.job.GetType().Name));
                     if (customJob == null)
                     {
-                        Log.Error(string.Format("Job is not a Job_HaveDeepTalk. Actual type: {0}. Ending job.", this.job.GetType().Name));
+                        SLog.Error(string.Format("Job is not a Job_HaveDeepTalk. Actual type: {0}. Ending job.", this.job.GetType().Name));
                         pawn.jobs.EndCurrentJob(JobCondition.Errored);
                         return;
                     }
@@ -75,7 +75,7 @@ namespace SocialInteractions
                     InteractionDef interactionDefForTask = customJob.interactionDef;
                     if (interactionDefForTask == null)
                     {
-                        Log.Error("InteractionDef is null. Ending job.");
+                        SLog.Error("InteractionDef is null. Ending job.");
                         pawn.jobs.EndCurrentJob(JobCondition.Errored);
                         return;
                     }
@@ -83,7 +83,7 @@ namespace SocialInteractions
                     string subjectForTask = customJob.subject;
                     if (subjectForTask == null)
                     {
-                        Log.Error("Subject is null. Ending job.");
+                        SLog.Error("Subject is null. Ending job.");
                         pawn.jobs.EndCurrentJob(JobCondition.Errored);
                         return;
                     }
@@ -94,28 +94,28 @@ namespace SocialInteractions
                         {
                             if (recipientForTask == null)
                             {
-                                Log.Error("Recipient became null before LLM task could run.");
+                                SLog.Error("Recipient became null before LLM task could run.");
                                 llmTaskComplete = true;
                                 return;
                             }
 
                             if (SocialInteractions.Settings == null)
                             {
-                                Log.Error("SocialInteractions.Settings is null. Cannot generate LLM response.");
+                                SLog.Error("SocialInteractions.Settings is null. Cannot generate LLM response.");
                                 llmTaskComplete = true;
                                 return;
                             }
 
                             if (string.IsNullOrEmpty(SocialInteractions.Settings.llmApiUrl))
                             {
-                                Log.Error("LLM API URL is not set in mod settings. Cannot generate LLM response.");
+                                SLog.Error("LLM API URL is not set in mod settings. Cannot generate LLM response.");
                                 llmTaskComplete = true;
                                 return;
                             }
 
                             if (interactionDefForTask == null)
                             {
-                                Log.Error("InteractionDef is null inside Task.Run. Cannot generate LLM response.");
+                                SLog.Error("InteractionDef is null inside Task.Run. Cannot generate LLM response.");
                                 llmTaskComplete = true;
                                 return;
                             }
@@ -128,7 +128,7 @@ namespace SocialInteractions
                                 
                                 if (llmResponse == null)
                                 {
-                                    Log.Warning("[SocialInteractions] JobDriver_HaveDeepTalk: LLM API returned null response");
+                                    SLog.Warning("[SocialInteractions] JobDriver_HaveDeepTalk: LLM API returned null response");
                                     llmTaskComplete = true;
                                     return;
                                 }
@@ -139,17 +139,17 @@ namespace SocialInteractions
                                 }
                                 else
                                 {
-                                    Log.Warning("[SocialInteractions] JobDriver_HaveDeepTalk: LLM API returned empty response");
+                                    SLog.Warning("[SocialInteractions] JobDriver_HaveDeepTalk: LLM API returned empty response");
                                 }
                             }
                             else
                             {
-                                Log.Warning("[SocialInteractions] JobDriver_HaveDeepTalk: Failed to generate prompt");
+                                SLog.Warning("[SocialInteractions] JobDriver_HaveDeepTalk: Failed to generate prompt");
                             }
                         }
                         catch (Exception ex)
                         {
-                            Log.Error(string.Format("Error in Task.Run: {0} {1}", ex.Message, ex.StackTrace));
+                            SLog.Error(string.Format("Error in Task.Run: {0} {1}", ex.Message, ex.StackTrace));
                         }
                         finally
                         {
@@ -163,7 +163,7 @@ namespace SocialInteractions
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(string.Format("Error in getLlmResponseToil: {0} {1}", ex.Message, ex.StackTrace));
+                    SLog.Error(string.Format("Error in getLlmResponseToil: {0} {1}", ex.Message, ex.StackTrace));
                     pawn.jobs.EndCurrentJob(JobCondition.Errored);
                 }
             };

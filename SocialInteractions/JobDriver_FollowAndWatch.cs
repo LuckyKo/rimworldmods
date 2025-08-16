@@ -14,7 +14,7 @@ namespace SocialInteractions
             // Add null check to prevent NullReferenceException
             if (this.pawn == null)
             {
-                Log.Warning("[SocialInteractions] JobDriver_FollowAndWatch: pawn is null in TryMakePreToilReservations.");
+                SLog.Warning("[SocialInteractions] JobDriver_FollowAndWatch: pawn is null in TryMakePreToilReservations.");
                 return false;
             }
             return true;
@@ -31,7 +31,7 @@ namespace SocialInteractions
                 // Add comprehensive null checks
                 if (this.pawn == null || this.job == null || this.job.targetA == null) 
                 {
-                    Log.Warning("[SocialInteractions] JobDriver_FollowAndWatch: follow.initAction - pawn, job, or targetA is null. Ending job.");
+                    SLog.Warning("[SocialInteractions] JobDriver_FollowAndWatch: follow.initAction - pawn, job, or targetA is null. Ending job.");
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
@@ -44,14 +44,14 @@ namespace SocialInteractions
                         // Log start path attempt
                         string pawnName = (this.pawn != null && this.pawn.Label != null) ? this.pawn.LabelShort : "NULL";
                         string initiatorName = (initiator != null && initiator.Label != null) ? initiator.LabelShort : "NULL";
-                        Log.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: {0} starting path to initiator {1} at {2}.", pawnName, initiatorName, initiator.Position));
+                        SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: {0} starting path to initiator {1} at {2}.", pawnName, initiatorName, initiator.Position));
                     }
                     this.pawn.pather.StartPath(this.job.targetA, PathEndMode.Touch);
                 }
                 else
                 {
                     string pawnName = (this.pawn != null && this.pawn.Label != null) ? this.pawn.LabelShort : "NULL";
-                    Log.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: {0}'s pather is null. Ending job.", pawnName));
+                    SLog.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: {0}'s pather is null. Ending job.", pawnName));
                     this.EndJobWith(JobCondition.Incompletable);
                 }
             };
@@ -60,7 +60,7 @@ namespace SocialInteractions
                 if (this.pawn != null)
                 {
                     // Simplified logging, removed attempt to access JobCondition
-                    Log.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: follow toil finished for {0}.", this.pawn.LabelShort));
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: follow toil finished for {0}.", this.pawn.LabelShort));
                 }
             });
             follow.defaultCompleteMode = ToilCompleteMode.PatherArrival;
@@ -69,21 +69,21 @@ namespace SocialInteractions
             Toil watch = new Toil();
             watch.initAction = () =>
             {
-                Log.Message("[SocialInteractions] JobDriver_FollowAndWatch: Starting watch toil.");
+                SLog.Message("[SocialInteractions] JobDriver_FollowAndWatch: Starting watch toil.");
             };
             watch.tickAction = () =>
             {
                 // Add comprehensive null checks at the beginning
                 if (this.pawn == null)
                 {
-                    Log.Message("[SocialInteractions] JobDriver_FollowAndWatch: pawn is null, ending job.");
+                    SLog.Message("[SocialInteractions] JobDriver_FollowAndWatch: pawn is null, ending job.");
                     this.ReadyForNextToil();
                     return;
                 }
                 
                 if (this.job == null)
                 {
-                    Log.Message("[SocialInteractions] JobDriver_FollowAndWatch: job is null, ending job.");
+                    SLog.Message("[SocialInteractions] JobDriver_FollowAndWatch: job is null, ending job.");
                     this.ReadyForNextToil();
                     return;
                 }
@@ -91,14 +91,14 @@ namespace SocialInteractions
                 Pawn initiator = this.job.targetA.Thing as Pawn;
                 if (initiator == null)
                 {
-                    Log.Message("[SocialInteractions] JobDriver_FollowAndWatch: initiator is null, ending job.");
+                    SLog.Message("[SocialInteractions] JobDriver_FollowAndWatch: initiator is null, ending job.");
                     this.ReadyForNextToil();
                     return;
                 }
                 
                 if (this.job.targetB == null)
                 {
-                    Log.Message("[SocialInteractions] JobDriver_FollowAndWatch: job.targetB is null, ending job.");
+                    SLog.Message("[SocialInteractions] JobDriver_FollowAndWatch: job.targetB is null, ending job.");
                     this.ReadyForNextToil();
                     return;
                 }
@@ -110,7 +110,7 @@ namespace SocialInteractions
                 {
                     string initiatorName = (initiator != null && initiator.Name != null) ? initiator.Name.ToStringShort : "NULL";
                     string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
-                    Log.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Date ended for initiator ({0}), ending job for follower ({1}).", initiatorName, pawnName));
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Date ended for initiator ({0}), ending job for follower ({1}).", initiatorName, pawnName));
                     this.ReadyForNextToil(); // End the FollowAndWatch job
                     return;
                 }
@@ -124,7 +124,7 @@ namespace SocialInteractions
                         if (this.pawn.pather == null)
                         {
                             string pawnName = (this.pawn != null && this.pawn.Label != null) ? this.pawn.LabelShort : "NULL";
-                            Log.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: {0}'s pather became null during tick, ending job.", pawnName));
+                            SLog.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: {0}'s pather became null during tick, ending job.", pawnName));
                             this.ReadyForNextToil();
                             return;
                         }
@@ -134,7 +134,7 @@ namespace SocialInteractions
                         {
                             string initiatorName = (initiator != null && initiator.Label != null) ? initiator.LabelShort : "NULL";
                             string pawnName = (this.pawn != null && this.pawn.Label != null) ? this.pawn.LabelShort : "NULL";
-                            Log.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} is not spawned or on a different map for follower {1}. Ending job.", initiatorName, pawnName));
+                            SLog.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} is not spawned or on a different map for follower {1}. Ending job.", initiatorName, pawnName));
                             this.ReadyForNextToil();
                             return;
                         }
@@ -154,7 +154,7 @@ namespace SocialInteractions
                             {
                                 string initiatorName = (initiator != null && initiator.Label != null) ? initiator.LabelShort : "NULL";
                                 string pawnName = (this.pawn != null && this.pawn.Label != null) ? this.pawn.LabelShort : "NULL";
-                                Log.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: {0} failed to start path to {1} (dist: {2:F2}). Ending job.", pawnName, initiatorName, this.pawn.Position.DistanceTo(initiator.Position)));
+                                SLog.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: {0} failed to start path to {1} (dist: {2:F2}). Ending job.", pawnName, initiatorName, this.pawn.Position.DistanceTo(initiator.Position)));
                                 this.ReadyForNextToil(); 
                                 return;
                             }
@@ -164,7 +164,7 @@ namespace SocialInteractions
                 catch (Exception ex)
                 {
                     string pawnName = (this.pawn != null) ? this.pawn.LabelShort : "NULL";
-                    Log.Error(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Exception during pathing for {0}: {1}", pawnName, ex.Message));
+                    SLog.Error(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Exception during pathing for {0}: {1}", pawnName, ex.Message));
                     this.ReadyForNextToil(); // End job on exception
                     return;
                 }
@@ -180,7 +180,7 @@ namespace SocialInteractions
             {
                 // OnDate hediffs are now handled by DatingManager
                 string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
-                Log.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Job finished for pawn {0}.", pawnName));
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Job finished for pawn {0}.", pawnName));
             });
             watch.defaultCompleteMode = ToilCompleteMode.Never;
             yield return watch;

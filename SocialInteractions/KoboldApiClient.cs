@@ -98,7 +98,7 @@ namespace SocialInteractions
             else
             {
                 // Log if key is null/empty, might be intentional
-                // Log.Message("[SocialInteractions] KoboldApiClient constructed with null or empty API key. Authorization header will not be added.");
+                // SLog.Message("[SocialInteractions] KoboldApiClient constructed with null or empty API key. Authorization header will not be added.");
             }
         }
 

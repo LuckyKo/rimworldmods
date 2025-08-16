@@ -35,7 +35,7 @@ namespace SocialInteractions
             // Add null checks to prevent NullReferenceException
             string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
             string partnerName = (this.Partner != null && this.Partner.Name != null) ? this.Partner.Name.ToStringShort : "NULL";
-            Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Starting job for {0} to date {1}.", pawnName, partnerName));
+            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Starting job for {0} to date {1}.", pawnName, partnerName));
         }
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
@@ -43,7 +43,7 @@ namespace SocialInteractions
             // Add null checks to prevent NullReferenceException
             string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
             string partnerName = (this.Partner != null && this.Partner.Name != null) ? this.Partner.Name.ToStringShort : "NULL";
-            Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations for {0} to date {1}.", pawnName, partnerName));
+            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations for {0} to date {1}.", pawnName, partnerName));
             
             // Make sure we can reserve the partner
             if (this.pawn == null || this.Partner == null)
@@ -68,7 +68,7 @@ namespace SocialInteractions
                 // Add null checks
                 if (recipient == null || this.pawn == null)
                 {
-                    Log.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn or recipient is null in rangeCheck, ending job.");
+                    SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn or recipient is null in rangeCheck, ending job.");
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
@@ -76,7 +76,7 @@ namespace SocialInteractions
                 int maxDistance = 50; // 50x50 tiles
                 if ((Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)) > maxDistance)
                 {
-                    Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Aborting job. Recipient {0} is too far from initiator {1}. Distance: {2}, Max Distance: {3}", recipient.Name.ToStringShort, this.pawn.Name.ToStringShort, (Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)), maxDistance));
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Aborting job. Recipient {0} is too far from initiator {1}. Distance: {2}, Max Distance: {3}", recipient.Name.ToStringShort, this.pawn.Name.ToStringShort, (Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)), maxDistance));
                     this.EndJobWith(JobCondition.Incompletable);
                 }
             };
@@ -93,7 +93,7 @@ namespace SocialInteractions
                 // Add comprehensive null checks
                 if (this.pawn == null || recipient == null)
                 {
-                    Log.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn or recipient is null in askToil, ending job.");
+                    SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn or recipient is null in askToil, ending job.");
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
@@ -103,14 +103,14 @@ namespace SocialInteractions
                 {
                     int opinion = recipient.relations.OpinionOf(this.pawn);
                     acceptanceChance += opinion / 200f;
-                    Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Calculating acceptance chance for {0} asking {1}. Base: 0.5, Opinion: {2}, Final: {3}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, opinion, acceptanceChance));
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Calculating acceptance chance for {0} asking {1}. Base: 0.5, Opinion: {2}, Final: {3}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, opinion, acceptanceChance));
                 }
                 bool accepted = Rand.Value < acceptanceChance;
-                Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Acceptance roll for {0} asking {1}. Rolled: {2}, Chance: {3}, Accepted: {4}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, Rand.Value, acceptanceChance, accepted));
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Acceptance roll for {0} asking {1}. Rolled: {2}, Chance: {3}, Accepted: {4}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, Rand.Value, acceptanceChance, accepted));
 
                 if (accepted)
                 {
-                    Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Date accepted between {0} and {1}.", this.pawn.Name.ToStringShort, this.Partner.Name.ToStringShort));
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Date accepted between {0} and {1}.", this.pawn.Name.ToStringShort, this.Partner.Name.ToStringShort));
                     Find.PlayLog.Add(new PlayLogEntry_Interaction(DefDatabase<InteractionDef>.GetNamed("DateAccepted"), this.pawn, this.Partner, null));
                     DatingManager.StartDate(this.pawn, this.Partner);
                     Messages.Message(string.Format("{0} and {1} are now going on a date.", this.pawn.Name.ToStringShort, this.Partner.Name.ToStringShort), new LookTargets(this.pawn, this.Partner), MessageTypeDefOf.PositiveEvent);
@@ -118,7 +118,7 @@ namespace SocialInteractions
                 }
                 else
                 {
-                    Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Date rejected between {0} and {1}.", this.pawn.Name.ToStringShort, this.Partner.Name.ToStringShort));
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Date rejected between {0} and {1}.", this.pawn.Name.ToStringShort, this.Partner.Name.ToStringShort));
                     Find.PlayLog.Add(new PlayLogEntry_Interaction(DefDatabase<InteractionDef>.GetNamed("DateRejected"), this.pawn, this.Partner, null));
                     DatingManager.RejectDate(this.pawn, this.Partner);
                     SocialInteractions.HandleNonStoppingInteraction(this.pawn, this.Partner, SI_InteractionDefOf.DateRejected, "date");
@@ -135,12 +135,12 @@ namespace SocialInteractions
                 // Add null checks
                 if (this.pawn == null || this.Partner == null)
                 {
-                    Log.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn or Partner is null in findSpotAndAssign, ending job.");
+                    SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn or Partner is null in findSpotAndAssign, ending job.");
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
                 
-                Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: findSpotAndAssign initAction called for pawn {0}.", this.pawn != null ? this.pawn.Name.ToStringShort : "NULL"));
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: findSpotAndAssign initAction called for pawn {0}.", this.pawn != null ? this.pawn.Name.ToStringShort : "NULL"));
                 var joySpots = DatingManager.FindJoySpotFor(this.pawn, this.Partner);
                 if (joySpots == null || !joySpots.Any())
                 {
@@ -184,12 +184,12 @@ namespace SocialInteractions
                 // Add null check
                 if (this.pawn == null)
                 {
-                    Log.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn is null in doJoy initAction, ending job.");
+                    SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn is null in doJoy initAction, ending job.");
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
                 
-                Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: doJoy init for {0}.", this.pawn.Name.ToStringShort));
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: doJoy init for {0}.", this.pawn.Name.ToStringShort));
                 this.startTick = Find.TickManager.TicksGame;
             };
             doJoy.defaultCompleteMode = ToilCompleteMode.Never;
@@ -202,7 +202,7 @@ namespace SocialInteractions
                 // Add comprehensive null checks
                 if (initiator == null || partner == null || joySpot == null)
                 {
-                    Log.Warning("[SocialInteractions] JobDriver_GoOnDate: doJoy - initiator, partner, or joySpot is null. Ending job.");
+                    SLog.Warning("[SocialInteractions] JobDriver_GoOnDate: doJoy - initiator, partner, or joySpot is null. Ending job.");
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
@@ -226,7 +226,7 @@ namespace SocialInteractions
 
                 if (ticksPassed > this.joyDuration) // Use random joyDuration
                 {
-                    Log.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Max duration ({0} ticks) passed. Advancing to next stage.", this.joyDuration));
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Max duration ({0} ticks) passed. Advancing to next stage.", this.joyDuration));
                     this.ReadyForNextToil();
                     return;
                 }
@@ -235,7 +235,7 @@ namespace SocialInteractions
                 JobDef followAndWatchJobDef = SI_JobDefOf.FollowAndWatchInitiator;
                 if (partner.CurJobDef != followAndWatchJobDef && !DatingManager.IsOnDate(partner))
                 {
-                    Log.Warning(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner ({0}) is no longer following or on the date. Ending date.", partner.LabelShort));
+                    SLog.Warning(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner ({0}) is no longer following or on the date. Ending date.", partner.LabelShort));
                     this.ReadyForNextToil();
                     return;
                 }
@@ -249,15 +249,15 @@ namespace SocialInteractions
                 // Add null check
                 if (this.pawn == null)
                 {
-                    Log.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn is null in advanceDate, ending job.");
+                    SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn is null in advanceDate, ending job.");
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
                 
-                Log.Message("[SocialInteractions] JobDriver_GoOnDate: advanceDate toil initAction STARTING.");
+                SLog.Message("[SocialInteractions] JobDriver_GoOnDate: advanceDate toil initAction STARTING.");
                 DatingManager.WasDateStageAdvancedByJob = true; // Set the flag
                 DatingManager.AdvanceDateStage(this.pawn);
-                Log.Message("[SocialInteractions] JobDriver_GoOnDate: advanceDate toil initAction FINISHED.");
+                SLog.Message("[SocialInteractions] JobDriver_GoOnDate: advanceDate toil initAction FINISHED.");
             };
             advanceDate.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return advanceDate;

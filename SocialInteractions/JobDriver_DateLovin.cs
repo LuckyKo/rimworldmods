@@ -47,37 +47,19 @@ namespace SocialInteractions
             lovinToil.initAction = delegate
             {
                 ticksLeft = 2500;
-                Log.Message(string.Format("[SocialInteractions] Adding SI_Naked hediff to {0} and {1}", 
-                    initiator != null ? initiator.LabelShort : "NULL", 
+                SLog.Message(string.Format("[SocialInteractions] Adding SI_Naked hediff to {0} and {1}",
+                    initiator != null ? initiator.LabelShort : "NULL",
                     partner != null ? partner.LabelShort : "NULL"));
-                
+
                 // Add null checks before adding hediff
                 if (initiator != null && initiator.health != null)
                 {
                     initiator.health.AddHediff(HediffDef.Named("SI_Naked"));
-                    // Verify the hediff was added
-                    if (initiator.health.hediffSet.HasHediff(HediffDef.Named("SI_Naked")))
-                    {
-                        Log.Message(string.Format("[SocialInteractions] SI_Naked hediff successfully added to {0}", initiator.LabelShort));
-                    }
-                    else
-                    {
-                        Log.Message(string.Format("[SocialInteractions] Failed to add SI_Naked hediff to {0}", initiator.LabelShort));
-                    }
                 }
-                
+
                 if (partner != null && partner.health != null)
                 {
                     partner.health.AddHediff(HediffDef.Named("SI_Naked"));
-                    // Verify the hediff was added
-                    if (partner.health.hediffSet.HasHediff(HediffDef.Named("SI_Naked")))
-                    {
-                        Log.Message(string.Format("[SocialInteractions] SI_Naked hediff successfully added to {0}", partner.LabelShort));
-                    }
-                    else
-                    {
-                        Log.Message(string.Format("[SocialInteractions] Failed to add SI_Naked hediff to {0}", partner.LabelShort));
-                    }
                 }
             };
             lovinToil.tickAction = delegate
@@ -102,7 +84,7 @@ namespace SocialInteractions
                         // Get the partner from the date
                         Pawn partnerFromDate = null;
                         Date date = DatingManager.GetDateWith(initiator);
-                        
+
                         if (date != null)
                         {
                             if (date.Initiator == initiator)
@@ -113,7 +95,7 @@ namespace SocialInteractions
                             {
                                 partnerFromDate = date.Initiator;
                             }
-                            
+
                             // Give thoughts to both pawns
                             if (initiator != null && partnerFromDate != null)
                             {
@@ -133,7 +115,7 @@ namespace SocialInteractions
                                     partnerFromDate.needs.mood.thoughts.memories.TryGainMemory(thought, null);
                                 }
                             }
-                            
+
                             // Advance the date stage
                             if (date.Stage == DateStage.Lovin)
                             {
@@ -145,54 +127,6 @@ namespace SocialInteractions
                     {
                         Log.Warning(string.Format("[SocialInteractions] Exception in DateLovin tickAction when handling thoughts/advancement: {0}", ex.Message));
                     }
-                    
-                    // Remove the hediff using the stored references
-                    try
-                    {
-                        Log.Message(string.Format("[SocialInteractions] Removing SI_Naked hediff from {0} and {1}", 
-                            initiator != null ? initiator.LabelShort : "NULL", 
-                            partner != null ? partner.LabelShort : "NULL"));
-                        
-                        if (initiator != null && initiator.health != null && initiator.health.hediffSet != null)
-                        {
-                            Log.Message(string.Format("[SocialInteractions] {0} has SI_Naked hediff before removal: {1}", 
-                                initiator.LabelShort, 
-                                initiator.health.hediffSet.HasHediff(HediffDef.Named("SI_Naked"))));
-                            
-                            Hediff hediff = initiator.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
-                            if (hediff != null)
-                            {
-                                initiator.health.RemoveHediff(hediff);
-                                Log.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", initiator.LabelShort));
-                            }
-                            else
-                            {
-                                Log.Message(string.Format("[SocialInteractions] No SI_Naked hediff found on {0}", initiator.LabelShort));
-                            }
-                        }
-                        
-                        if (partner != null && partner.health != null && partner.health.hediffSet != null)
-                        {
-                            Log.Message(string.Format("[SocialInteractions] {0} has SI_Naked hediff before removal: {1}", 
-                                partner.LabelShort, 
-                                partner.health.hediffSet.HasHediff(HediffDef.Named("SI_Naked"))));
-                            
-                            Hediff hediff = partner.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
-                            if (hediff != null)
-                            {
-                                partner.health.RemoveHediff(hediff);
-                                Log.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", partner.LabelShort));
-                            }
-                            else
-                            {
-                                Log.Message(string.Format("[SocialInteractions] No SI_Naked hediff found on {0}", partner.LabelShort));
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning(string.Format("[SocialInteractions] Exception removing SI_Naked hediff: {0}", ex.Message));
-                    }
 
                     ReadyForNextToil();
                 }
@@ -203,7 +137,7 @@ namespace SocialInteractions
                         FleckMaker.ThrowMetaIcon(initiator.Position, initiator.Map, FleckDefOf.Heart);
                         if (initiator.needs != null && initiator.needs.joy != null)
                         {
-                            initiator.needs.joy.GainJoy(0.001f, JoyKindDefOf.Social);
+                            initiator.needs.joy.GainJoy(0.01f, JoyKindDefOf.Social);
                         }
                     }
                     catch (Exception ex)
@@ -213,8 +147,43 @@ namespace SocialInteractions
                 }
             };
             lovinToil.defaultCompleteMode = ToilCompleteMode.Never;
-
             yield return lovinToil;
+
+            Toil cleanupToil = ToilMaker.MakeToil("CleanupToil");
+            cleanupToil.initAction = delegate
+            {
+                try
+                {
+                    SLog.Message(string.Format("[SocialInteractions] Removing SI_Naked hediff from {0} and {1}",
+                        initiator != null ? initiator.LabelShort : "NULL",
+                        partner != null ? partner.LabelShort : "NULL"));
+
+                    if (initiator != null && initiator.health != null && initiator.health.hediffSet != null)
+                    {
+                        Hediff hediff = initiator.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
+                        if (hediff != null)
+                        {
+                            initiator.health.RemoveHediff(hediff);
+                            SLog.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", initiator.LabelShort));
+                        }
+                    }
+
+                    if (partner != null && partner.health != null && partner.health.hediffSet != null)
+                    {
+                        Hediff hediff = partner.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
+                        if (hediff != null)
+                        {
+                            partner.health.RemoveHediff(hediff);
+                            SLog.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", partner.LabelShort));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(string.Format("[SocialInteractions] Exception removing SI_Naked hediff: {0}", ex.Message));
+                }
+            };
+            yield return cleanupToil;
         }
 
         public override Vector3 ForcedBodyOffset
@@ -226,16 +195,16 @@ namespace SocialInteractions
                 {
                     return Vector3.zero;
                 }
-                
+
                 float num = Mathf.Sin((float)ticksLeft / 60f * 8f);
                 Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
-                
+
                 // If we can't get the initiator, just return zero offset
                 if (initiator == null)
                 {
                     return Vector3.zero;
                 }
-                
+
                 if (pawn == initiator)
                 {
                     // Initiator bounces on X

@@ -28,7 +28,7 @@ namespace SocialInteractions
             }
             catch (Exception e)
             {
-                Log.Error("[SocialInteractions] Exception in PawnRenderer_GetDrawParms_Patch: " + e);
+                SLog.Error("[SocialInteractions] Exception in PawnRenderer_GetDrawParms_Patch: " + e);
             }
         }
     }

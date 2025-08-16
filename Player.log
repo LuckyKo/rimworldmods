@@ -11,30 +11,30 @@ Direct3D:
     VRAM:     11106 MB
     Driver:   32.0.15.6636
 Begin MonoManager ReloadAssembly
-- Loaded All Assemblies, in  0.128 seconds
+- Loaded All Assemblies, in  0.121 seconds
 - Finished resetting the current domain, in  0.001 seconds
 <RI> Initializing input.
 <RI> Input initialized.
 <RI> Initialized touch support.
 [PhysX] Initialized MultithreadedTaskDispatcher with 16 workers.
-UnloadTime: 0.875000 ms
+UnloadTime: 0.787800 ms
 RimWorld 1.6.4518 rev84
 Mod  is missing supported versions list in About.xml! (example: <supportedVersions><li>1.0</li></supportedVersions>)
 Mod vanillahairexpanded is missing packageId in About.xml! (example: <packageId>AuthorName.ModName.Specific</packageId>)
-Fallback handler could not load library M:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/MonoBleedingEdge/data-00000254F92E2500.dll
-Fallback handler could not load library M:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/MonoBleedingEdge/data-00000254F94E31C0.dll
+Fallback handler could not load library M:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/MonoBleedingEdge/data-0000013C40F84620.dll
+Fallback handler could not load library M:/Games/Rimworld.v1.6.4518/Rimworld/RimWorldWin64_Data/MonoBleedingEdge/data-0000013C41251E90.dll
 Unloading 5 Unused Serialized files (Serialized files now loaded: 5)
 MVCF successfully applied 0 patches
 Unloading 99 unused Assets to reduce memory usage. Loaded Objects now: 31715.
-Total: 302.324700 ms (FindLiveObjects: 1.763600 ms CreateObjectMapping: 3.411300 ms MarkObjects: 296.789800 ms  DeleteObjects: 0.359600 ms)
+Total: 400.121000 ms (FindLiveObjects: 2.100900 ms CreateObjectMapping: 4.479800 ms MarkObjects: 392.734200 ms  DeleteObjects: 0.805800 ms)
 
 Unloading 3 Unused Serialized files (Serialized files now loaded: 5)
 [PhysX] Initialized MultithreadedTaskDispatcher with 16 workers.
-UnloadTime: 0.757000 ms
+UnloadTime: 0.998200 ms
 Unloading 2 unused Assets to reduce memory usage. Loaded Objects now: 31911.
-Total: 212.161500 ms (FindLiveObjects: 1.430900 ms CreateObjectMapping: 2.322300 ms MarkObjects: 208.357200 ms  DeleteObjects: 0.051000 ms)
+Total: 221.858400 ms (FindLiveObjects: 1.325300 ms CreateObjectMapping: 2.223100 ms MarkObjects: 218.244900 ms  DeleteObjects: 0.065000 ms)
 
-Loading game from file tmp with mods:
+Loading game from file test with mods:
   - brrainz.harmony
   - Ludeon.RimWorld
   - Ludeon.RimWorld.Royalty
@@ -49,196 +49,30 @@ Loading game from file tmp with mods:
   - Xeva.XevaFBpack.11
   - Gemini.SocialInteractions
 Unloading 1 Unused Serialized files (Serialized files now loaded: 5)
-Unloading 1 unused Assets to reduce memory usage. Loaded Objects now: 39639.
-Total: 395.472000 ms (FindLiveObjects: 1.713300 ms CreateObjectMapping: 3.028400 ms MarkObjects: 390.652100 ms  DeleteObjects: 0.078100 ms)
+Unloading 1 unused Assets to reduce memory usage. Loaded Objects now: 40746.
+Total: 403.464100 ms (FindLiveObjects: 1.909800 ms CreateObjectMapping: 3.149900 ms MarkObjects: 398.311200 ms  DeleteObjects: 0.093000 ms)
 
 [SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
 [SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
 [SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: DeepTalk
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: DeepTalk
-[SocialInteractions] IsLlmInteractionEnabled called for: DeepTalk
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: DeepTalk
-[SocialInteractions] IsLlmInteractionEnabled called for: Slight
 [SocialInteractions] HandleNonStoppingInteraction called for: Lovin. preventSpam: True, isLlmBusy: False
 [SocialInteractions] GenerateDeepTalkPrompt: isEnabled for Lovin: True
-[SocialInteractions] JoyGiver_GoOnDate: TryGiveJob called for pawn Manu.
-[SocialInteractions] JoyGiver_GoOnDate: Updated last attempt tick for pawn Manu.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Searching for partner for pawn Manu.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found 20 pawns on map.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Checking pawn Tom. IsRelated: False, Opinion: 39
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Tom is a potential partner for Manu. IsRelated: False, Opinion: 39
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found partner Tom for pawn Manu.
-[SocialInteractions] JoyGiver_GoOnDate: All checks passed for pawn Manu and partner Tom. Creating GoOnDate job.
-[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations for Manu to date Tom.
-[SocialInteractions] JobDriver_GoOnDate: Starting job for Manu to date Tom.
+[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
 [SocialInteractions] JoyGiver_GoOnDate: TryGiveJob called for pawn Nonna.
 [SocialInteractions] JoyGiver_GoOnDate: Updated last attempt tick for pawn Nonna.
 [SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Searching for partner for pawn Nonna.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found 20 pawns on map.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Checking pawn Tom. IsRelated: False, Opinion: 8
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Tom is not a lover/fiance/spouse and opinion (8) is not > 10.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Checking pawn Stepan. IsRelated: False, Opinion: 7
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Stepan is not a lover/fiance/spouse and opinion (7) is not > 10.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Cleansweeper 1 is not a colonist.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Lifter 1 is not a colonist.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Jack is in bed.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Lifter 4 is not a colonist.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Matt is not a colonist.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Constructoid 1 is not a colonist.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Checking pawn Hilda. IsRelated: False, Opinion: 13
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Hilda is a potential partner for Nonna. IsRelated: False, Opinion: 13
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found partner Hilda for pawn Nonna.
-[SocialInteractions] JoyGiver_GoOnDate: All checks passed for pawn Nonna and partner Hilda. Creating GoOnDate job.
-[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations for Nonna to date Hilda.
-[SocialInteractions] JobDriver_GoOnDate: Starting job for Nonna to date Hilda.
-[SocialInteractions] JobDriver_GoOnDate: Aborting job. Recipient Hilda is too far from initiator Nonna. Distance: 135, Max Distance: 50
-[SocialInteractions] JobDriver_GoOnDate: Calculating acceptance chance for Manu asking Tom. Base: 0.5, Opinion: 34, Final: 0.67
-[SocialInteractions] JobDriver_GoOnDate: Acceptance roll for Manu asking Tom. Rolled: 0.7153479, Chance: 0.67, Accepted: True
-[SocialInteractions] JobDriver_GoOnDate: Date accepted between Manu and Tom.
-[SocialInteractions] DatingManager.StartDate called for Initiator: Manu, Partner: Tom
-[SocialInteractions] Starting date between Manu and Tom.
-[SocialInteractions] JobDriver_GoOnDate: findSpotAndAssign initAction called for pawn Manu.
-[SocialInteractions] DatingManager.FindJoySpotFor called for Manu and Tom.
-[SocialInteractions] DatingManager.FindJoySpotFor: Found 9 suitable joy givers.
-[SocialInteractions] FindJoySpotFor: Found joy spot wooden horseshoes pin at (171, 0, 177) with interaction cell (171, 0, 178).
-[SocialInteractions] FindJoySpotFor: Found joy spot wooden billiards table (normal) at (180, 0, 160) with interaction cell (178, 0, 158).
-[SocialInteractions] FindJoySpotFor: Found joy spot marble Game-of-Ur board (normal) at (151, 0, 160) with interaction cell (151, 0, 161).
-[SocialInteractions] FindJoySpotFor: Found joy spot wooden poker table (normal) at (181, 0, 164) with interaction cell (180, 0, 163).
-[SocialInteractions] FindJoySpotFor: Found joy spot megascreen television at (178, 0, 164) with interaction cell (178, 0, 162).
-[SocialInteractions] FindJoySpotFor: Found joy spot telescope at (157, 0, 148) with interaction cell (157, 0, 147).
-[SocialInteractions] FindJoySpotFor: Found joy spot harp (excellent) at (175, 0, 171) with interaction cell (175, 0, 172).
-[SocialInteractions] FindJoySpotFor: Found joy spot harpsichord (good) at (175, 0, 174) with interaction cell (173, 0, 174).
-[SocialInteractions] DatingManager.FindJoySpotFor: Returning 8 joy spots.
-[SocialInteractions] HandleNonStoppingInteraction called for: DateAccepted. preventSpam: True, isLlmBusy: False
-[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for DateAccepted: True
-[SocialInteractions] JobDriver_FollowAndWatch: Tom starting path to initiator Manu at (160, 0, 172).
-[SocialInteractions] JobDriver_FollowAndWatch: follow toil finished for Tom.
-[SocialInteractions] JobDriver_FollowAndWatch: Starting watch toil.
-[SocialInteractions] Failed to add Authorization header. API Key Length: 4, API Key Preview (first 10 chars): '1234'. Error: One of the identified items was in an invalid format.
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] JobDriver_GoOnDate: doJoy init for Manu.
-[SocialInteractions] JoyGiver_GoOnDate: TryGiveJob called for pawn Briggs.
-[SocialInteractions] JoyGiver_GoOnDate: Updated last attempt tick for pawn Briggs.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Searching for partner for pawn Briggs.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found 20 pawns on map.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Tom is already on a date.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Checking pawn Stepan. IsRelated: False, Opinion: 47
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Stepan is a potential partner for Briggs. IsRelated: False, Opinion: 47
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found partner Stepan for pawn Briggs.
-[SocialInteractions] JoyGiver_GoOnDate: All checks passed for pawn Briggs and partner Stepan. Creating GoOnDate job.
-[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations for Briggs to date Stepan.
-[SocialInteractions] JobDriver_GoOnDate: Starting job for Briggs to date Stepan.
-[SocialInteractions] JobDriver_GoOnDate: Calculating acceptance chance for Briggs asking Stepan. Base: 0.5, Opinion: 30, Final: 0.65
-[SocialInteractions] JobDriver_GoOnDate: Acceptance roll for Briggs asking Stepan. Rolled: 0.7187113, Chance: 0.65, Accepted: False
-[SocialInteractions] JobDriver_GoOnDate: Date rejected between Briggs and Stepan.
+[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found 21 pawns on map.
+[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Checking pawn Stepan. IsRelated: False, Opinion: 5
+[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Stepan is not a lover/fiance/spouse and opinion (5) is not > 10.
+[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Checking pawn Jolt. IsRelated: False, Opinion: 15
+[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Jolt is a potential partner for Nonna. IsRelated: False, Opinion: 15
+[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found partner Jolt for pawn Nonna.
+[SocialInteractions] JoyGiver_GoOnDate: All checks passed for pawn Nonna and partner Jolt. Creating GoOnDate job.
+[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations for Nonna to date Jolt.
+[SocialInteractions] JobDriver_GoOnDate: Starting job for Nonna to date Jolt.
+[SocialInteractions] JobDriver_GoOnDate: Calculating acceptance chance for Nonna asking Jolt. Base: 0.5, Opinion: 0, Final: 0.5
+[SocialInteractions] JobDriver_GoOnDate: Acceptance roll for Nonna asking Jolt. Rolled: 0.3840739, Chance: 0.5, Accepted: False
+[SocialInteractions] JobDriver_GoOnDate: Date rejected between Nonna and Jolt.
 [SocialInteractions] IsLlmInteractionEnabled called for: DateRejected
 [SocialInteractions] HandleNonStoppingInteraction called for: DateRejected. preventSpam: True, isLlmBusy: True
 [SocialInteractions] HandleNonStoppingInteraction called for: DateRejected. preventSpam: True, isLlmBusy: True
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] JobDriver_GoOnDate: Max duration (1244 ticks) passed. Advancing to next stage.
-[SocialInteractions] JobDriver_GoOnDate: advanceDate toil initAction STARTING.
-[SocialInteractions] AdvanceDateStage: Advancing date stage for Manu and Tom. New stage: Lovin
-[SocialInteractions] HandleDateStage: Handling date stage Lovin for Manu and Tom
-[SocialInteractions] TransitionToLovin: Attempting to transition date for Manu and Tom to Lovin stage.
-[SocialInteractions] TransitionToLovin: Ending partner's (Tom) FollowAndWatch job.
-[SocialInteractions] JobDriver_FollowAndWatch: Job finished for pawn Tom.
-[SocialInteractions] FindSuitableBedForLovin: Searching for bed for Manu and Tom.
-[SocialInteractions] FindSuitableBedForLovin: Lovin chance calculation: base(0.75) * (opinion(0.46565) + mood(1))/2 * slc(2.3) = 1.264123
-[SocialInteractions] FindSuitableBedForLovin: Lovin chance succeeded.
-[SocialInteractions] FindSuitableBedForLovin: Found 27 colonist beds on map.
-[SocialInteractions] FindSuitableBedForLovin: Found 5 beds that are reachable and have enough slots.
-[SocialInteractions] FindSuitableBedForLovin: Found bed owned by initiator or partner: granite double bed (normal).
-[SocialInteractions] TransitionToLovin: Found suitable bed granite double bed (normal) at (161, 0, 178). Assigning lovin' jobs.
-[SocialInteractions] TransitionToLovin: Started DateLovin job for initiator Manu.
-[SocialInteractions] TransitionToLovin: Started DateLovin job for partner Tom.
-[SocialInteractions] HandleNonStoppingInteraction called for: DateLovin. preventSpam: True, isLlmBusy: True
-[SocialInteractions] JobDriver_GoOnDate: advanceDate toil initAction FINISHED.
-[SocialInteractions] IsLlmInteractionEnabled called for: DeepTalk
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] JoyGiver_GoOnDate: TryGiveJob called for pawn Kiki.
-[SocialInteractions] JoyGiver_GoOnDate: Updated last attempt tick for pawn Kiki.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Searching for partner for pawn Kiki.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found 20 pawns on map.
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Tom is already on a date.
-[SocialInteractions] IsOnDateCooldown check for Stepan: Found expiry tick 42078258. Current tick: 42081392. On cooldown: False
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Checking pawn Stepan. IsRelated: True, Opinion: 62
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn Stepan is a potential partner for Kiki. IsRelated: True, Opinion: 62
-[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found partner Stepan for pawn Kiki.
-[SocialInteractions] JoyGiver_GoOnDate: All checks passed for pawn Kiki and partner Stepan. Creating GoOnDate job.
-[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations for Kiki to date Stepan.
-[SocialInteractions] JobDriver_GoOnDate: Starting job for Kiki to date Stepan.
-[SocialInteractions] AdvanceDateStage: Advancing date stage for Manu and Tom. New stage: Finished
-[SocialInteractions] HandleDateStage: Handling date stage Finished for Manu and Tom
-[SocialInteractions] Ending date for Manu and Tom.
-[SocialInteractions] Ending DateLovin job for initiator Manu.
-[SocialInteractions] Ending DateLovin job for partner Tom.
-Can't gain social thought GotSomeLovin because its otherPawn is null and otherPawn passed to this method is also null. Social thoughts must have otherPawn.
-Pawn Tom threw exception while executing toil unnamed's finish action (0), jobDriver=SocialInteractions.JobDriver_DateLovin, job= (Job_-1), toilIndex=1: System.NullReferenceException: Object reference not set to an instance of an object
-[Ref 156A0F61]
-  at SocialInteractions.JobDriver_DateLovin.<MakeNewToils>b__3 () [0x0013c] in <69cc07cf723745488bf11c98e95021bc>:0 
-  at Verse.AI.Toil.Cleanup (System.Int32 myIndex, Verse.AI.JobDriver jobDriver) [0x0001f] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-Exception in JobDriver fixed tick for pawn Tom driver=JobDriver_DateLovin (toilIndex=1) driver.job=( (Job_-1))
-System.NullReferenceException: Object reference not set to an instance of an object
-[Ref F616C4B5]
-  at Verse.AI.Toil.Cleanup (System.Int32 myIndex, Verse.AI.JobDriver jobDriver) [0x000b1] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-  at Verse.AI.JobDriver.TryActuallyStartNextToil () [0x00045] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-  at Verse.AI.JobDriver.ReadyForNextToil () [0x00007] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-  at Verse.AI.JobDriver.DriverTick () [0x00086] in <fcfab19af5d14a608a65ebd77f29482f>:0 
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] IsLlmInteractionEnabled called for: Chitchat
-[SocialInteractions] JobDriver_GoOnDate: Calculating acceptance chance for Kiki asking Stepan. Base: 0.5, Opinion: 71, Final: 0.855
-[SocialInteractions] JobDriver_GoOnDate: Acceptance roll for Kiki asking Stepan. Rolled: 0.5495105, Chance: 0.855, Accepted: True
-[SocialInteractions] JobDriver_GoOnDate: Date accepted between Kiki and Stepan.
-[SocialInteractions] DatingManager.StartDate called for Initiator: Kiki, Partner: Stepan
-[SocialInteractions] Starting date between Kiki and Stepan.
-[SocialInteractions] JobDriver_GoOnDate: findSpotAndAssign initAction called for pawn Kiki.
-[SocialInteractions] DatingManager.FindJoySpotFor called for Kiki and Stepan.
-[SocialInteractions] DatingManager.FindJoySpotFor: Found 9 suitable joy givers.
-[SocialInteractions] FindJoySpotFor: Found joy spot wooden horseshoes pin at (171, 0, 177) with interaction cell (171, 0, 178).
-[SocialInteractions] FindJoySpotFor: Found joy spot wooden billiards table (normal) at (180, 0, 160) with interaction cell (178, 0, 158).
-[SocialInteractions] FindJoySpotFor: Found joy spot wooden chess table (poor) at (150, 0, 158) with interaction cell (150, 0, 159).
-[SocialInteractions] FindJoySpotFor: Found joy spot wooden poker table (normal) at (181, 0, 164) with interaction cell (180, 0, 163).
-[SocialInteractions] FindJoySpotFor: Found joy spot megascreen television at (178, 0, 164) with interaction cell (178, 0, 162).
-[SocialInteractions] FindJoySpotFor: Found joy spot telescope at (157, 0, 148) with interaction cell (157, 0, 147).
-[SocialInteractions] FindJoySpotFor: Found joy spot harp (excellent) at (175, 0, 171) with interaction cell (175, 0, 172).
-[SocialInteractions] FindJoySpotFor: Found joy spot harpsichord (good) at (175, 0, 174) with interaction cell (173, 0, 174).
-[SocialInteractions] DatingManager.FindJoySpotFor: Returning 8 joy spots.
-[SocialInteractions] HandleNonStoppingInteraction called for: DateAccepted. preventSpam: True, isLlmBusy: True
-[SocialInteractions] JobDriver_FollowAndWatch: Stepan starting path to initiator Kiki at (164, 0, 147).
-[SocialInteractions] JobDriver_FollowAndWatch: follow toil finished for Stepan.
-[SocialInteractions] JobDriver_FollowAndWatch: Starting watch toil.

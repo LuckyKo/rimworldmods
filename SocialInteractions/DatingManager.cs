@@ -72,10 +72,10 @@ namespace SocialInteractions
             lock (datesLock)
             {
                 if (initiator == null || partner == null) return;
-                Log.Message(string.Format("[SocialInteractions] DatingManager.StartDate called for Initiator: {0}, Partner: {1}", initiator.Name.ToStringShort, partner.Name.ToStringShort));
+                SLog.Message(string.Format("[SocialInteractions] DatingManager.StartDate called for Initiator: {0}, Partner: {1}", initiator.Name.ToStringShort, partner.Name.ToStringShort));
                 if (!IsOnDate(initiator) && !IsOnDate(partner))
                 {
-                    Log.Message(string.Format("[SocialInteractions] Starting date between {0} and {1}.", initiator.Name.ToStringShort, partner.Name.ToStringShort));
+                    SLog.Message(string.Format("[SocialInteractions] Starting date between {0} and {1}.", initiator.Name.ToStringShort, partner.Name.ToStringShort));
                     HediffDef onDateHediffDef = HediffDef.Named("OnDate");
                     if (onDateHediffDef != null)
                     {
@@ -86,7 +86,7 @@ namespace SocialInteractions
                 }
                 else
                 {
-                    Log.Message(string.Format("[SocialInteractions] DatingManager.StartDate: Not starting date because one or both pawns are already on a date. Initiator: {0} (OnDate: {1}), Partner: {2} (OnDate: {3})", initiator.Name.ToStringShort, IsOnDate(initiator), partner.Name.ToStringShort, IsOnDate(partner)));
+                    SLog.Message(string.Format("[SocialInteractions] DatingManager.StartDate: Not starting date because one or both pawns are already on a date. Initiator: {0} (OnDate: {1}), Partner: {2} (OnDate: {3})", initiator.Name.ToStringShort, IsOnDate(initiator), partner.Name.ToStringShort, IsOnDate(partner)));
                 }
             }
         }
@@ -131,27 +131,27 @@ namespace SocialInteractions
             {
                 if (date == null) 
                 {
-                    Log.Warning("[SocialInteractions] DatingManager.EndDate called with null date.");
+                    SLog.Warning("[SocialInteractions] DatingManager.EndDate called with null date.");
                     return; 
                 }
 
                 // Add null checks for initiator and partner
                 if (date.Initiator == null && date.Partner == null)
                 {
-                    Log.Warning("[SocialInteractions] DatingManager.EndDate called with date that has null initiator and partner.");
+                    SLog.Warning("[SocialInteractions] DatingManager.EndDate called with date that has null initiator and partner.");
                     return;
                 }
 
                 string initiatorLabel = (date.Initiator != null) ? date.Initiator.LabelShort : "NULL";
                 string partnerLabel = (date.Partner != null) ? date.Partner.LabelShort : "NULL";
                 
-                Log.Message(string.Format("[SocialInteractions] Ending date for {0} and {1}.", initiatorLabel, partnerLabel));
+                SLog.Message(string.Format("[SocialInteractions] Ending date for {0} and {1}.", initiatorLabel, partnerLabel));
 
                 // Remove the date from the list first to prevent race conditions
                 if (!dates.Remove(date))
                 {
                     // If the date was already removed, do nothing further.
-                    Log.Message(string.Format("[SocialInteractions] Date for {0} and {1} was already removed.", initiatorLabel, partnerLabel));
+                    SLog.Message(string.Format("[SocialInteractions] Date for {0} and {1} was already removed.", initiatorLabel, partnerLabel));
                     return;
                 }
 
@@ -166,26 +166,26 @@ namespace SocialInteractions
                 JobDef dateLovinJobDef = SI_JobDefOf.DateLovin;
                 if (date.Initiator != null && date.Initiator.jobs != null && date.Initiator.CurJobDef == dateLovinJobDef)
                 {
-                    Log.Message(string.Format("[SocialInteractions] Ending DateLovin job for initiator {0}.", initiatorLabel));
+                    SLog.Message(string.Format("[SocialInteractions] Ending DateLovin job for initiator {0}.", initiatorLabel));
                     try
                     {
                         date.Initiator.jobs.EndCurrentJob(JobCondition.Succeeded);
                     }
                     catch (Exception ex)
                     {
-                        Log.Warning(string.Format("[SocialInteractions] Exception ending DateLovin job for initiator {0}: {1}", initiatorLabel, ex.Message));
+                        SLog.Warning(string.Format("[SocialInteractions] Exception ending DateLovin job for initiator {0}: {1}", initiatorLabel, ex.Message));
                     }
                 }
                 if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == dateLovinJobDef)
                 {
-                    Log.Message(string.Format("[SocialInteractions] Ending DateLovin job for partner {0}.", partnerLabel));
+                    SLog.Message(string.Format("[SocialInteractions] Ending DateLovin job for partner {0}.", partnerLabel));
                     try
                     {
                         date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
                     }
                     catch (Exception ex)
                     {
-                        Log.Warning(string.Format("[SocialInteractions] Exception ending DateLovin job for partner {0}: {1}", partnerLabel, ex.Message));
+                        SLog.Warning(string.Format("[SocialInteractions] Exception ending DateLovin job for partner {0}: {1}", partnerLabel, ex.Message));
                     }
                 }
 
@@ -202,7 +202,7 @@ namespace SocialInteractions
                         }
                         catch (Exception ex)
                         {
-                            Log.Warning(string.Format("[SocialInteractions] Exception removing OnDate hediff from initiator {0}: {1}", initiatorLabel, ex.Message));
+                            SLog.Warning(string.Format("[SocialInteractions] Exception removing OnDate hediff from initiator {0}: {1}", initiatorLabel, ex.Message));
                         }
                     }
 
@@ -215,7 +215,7 @@ namespace SocialInteractions
                         }
                         catch (Exception ex)
                         {
-                            Log.Warning(string.Format("[SocialInteractions] Exception removing OnDate hediff from partner {0}: {1}", partnerLabel, ex.Message));
+                            SLog.Warning(string.Format("[SocialInteractions] Exception removing OnDate hediff from partner {0}: {1}", partnerLabel, ex.Message));
                         }
                     }
                 }
@@ -232,14 +232,14 @@ namespace SocialInteractions
             if (pawn == null) 
             {
                 // Only log in debug mode or remove entirely
-                // Log.Message("[SocialInteractions] DatingManager.IsOnDate: Pawn is null, returning false.");
+                // SLog.Message("[SocialInteractions] DatingManager.IsOnDate: Pawn is null, returning false.");
                 return false;
             }
             
             if (pawn.health == null || pawn.health.hediffSet == null) 
             {
                 // Only log in debug mode or remove entirely
-                // Log.Message(string.Format("[SocialInteractions] DatingManager.IsOnDate: Pawn {0} has no health or hediffSet, returning false.", pawn.Name.ToStringShort));
+                // SLog.Message(string.Format("[SocialInteractions] DatingManager.IsOnDate: Pawn {0} has no health or hediffSet, returning false.", pawn.Name.ToStringShort));
                 return false;
             }
             
@@ -247,13 +247,13 @@ namespace SocialInteractions
             if (onDateDef == null) 
             {
                 // Only log in debug mode or remove entirely
-                // Log.Message("[SocialInteractions] DatingManager.IsOnDate: OnDate hediff def is null, returning false.");
+                // SLog.Message("[SocialInteractions] DatingManager.IsOnDate: OnDate hediff def is null, returning false.");
                 return false;
             }
             
             bool hasHediff = pawn.health.hediffSet.HasHediff(onDateDef);
             // Only log in debug mode or remove entirely
-            // Log.Message(string.Format("[SocialInteractions] DatingManager.IsOnDate: Pawn {0} has OnDate hediff: {1}", pawn.Name.ToStringShort, hasHediff));
+            // SLog.Message(string.Format("[SocialInteractions] DatingManager.IsOnDate: Pawn {0} has OnDate hediff: {1}", pawn.Name.ToStringShort, hasHediff));
             return hasHediff;
         }
 
@@ -302,7 +302,7 @@ namespace SocialInteractions
                 if (dateCooldowns.TryGetValue(pawn.thingIDNumber, out expiryTick))
                 {
                     bool onCooldown = Find.TickManager.TicksGame < expiryTick;
-                    Log.Message(string.Format("[SocialInteractions] IsOnDateCooldown check for {0}: Found expiry tick {1}. Current tick: {2}. On cooldown: {3}", pawn.LabelShort, expiryTick, Find.TickManager.TicksGame, onCooldown));
+                    SLog.Message(string.Format("[SocialInteractions] IsOnDateCooldown check for {0}: Found expiry tick {1}. Current tick: {2}. On cooldown: {3}", pawn.LabelShort, expiryTick, Find.TickManager.TicksGame, onCooldown));
                     if (onCooldown)
                     {
                         return true;
@@ -339,7 +339,7 @@ namespace SocialInteractions
                 
                 if (expiredKeys.Count > 0)
                 {
-                    Log.Message(string.Format("[SocialInteractions] Cleaned up {0} expired date cooldowns", expiredKeys.Count));
+                    SLog.Message(string.Format("[SocialInteractions] Cleaned up {0} expired date cooldowns", expiredKeys.Count));
                 }
             }
         }
@@ -363,7 +363,7 @@ namespace SocialInteractions
                     // If we can't find a valid initiator or the initiator is not doing the GoOnDate job, advance the date
                     if (initiator == null || initiator.jobs == null || initiator.CurJob == null || (initiator.CurJobDef != goOnDateJobDef && initiator.CurJobDef != SI_JobDefOf.DateLovin))
                     {
-                        Log.Message(string.Format("[SocialInteractions] Found stuck date for pawn {0}, advancing stage.", pawn.Name.ToStringShort));
+                        SLog.Message(string.Format("[SocialInteractions] Found stuck date for pawn {0}, advancing stage.", pawn.Name.ToStringShort));
                         AdvanceDateStage(pawn);
                     }
                 }
@@ -380,14 +380,14 @@ namespace SocialInteractions
                 {
                     if (date.Stage == DateStage.Finished) 
                     {
-                        Log.Message(string.Format("[SocialInteractions] AdvanceDateStage: Date for {0} and {1} is already finished. No action taken.", 
+                        SLog.Message(string.Format("[SocialInteractions] AdvanceDateStage: Date for {0} and {1} is already finished. No action taken.", 
                             date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
                             date.Partner != null ? date.Partner.LabelShort : "NULL"));
                         return;
                     }
 
                     date.Stage++;
-                    Log.Message(string.Format("[SocialInteractions] AdvanceDateStage: Advancing date stage for {0} and {1}. New stage: {2}", 
+                    SLog.Message(string.Format("[SocialInteractions] AdvanceDateStage: Advancing date stage for {0} and {1}. New stage: {2}", 
                         date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
                         date.Partner != null ? date.Partner.LabelShort : "NULL", 
                         date.Stage));
@@ -395,14 +395,14 @@ namespace SocialInteractions
                 }
                 else
                 {
-                    Log.Warning(string.Format("[SocialInteractions] AdvanceDateStage: Called for pawn {0} who is not on a date.", pawn.LabelShort));
+                    SLog.Warning(string.Format("[SocialInteractions] AdvanceDateStage: Called for pawn {0} who is not on a date.", pawn.LabelShort));
                 }
             }
         }
 
         private static void HandleDateStage(Date date)
         {
-            Log.Message(string.Format("[SocialInteractions] HandleDateStage: Handling date stage {0} for {1} and {2}", date.Stage, date.Initiator.LabelShort, date.Partner.LabelShort));
+            SLog.Message(string.Format("[SocialInteractions] HandleDateStage: Handling date stage {0} for {1} and {2}", date.Stage, date.Initiator.LabelShort, date.Partner.LabelShort));
             switch (date.Stage)
             {
                 case DateStage.Lovin:
@@ -416,18 +416,18 @@ namespace SocialInteractions
 
         private static void TransitionToLovin(Date date)
         {
-            Log.Message(string.Format("[SocialInteractions] TransitionToLovin: Attempting to transition date for {0} and {1} to Lovin stage.", date.Initiator.LabelShort, date.Partner.LabelShort));
+            SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Attempting to transition date for {0} and {1} to Lovin stage.", date.Initiator.LabelShort, date.Partner.LabelShort));
 
             if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == SI_JobDefOf.FollowAndWatchInitiator)
             {
-                Log.Message(string.Format("[SocialInteractions] TransitionToLovin: Ending partner's ({0}) FollowAndWatch job.", date.Partner.LabelShort));
+                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Ending partner's ({0}) FollowAndWatch job.", date.Partner.LabelShort));
                 date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
             }
 
             Building_Bed bed = FindSuitableBedForLovin(date.Initiator, date.Partner);
             if (bed != null)
             {
-                Log.Message(string.Format("[SocialInteractions] TransitionToLovin: Found suitable bed {0} at {1}. Assigning lovin' jobs.", bed.LabelShort, bed.Position));
+                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Found suitable bed {0} at {1}. Assigning lovin' jobs.", bed.LabelShort, bed.Position));
 
                 // End any existing jobs that might interfere
                 if (date.Initiator != null && date.Initiator.jobs != null) date.Initiator.jobs.EndCurrentJob(JobCondition.InterruptForced, false);
@@ -437,17 +437,17 @@ namespace SocialInteractions
                 // This allows spouses to potentially catch them in the act
                 Job lovinJobInitiator = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Partner, bed.Position);
                 date.Initiator.jobs.StartJob(lovinJobInitiator, JobCondition.InterruptForced);
-                Log.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for initiator {0}.", date.Initiator.LabelShort));
+                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for initiator {0}.", date.Initiator.LabelShort));
 
                 Job lovinJobPartner = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Initiator, bed.Position);
                 date.Partner.jobs.StartJob(lovinJobPartner, JobCondition.InterruptForced);
-                Log.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for partner {0}.", date.Partner.LabelShort));
+                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for partner {0}.", date.Partner.LabelShort));
 
                 SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, "");
             }
             else
             {
-                Log.Warning(string.Format("[SocialInteractions] TransitionToLovin: No suitable bed found. Ending date for {0} and {1}.", date.Initiator.LabelShort, date.Partner.LabelShort));
+                SLog.Warning(string.Format("[SocialInteractions] TransitionToLovin: No suitable bed found. Ending date for {0} and {1}.", date.Initiator.LabelShort, date.Partner.LabelShort));
                 date.Stage = DateStage.Finished;
                 HandleDateStage(date);
             }
@@ -455,10 +455,10 @@ namespace SocialInteractions
 
         private static Building_Bed FindSuitableBedForLovin(Pawn initiator, Pawn partner)
         {
-            Log.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Searching for bed for {0} and {1}.", initiator.LabelShort, partner.LabelShort));
+            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Searching for bed for {0} and {1}.", initiator.LabelShort, partner.LabelShort));
             if (initiator == null || initiator.Map == null || partner == null) 
             {
-                Log.Error("[SocialInteractions] FindSuitableBedForLovin: Initiator, Partner, or Map is null.");
+                SLog.Error("[SocialInteractions] FindSuitableBedForLovin: Initiator, Partner, or Map is null.");
                 return null;
             }
 
@@ -468,35 +468,35 @@ namespace SocialInteractions
             float moodFactor = (initiator.needs.mood.CurLevel + partner.needs.mood.CurLevel) / 2f;
             float slcFactor = initiator.relations.SecondaryLovinChanceFactor(partner) * partner.relations.SecondaryLovinChanceFactor(initiator);
             float finalChance = baseChance * ((opinionFactor + moodFactor) / 2f) * slcFactor;
-            Log.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance calculation: base({0}) * (opinion({1}) + mood({2}))/2 * slc({3}) = {4}", baseChance, opinionFactor, moodFactor, slcFactor, finalChance));
+            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance calculation: base({0}) * (opinion({1}) + mood({2}))/2 * slc({3}) = {4}", baseChance, opinionFactor, moodFactor, slcFactor, finalChance));
 
             if (!Rand.Chance(finalChance))
             {
-                Log.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance failed. Rolled > {0}.", finalChance));
+                SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance failed. Rolled > {0}.", finalChance));
                 return null;
             }
-            Log.Message("[SocialInteractions] FindSuitableBedForLovin: Lovin chance succeeded.");
+            SLog.Message("[SocialInteractions] FindSuitableBedForLovin: Lovin chance succeeded.");
 
             var allBeds = initiator.Map.listerBuildings.AllBuildingsColonistOfClass<Building_Bed>().ToList();
-            Log.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} colonist beds on map.", allBeds.Count));
+            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} colonist beds on map.", allBeds.Count));
 
             var potentialBeds = allBeds.Where(bed =>
                 {
                     if (bed == null || bed.Destroyed || !bed.Spawned) return false;
                     // Remove the restriction on bed size since we're not actually laying in bed
-                    // if (bed.SleepingSlotsCount < 2) { /*Log.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Bed {0} has < 2 slots.", bed.LabelShort));*/ return false; }
-                    if (!initiator.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*Log.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Initiator cannot reserve/reach {0}.", bed.LabelShort));*/ return false; }
-                    if (!partner.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*Log.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Partner cannot reserve/reach {0}.", bed.LabelShort));*/ return false; }
+                    // if (bed.SleepingSlotsCount < 2) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Bed {0} has < 2 slots.", bed.LabelShort));*/ return false; }
+                    if (!initiator.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Initiator cannot reserve/reach {0}.", bed.LabelShort));*/ return false; }
+                    if (!partner.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Partner cannot reserve/reach {0}.", bed.LabelShort));*/ return false; }
                     return true;
                 });
-            Log.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} beds that are reachable.", potentialBeds.Count()));
-            Log.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} beds that are reachable and have enough slots.", potentialBeds.Count()));
+            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} beds that are reachable.", potentialBeds.Count()));
+            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} beds that are reachable and have enough slots.", potentialBeds.Count()));
 
             // Prioritize owned beds
             Building_Bed ownedBed = potentialBeds.FirstOrDefault(b => b.OwnersForReading.Contains(initiator));
             if (ownedBed != null) 
             {
-                Log.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found bed owned by initiator: {0}.", ownedBed.LabelShort));
+                SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found bed owned by initiator: {0}.", ownedBed.LabelShort));
                 return ownedBed;
             }
 
@@ -504,18 +504,18 @@ namespace SocialInteractions
             Building_Bed anyBed = potentialBeds.FirstOrDefault();
             if (anyBed != null) 
             {
-                Log.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found available bed: {0}.", anyBed.LabelShort));
+                SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found available bed: {0}.", anyBed.LabelShort));
                 return anyBed;
             }
 
-            Log.Warning("[SocialInteractions] FindSuitableBedForLovin: No suitable bed found after all checks.");
+            SLog.Warning("[SocialInteractions] FindSuitableBedForLovin: No suitable bed found after all checks.");
             return null;
         }
 
         public static List<Tuple<Thing, JoyGiverDef, IntVec3>> FindJoySpotFor(Pawn pawn, Pawn partner)
         {
             if (pawn == null || partner == null) return new List<Tuple<Thing, JoyGiverDef, IntVec3>>();
-            Log.Message(string.Format("[SocialInteractions] DatingManager.FindJoySpotFor called for {0} and {1}.", pawn.Name.ToStringShort, partner.Name.ToStringShort));
+            SLog.Message(string.Format("[SocialInteractions] DatingManager.FindJoySpotFor called for {0} and {1}.", pawn.Name.ToStringShort, partner.Name.ToStringShort));
             List<Tuple<Thing, JoyGiverDef, IntVec3>> foundSpots = new List<Tuple<Thing, JoyGiverDef, IntVec3>>();
 
             // 1. Filter for suitable social JoyGiverDefs
@@ -547,7 +547,7 @@ namespace SocialInteractions
                     }
                     catch (Exception ex)
                     {
-                        Log.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception checking CanBeGivenTo for initiator on {0}: {1}", jg.defName, ex.Message));
+                        SLog.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception checking CanBeGivenTo for initiator on {0}: {1}", jg.defName, ex.Message));
                         continue;
                     }
 
@@ -557,7 +557,7 @@ namespace SocialInteractions
                     }
                     catch (Exception ex)
                     {
-                        Log.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception checking CanBeGivenTo for partner on {0}: {1}", jg.defName, ex.Message));
+                        SLog.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception checking CanBeGivenTo for partner on {0}: {1}", jg.defName, ex.Message));
                         continue;
                     }
                     
@@ -566,9 +566,9 @@ namespace SocialInteractions
             }
             catch (Exception ex)
             {
-                Log.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception during JoyGiverDef filtering: {0}", ex.Message));
+                SLog.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception during JoyGiverDef filtering: {0}", ex.Message));
             }
-            Log.Message(string.Format("[SocialInteractions] DatingManager.FindJoySpotFor: Found {0} suitable joy givers.", suitableJoyGivers.Count));
+            SLog.Message(string.Format("[SocialInteractions] DatingManager.FindJoySpotFor: Found {0} suitable joy givers.", suitableJoyGivers.Count));
 
             try
             {
@@ -622,14 +622,14 @@ namespace SocialInteractions
                                     // Only add to foundSpots if the edifice is the expected building and it's spawned.
                                     if (edifice != building || !building.Spawned)
                                     {
-                                        Log.Message(string.Format("[SocialInteractions] FindJoySpotFor: Excluding problematic building {0} at {1}. Edifice mismatch or not spawned. Edifice: {2}, Spawned: {3}", building.LabelShort, building.Position, edifice != null ? edifice.LabelShort : "NULL", building.Spawned));
+                                        SLog.Message(string.Format("[SocialInteractions] FindJoySpotFor: Excluding problematic building {0} at {1}. Edifice mismatch or not spawned. Edifice: {2}, Spawned: {3}", building.LabelShort, building.Position, edifice != null ? edifice.LabelShort : "NULL", building.Spawned));
                                         continue;
                                     }
                                     
                                     // Add explicit reservation check for the building itself
                                     if (!pawn.CanReserve(building) || !partner.CanReserve(building))
                                     {
-                                        Log.Message(string.Format("[SocialInteractions] FindJoySpotFor: Building {0} at {1} cannot be reserved by both pawns. Skipping.", building.LabelShort, building.Position));
+                                        SLog.Message(string.Format("[SocialInteractions] FindJoySpotFor: Building {0} at {1} cannot be reserved by both pawns. Skipping.", building.LabelShort, building.Position));
                                         continue; // Skip this building if it cannot be reserved
                                     }
 
@@ -665,20 +665,20 @@ namespace SocialInteractions
                                     if (interactionCell != IntVec3.Invalid)
                                     {
                                         foundSpots.Add(new Tuple<Thing, JoyGiverDef, IntVec3>(building, giver, interactionCell));
-                                        Log.Message(string.Format("[SocialInteractions] FindJoySpotFor: Found joy spot {0} at {1} with interaction cell {2}.", building.LabelShort, building.Position, interactionCell));
+                                        SLog.Message(string.Format("[SocialInteractions] FindJoySpotFor: Found joy spot {0} at {1} with interaction cell {2}.", building.LabelShort, building.Position, interactionCell));
                                     }
                                     else
                                     {
-                                        Log.Message(string.Format("[SocialInteractions] FindJoySpotFor: No suitable interaction cell found for building {0} at {1}.", building.LabelShort, building.Position));
+                                        SLog.Message(string.Format("[SocialInteractions] FindJoySpotFor: No suitable interaction cell found for building {0} at {1}.", building.LabelShort, building.Position));
                                     }
                                 }
                                 catch (IndexOutOfRangeException ex)
                                 {
-                                    Log.Error(string.Format("[SocialInteractions] FindJoySpotFor: Excluding problematic building {0} at {1} due to IndexOutOfRangeException in EdificeGrid: {2}", building.LabelShort, building.Position, ex.Message));
+                                    SLog.Error(string.Format("[SocialInteractions] FindJoySpotFor: Excluding problematic building {0} at {1} due to IndexOutOfRangeException in EdificeGrid: {2}", building.LabelShort, building.Position, ex.Message));
                                 }
                                 catch (Exception ex) // Catch other potential exceptions during access
                                 {
-                                    Log.Error(string.Format("[SocialInteractions] FindJoySpotFor: Excluding problematic building {0} at {1} due to unexpected exception during EdificeGrid access: {2}", building.LabelShort, building.Position, ex.Message));
+                                    SLog.Error(string.Format("[SocialInteractions] FindJoySpotFor: Excluding problematic building {0} at {1} due to unexpected exception during EdificeGrid access: {2}", building.LabelShort, building.Position, ex.Message));
                                 }
                             }
                         }
@@ -687,10 +687,10 @@ namespace SocialInteractions
             }
             catch (Exception ex)
             {
-                Log.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception during iteration through suitable JoyGiverDefs: {0}", ex.Message));
+                SLog.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception during iteration through suitable JoyGiverDefs: {0}", ex.Message));
             }
             
-            Log.Message(string.Format("[SocialInteractions] DatingManager.FindJoySpotFor: Returning {0} joy spots.", foundSpots.Count));
+            SLog.Message(string.Format("[SocialInteractions] DatingManager.FindJoySpotFor: Returning {0} joy spots.", foundSpots.Count));
             return foundSpots;
         }
 

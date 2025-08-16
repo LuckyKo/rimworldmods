@@ -25,12 +25,12 @@ namespace SocialInteractions
             harmony.PatchAll();
             
             // Log that patches were applied
-            Log.Message("[SocialInteractions] Harmony patches applied");
+            SLog.Message("[SocialInteractions] Harmony patches applied");
         }
 
         public static bool IsLlmInteractionEnabled(InteractionDef interactionDef)
         {
-            Log.Message(string.Format("[SocialInteractions] IsLlmInteractionEnabled called for: {0}", interactionDef.defName));
+            SLog.Message(string.Format("[SocialInteractions] IsLlmInteractionEnabled called for: {0}", interactionDef.defName));
             if (!Settings.llmInteractionsEnabled) return false;
 
             
@@ -89,7 +89,7 @@ namespace SocialInteractions
             else if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating) isEnabled = true;
 
-            Log.Message(string.Format("[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for {0}: {1}", interactionDef.defName, isEnabled));
+            SLog.Message(string.Format("[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for {0}: {1}", interactionDef.defName, isEnabled));
             if (!isEnabled)
             {
                 return null;
@@ -485,7 +485,7 @@ namespace SocialInteractions
 
         public static void HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
-            Log.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy));
+            SLog.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy));
             if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
 
             string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
@@ -594,12 +594,12 @@ namespace SocialInteractions
                 try
                 {
                     string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
-                    Log.Message(string.Format("[SocialInteractions] Generated prompt: {0}", prompt != null ? prompt.Substring(0, Math.Min(prompt.Length, 200)) : "NULL"));
+                    SLog.Message(string.Format("[SocialInteractions] Generated prompt: {0}", prompt != null ? prompt.Substring(0, Math.Min(prompt.Length, 200)) : "NULL"));
                     if (!string.IsNullOrEmpty(prompt))
                     {
                         client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
                         string llmResponse = await client.GenerateText(prompt);
-                        Log.Message(string.Format("[SocialInteractions] LLM Response: {0}", llmResponse != null ? llmResponse.Substring(0, Math.Min(llmResponse.Length, 200)) : "NULL"));
+                        SLog.Message(string.Format("[SocialInteractions] LLM Response: {0}", llmResponse != null ? llmResponse.Substring(0, Math.Min(llmResponse.Length, 200)) : "NULL"));
                         
                         if (llmResponse == null)
                         {
