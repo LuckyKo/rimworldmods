@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{97FA1308-3ED7-41D8-827D-0CC3A3291EE8}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>VanillaRacesExpandedHighmate</RootNamespace>
+    <AssemblyName>VanillaRacesExpandedHighmate</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <LangVersion>latest</LangVersion>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <OutputPath>..\Assemblies\</OutputPath>
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\Assemblies\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\Assemblies\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Krafs.Publicizer">
+      <Version>2.3.0</Version>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Lib.Harmony" Version="2.3.6">
+      <ExcludeAssets>runtime</ExcludeAssets>
+      <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <Publicize Include="Assembly-CSharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Abilities\CompAbilityEffect_InitiateLovin.cs" />
+    <Compile Include="Abilities\Properties\CompProperties_InitiateLovin.cs" />
+    <Compile Include="AI\JobDrivers\JobDriver_InitiateLovin.cs" />
+    <Compile Include="Alerts\Alert_PawnsNeedLovin.cs" />
+    <Compile Include="DefOfs\InternalDefOf.cs" />
+    <Compile Include="Enums\LovinNeedCategory.cs" />
+    <Compile Include="GameComponents\GameComponent_DistressedTraitSaver.cs" />
+    <Compile Include="Harmony\AttackTargetFinder_NonCombatantScore.cs" />
+    <Compile Include="Harmony\Gene_Notify_PawnDied.cs" />
+    <Compile Include="Harmony\HarmonyInstance.cs" />
+    <Compile Include="Harmony\PawnRenderNodeWorker_Apparel_Body_CanDrawNow.cs" />
+    <Compile Include="Harmony\PawnRenderNodeWorker_Apparel_Head_HeadgearVisible.cs" />
+    <Compile Include="Harmony\Pawn_RoyaltyTracker_OnPostTitleChanged.cs" />
+    <Compile Include="Harmony\PregnancyApproachData.cs" />
+    <Compile Include="PsychicBond\HediffSet_AddDirect_Patch.cs" />
+    <Compile Include="Harmony\JobDriver_Lovin_GenerateRandomMinTicksToNextLovin.cs" />
+    <Compile Include="Harmony\MemoryThoughtHandler_TryGainMemory.cs" />
+    <Compile Include="PsychicBond\MentalBreakWorker_BreakCanOccur_Patch.cs" />
+    <Compile Include="PsychicBond\MentalBreakWorker_CommonalityFor_Patch.cs" />
+    <Compile Include="PsychicBond\MentalStateHandler_TryStartMentalState_Patch.cs" />
+    <Compile Include="PsychicBond\NegativeInteractionUtility_NegativeInteractionChanceFactor_Patch.cs" />
+    <Compile Include="PsychicBond\Pawn_Despawn_Patch.cs" />
+    <Compile Include="PsychicBond\Pawn_HealthTracker_RemoveHediff_Patch.cs" />
+    <Compile Include="PsychicBond\Pawn_SpawnSetup_Patch.cs" />
+    <Compile Include="Harmony\PregnancyUtility_GetInheritedGenes.cs" />
+    <Compile Include="PsychicBond\SkillRecord_Interval_Patch.cs" />
+    <Compile Include="Harmony\TraitSet_GainTrait.cs" />
+    <Compile Include="Harmony\TraitSet_RemoveTrait.cs" />
+    <Compile Include="InteractionWorkers\InteractionWorker_FlirtingAttempt.cs" />
+    <Compile Include="Needs\Need_Lovin.cs" />
+    <Compile Include="Options\Mod.cs" />
+    <Compile Include="Options\Settings.cs" />
+    <Compile Include="PatchOperations\PatchOperationModOption.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PsychicBond\BondTraitEffect.cs" />
+    <Compile Include="PsychicBond\BondUtils.cs" />
+    <Compile Include="PsychicBond\HighmateBondEffectDef.cs" />
+    <Compile Include="PsychicBond\TraitRequirement.cs" />
+    <Compile Include="StaticCollections\StaticCollectionsClass.cs" />
+    <Compile Include="Thoughts\ThoughtWorker_LovinNeed.cs" />
+    <Compile Include="Utils\Utils.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

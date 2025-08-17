@@ -1,0 +1,2 @@
+string subject = SpeechBubbleManager.GetDateSubject(this.pawn, recipient, initiatorJob.targetA.Thing != null ? initiatorJob.targetA.Thing : new LocalTargetInfo(this.pawn.Position));
+SocialInteractions.HandleNonStoppingInteraction(this.pawn, recipient, SI_InteractionDefOf.DateAccepted, subject);
