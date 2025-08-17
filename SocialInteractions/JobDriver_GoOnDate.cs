@@ -191,8 +191,16 @@ namespace SocialInteractions
                     
                     // Try to get a job for the initiator
                     Job joyJob = joyGiverDef.Worker.TryGiveJob(initiator);
-                    if (joyJob != null)
+                    if (joyJob != null && joyJob.def != null)
                     {
+                        // Additional null checks for the job and its target
+                        if (joyJob.targetA == null || joyJob.targetA.Thing == null)
+                        {
+                            SLog.Warning(string.Format("[SocialInteractions] JobDriver_GoOnDate: Joy giver {0} returned job with null target, skipping.", 
+                                joyGiverDef.defName));
+                            continue;
+                        }
+                        
                         // Try to reserve the target for both pawns
                         if (initiator.CanReserveAndReach(joyJob.targetA, PathEndMode.InteractionCell, Danger.None) &&
                             partner.CanReserveAndReach(joyJob.targetA, PathEndMode.InteractionCell, Danger.None))

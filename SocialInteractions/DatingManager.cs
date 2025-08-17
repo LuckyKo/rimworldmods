@@ -475,7 +475,161 @@ namespace SocialInteractions
             }
         }
 
-        private static Building_Bed FindSuitableBedForLovin(Pawn initiator, Pawn partner)
+        public static float CalculateDateCompatibility(Pawn pawn1, Pawn pawn2)
+        {
+            // Start with a base compatibility factor
+            float compatibility = 1.0f;
+
+            // Check sexual compatibility first - this is a make-or-break factor
+            float sexualCompatibility = CalculateSexualCompatibility(pawn1, pawn2);
+            if (sexualCompatibility <= 0f)
+            {
+                // If they're not sexually compatible, they won't progress to lovin'
+                return 0f;
+            }
+            
+            // Apply sexual compatibility as a multiplier
+            compatibility *= sexualCompatibility;
+
+            // Add opinion-based compatibility (mutual respect is important for dates)
+            float opinion1 = pawn1.relations.OpinionOf(pawn2);
+            float opinion2 = pawn2.relations.OpinionOf(pawn1);
+            float opinionCompatibility = Mathf.InverseLerp(-100f, 100f, (opinion1 + opinion2) / 2f);
+            compatibility *= Mathf.Lerp(0.5f, 1.5f, opinionCompatibility);
+
+            // Consider personality trait compatibility
+            if (pawn1.story != null && pawn1.story.traits != null && pawn2.story != null && pawn2.story.traits != null)
+            {
+                // Positive traits that might increase compatibility
+                int positiveTraitMatches = 0;
+                int negativeTraitConflicts = 0;
+
+                // Check for matching positive traits
+                if (pawn1.story.traits.HasTrait(TraitDefOf.Kind) && pawn2.story.traits.HasTrait(TraitDefOf.Kind))
+                    positiveTraitMatches++;
+                if (pawn1.story.traits.HasTrait(TraitDefOf.Joyous) && pawn2.story.traits.HasTrait(TraitDefOf.Joyous))
+                    positiveTraitMatches++;
+
+                // Check for conflicting traits
+                if (pawn1.story.traits.HasTrait(TraitDefOf.Kind) && pawn2.story.traits.HasTrait(TraitDefOf.Psychopath))
+                    negativeTraitConflicts++;
+                if (pawn1.story.traits.HasTrait(TraitDefOf.Psychopath) && pawn2.story.traits.HasTrait(TraitDefOf.Kind))
+                    negativeTraitConflicts++;
+                if (pawn1.story.traits.HasTrait(TraitDefOf.Brawler) && pawn2.story.traits.HasTrait(TraitDefOf.Wimp))
+                    negativeTraitConflicts++;
+
+                // Adjust compatibility based on trait matches/conflicts
+                compatibility *= (1.0f + positiveTraitMatches * 0.1f); // Up to 1.2x for positive matches
+                compatibility *= (1.0f - negativeTraitConflicts * 0.15f); // Down to 0.7x for conflicts
+            }
+
+            // Consider age compatibility (similar ages might be more compatible for dates)
+            float ageDifference = Math.Abs(pawn1.ageTracker.AgeBiologicalYearsFloat - pawn2.ageTracker.AgeBiologicalYearsFloat);
+            float ageCompatibility = Mathf.InverseLerp(20f, 0f, ageDifference); // More compatible with less age difference
+            compatibility *= Mathf.Lerp(0.8f, 1.2f, ageCompatibility);
+
+            // Ensure compatibility stays within reasonable bounds
+            compatibility = Mathf.Clamp(compatibility, 0.1f, 3.0f);
+
+            return compatibility;
+        }
+
+        // Helper method to calculate sexual compatibility based on vanilla RimWorld logic
+        public static float CalculateSexualCompatibility(Pawn pawn1, Pawn pawn2)
+        {
+            // Check if they're the same pawn or different species
+            if (pawn1.def != pawn2.def || pawn1 == pawn2)
+            {
+                return 0f;
+            }
+
+            // Check traits for sexual compatibility
+            if (pawn1.story != null && pawn1.story.traits != null && pawn2.story != null && pawn2.story.traits != null)
+            {
+                // Asexual pawns won't engage in lovin'
+                if (pawn1.story.traits.HasTrait(TraitDefOf.Asexual) || pawn2.story.traits.HasTrait(TraitDefOf.Asexual))
+                {
+                    return 0f;
+                }
+
+                // Gender compatibility based on traits
+                if (!pawn1.story.traits.HasTrait(TraitDefOf.Bisexual) && !pawn2.story.traits.HasTrait(TraitDefOf.Bisexual))
+                {
+                    // Neither is bisexual, so check if they're compatible
+                    if (pawn1.story.traits.HasTrait(TraitDefOf.Gay) && pawn2.story.traits.HasTrait(TraitDefOf.Gay))
+                    {
+                        // Both are gay, they need to be the same gender
+                        if (pawn1.gender != pawn2.gender)
+                        {
+                            return 0f;
+                        }
+                    }
+                    else if (pawn1.story.traits.HasTrait(TraitDefOf.Gay))
+                    {
+                        // pawn1 is gay, pawn2 needs to be the same gender
+                        if (pawn2.gender != pawn1.gender)
+                        {
+                            return 0f;
+                        }
+                    }
+                    else if (pawn2.story.traits.HasTrait(TraitDefOf.Gay))
+                    {
+                        // pawn2 is gay, pawn1 needs to be the same gender
+                        if (pawn1.gender != pawn2.gender)
+                        {
+                            return 0f;
+                        }
+                    }
+                    else
+                    {
+                        // Both are straight, they need to be different genders
+                        if (pawn1.gender == pawn2.gender)
+                        {
+                            return 0f;
+                        }
+                    }
+                }
+            }
+
+            // Age check (both must be at least 16)
+            if (pawn1.ageTracker.AgeBiologicalYearsFloat < 16f || pawn2.ageTracker.AgeBiologicalYearsFloat < 16f)
+            {
+                return 0f;
+            }
+
+            // If all checks pass, return a positive compatibility factor based on attractiveness
+            float pawn1Attractiveness = CalculateAttractiveness(pawn1, pawn2);
+            float pawn2Attractiveness = CalculateAttractiveness(pawn2, pawn1);
+            
+            // Average the attractiveness factors
+            return (pawn1Attractiveness + pawn2Attractiveness) / 2f;
+        }
+
+        // Helper method to calculate attractiveness factor (similar to vanilla PrettinessFactor)
+        public static float CalculateAttractiveness(Pawn observer, Pawn target)
+        {
+            float beauty = 0f;
+            if (target.RaceProps.Humanlike)
+            {
+                beauty = target.GetStatValue(StatDefOf.PawnBeauty);
+            }
+
+            if (beauty < 0f)
+            {
+                return 0.3f; // Unattractive
+            }
+            else if (beauty > 0f)
+            {
+                return 1f + beauty; // Attractive
+            }
+            else
+            {
+                return 1.0f; // Average
+            }
+        }
+
+        // Helper method to find a suitable bed for lovin'
+        public static Building_Bed FindSuitableBedForLovin(Pawn initiator, Pawn partner)
         {
             SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Searching for bed for {0} and {1}.", initiator.LabelShort, partner.LabelShort));
             if (initiator == null || initiator.Map == null || partner == null) 
@@ -488,9 +642,9 @@ namespace SocialInteractions
             float baseChance = 0.75f;
             float opinionFactor = Mathf.InverseLerp(-100f, 100f, initiator.relations.OpinionOf(partner)) * Mathf.InverseLerp(-100f, 100f, partner.relations.OpinionOf(initiator));
             float moodFactor = (initiator.needs.mood.CurLevel + partner.needs.mood.CurLevel) / 2f;
-            float slcFactor = initiator.relations.SecondaryLovinChanceFactor(partner) * partner.relations.SecondaryLovinChanceFactor(initiator);
-            float finalChance = baseChance * ((opinionFactor + moodFactor) / 2f) * slcFactor;
-            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance calculation: base({0}) * (opinion({1}) + mood({2}))/2 * slc({3}) = {4}", baseChance, opinionFactor, moodFactor, slcFactor, finalChance));
+            float dateCompatibility = CalculateDateCompatibility(initiator, partner);
+            float finalChance = baseChance * ((opinionFactor + moodFactor) / 2f) * dateCompatibility;
+            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance calculation: base({0}) * (opinion({1}) + mood({2}))/2 * compatibility({3}) = {4}", baseChance, opinionFactor, moodFactor, dateCompatibility, finalChance));
 
             if (!Rand.Chance(finalChance))
             {

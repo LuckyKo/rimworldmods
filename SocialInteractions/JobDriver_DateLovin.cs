@@ -205,7 +205,8 @@ namespace SocialInteractions
                     return Vector3.zero;
                 }
 
-                if (pawn == initiator)
+                // Male pawns bounce on X axis, female pawns bounce on Z axis
+                if (pawn == initiator ^ initiator.gender == Gender.Female)
                 {
                     // Initiator bounces on X
                     float num2 = Mathf.Sign(num);
@@ -213,7 +214,7 @@ namespace SocialInteractions
                 }
                 else
                 {
-                    // Partner bounces on Z
+                    // Parner bounces on Z
                     float z = Mathf.Max(Mathf.Pow((num + 1f) * 0.5f, 2f) * 0.2f - 0.06f, 0f);
                     return new Vector3(0f, 0f, z);
                 }
