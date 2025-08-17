@@ -38,11 +38,26 @@ namespace SocialInteractions
                     if (DatingManager.IsOnDate(pawn))
                     {
                         Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
-                        JobDef goOnDateJobDef = DefDatabase<JobDef>.GetNamed("GoOnDate", false);
                         JobDef dateLovinJobDef = SI_JobDefOf.DateLovin;
-                        if (initiator != null && (initiator.CurJob == null || (initiator.CurJobDef != goOnDateJobDef && initiator.CurJobDef != dateLovinJobDef)))
+                        
+                        // Check if the initiator is doing a joy job
+                        bool isDoingJoyJob = false;
+                        if (initiator != null && initiator.CurJob != null)
                         {
-                            // Initiator is no longer doing the GoOnDate or DateLovin job, so advance the date stage
+                            // Check if the job is a joy job
+                            foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
+                            {
+                                if (joyGiver.jobDef == initiator.CurJob.def)
+                                {
+                                    isDoingJoyJob = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (initiator != null && !isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef)
+                        {
+                            // Initiator is no longer doing a joy job or DateLovin job, so advance the date stage
                             DatingManager.AdvanceDateStage(pawn);
                         }
                         // Additional check: if either pawn is dead or downed, end the date

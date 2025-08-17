@@ -13,8 +13,9 @@ namespace SocialInteractions
             if (fullJoyAction == JoyTickFullJoyAction.EndJob)
             {
                 Pawn partner = DatingManager.GetPartnerOnDateWith(pawn);
-                // If they have a partner, and that partner is still doing the same joy activity, don't end the job.
-                if (partner != null && partner.CurJob != null && pawn.CurJob != null && partner.CurJob.def == pawn.CurJob.def && partner.CurJob.targetA == pawn.CurJob.targetA)
+                // If they have a partner, and that partner is doing the FollowAndWatch job, don't end the job.
+                // This allows the initiator to continue the joy activity while the partner is following and watching.
+                if (partner != null && partner.CurJob != null && partner.CurJob.def == SI_JobDefOf.FollowAndWatchInitiator)
                 {
                     fullJoyAction = JoyTickFullJoyAction.None;
                 }

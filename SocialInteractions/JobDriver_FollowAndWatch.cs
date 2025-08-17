@@ -9,12 +9,16 @@ namespace SocialInteractions
 {
     public class JobDriver_FollowAndWatch : JobDriver
     {
+        private JobDef lastKnownJobDef = null;
+        private int ticksSinceStart = 0;
+        private const int InitialToleranceTicks = 60; // 1 second of tolerance for job transitions
+        
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             // Add null check to prevent NullReferenceException
             if (this.pawn == null)
             {
-                SLog.Warning("[SocialInteractions] JobDriver_FollowAndWatch: pawn is null in TryMakePreToilReservations.");
+                SLog.Warning("[SocialInteractions] JobDriver_FollowAndWatch: pawn is null in TryMakePreilReservations.");
                 return false;
             }
             return true;
@@ -23,7 +27,6 @@ namespace SocialInteractions
         protected override System.Collections.Generic.IEnumerable<Toil> MakeNewToils()
         {
             this.FailOnDespawnedOrNull(TargetIndex.A); // Initiator
-            this.FailOnDespawnedOrNull(TargetIndex.B); // Joy Spot
 
             Toil follow = new Toil();
             follow.initAction = delegate
@@ -67,12 +70,9 @@ namespace SocialInteractions
             yield return follow;
 
             Toil watch = new Toil();
-            watch.initAction = () =>
-            {
-                SLog.Message("[SocialInteractions] JobDriver_FollowAndWatch: Starting watch toil.");
-            };
-            watch.tickAction = () =>
-            {
+            watch.tickAction = () => {
+                ticksSinceStart++;
+                
                 // Add comprehensive null checks at the beginning
                 if (this.pawn == null)
                 {
@@ -95,15 +95,7 @@ namespace SocialInteractions
                     this.ReadyForNextToil();
                     return;
                 }
-                
-                if (this.job.targetB == null)
-                {
-                    SLog.Message("[SocialInteractions] JobDriver_FollowAndWatch: job.targetB is null, ending job.");
-                    this.ReadyForNextToil();
-                    return;
-                }
 
-                // --- Simplified Logic ---
                 // The primary condition for this job to continue is that the date is still active.
                 // This is indicated by the initiator having the "OnDate" hediff.
                 if (!DatingManager.IsOnDate(initiator))
@@ -115,7 +107,7 @@ namespace SocialInteractions
                     return;
                 }
 
-                // --- Pathing Logic (Simplified) ---
+                // Pathing Logic - Continuously update path to follow the initiator
                 try
                 {
                     if (this.pawn.IsHashIntervalTick(60))
@@ -147,7 +139,7 @@ namespace SocialInteractions
                         else
                         {
                             // Attempt to start path
-                            this.pawn.pather.StartPath(initiator, PathEndMode.InteractionCell);
+                            this.pawn.pather.StartPath(initiator, PathEndMode.Touch);
                             
                             // Basic check for immediate pathing failure (heuristic)
                             if (!this.pawn.pather.Moving && this.pawn.Position.DistanceTo(initiator.Position) > 5f) 
@@ -168,16 +160,70 @@ namespace SocialInteractions
                     this.ReadyForNextToil(); // End job on exception
                     return;
                 }
-                // --- End Pathing Logic ---
 
-                // Gain Joy
+                // Face the initiator
+                this.pawn.rotationTracker.FaceCell(initiator.Position);
+
+                // Gain Joy at the same rate as the initiator would from doing a joy activity
+                // This is a social joy gain since the pawn is watching their date do something enjoyable
                 if (this.pawn.needs != null && this.pawn.needs.joy != null)
                 {
                     this.pawn.needs.joy.GainJoy(0.000144f, JoyKindDefOf.Social);
                 }
+
+                // Check if the initiator has finished their joy job
+                if (initiator.jobs == null || initiator.CurJob == null)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} has no current job, ending watch.", initiator.Name.ToStringShort));
+                    this.ReadyForNextToil();
+                    return;
+                }
+
+                // Only check job type if the job has changed
+                if (lastKnownJobDef != initiator.CurJob.def)
+                {
+                    lastKnownJobDef = initiator.CurJob.def;
+                    
+                    // Log the current job for debugging
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} is now doing job {1} (defName: {2})", 
+                        initiator.Name.ToStringShort, initiator.CurJob.def.defName, initiator.CurJob.def.defName));
+
+                    // Check if the initiator's job is still a joy job
+                    bool isJoyJob = false;
+                    foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
+                    {
+                        if (joyGiver.jobDef == initiator.CurJob.def)
+                        {
+                            isJoyJob = true;
+                            break;
+                        }
+                    }
+
+                    // Log the joy job check result
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Is joy job: {0}", isJoyJob));
+
+                    // During the initial tolerance period, be more lenient with job checks
+                    if (ticksSinceStart < InitialToleranceTicks)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: In initial tolerance period ({0}/{1} ticks), being lenient with job check.", 
+                            ticksSinceStart, InitialToleranceTicks));
+                        return; // Skip the job termination check during initial tolerance period
+                    }
+
+                    // After the initial tolerance period, enforce job type checks
+                    // If it's not a joy job, check if it's a DateLovin job (which is also a valid continuation of the date)
+                    if (!isJoyJob && initiator.CurJob.def != SI_JobDefOf.DateLovin)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} is no longer doing a joy job or DateLovin job, advancing date stage.", initiator.Name.ToStringShort));
+                        // Advance the date stage for the initiator
+                        DatingManager.AdvanceDateStage(initiator);
+                        // End this job
+                        this.ReadyForNextToil();
+                        return;
+                    }
+                }
             };
-            watch.AddFinishAction(() =>
-            {
+            watch.AddFinishAction(() => {
                 // OnDate hediffs are now handled by DatingManager
                 string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
                 SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Job finished for pawn {0}.", pawnName));

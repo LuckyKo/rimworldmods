@@ -279,7 +279,7 @@ namespace SocialInteractions
             }
         }
 
-                public static Pawn GetInitiatorOfDateWith(Pawn pawn)
+        public static Pawn GetInitiatorOfDateWith(Pawn pawn)
         {
             lock (datesLock)
             {
@@ -348,9 +348,7 @@ namespace SocialInteractions
         {
             if (map == null || map.mapPawns == null) return;
             
-            JobDef goOnDateJobDef = DefDatabase<JobDef>.GetNamed("GoOnDate", false);
-            // If we can't find the job definition, skip this check
-            if (goOnDateJobDef == null) return;
+            JobDef dateLovinJobDef = SI_JobDefOf.DateLovin;
             
             // Get a snapshot of all pawns to avoid modification during iteration
             List<Pawn> allPawns = new List<Pawn>(map.mapPawns.AllPawns);
@@ -360,8 +358,24 @@ namespace SocialInteractions
                 if (IsOnDate(pawn))
                 {
                     Pawn initiator = GetInitiatorOfDateWith(pawn);
-                    // If we can't find a valid initiator or the initiator is not doing the GoOnDate job, advance the date
-                    if (initiator == null || initiator.jobs == null || initiator.CurJob == null || (initiator.CurJobDef != goOnDateJobDef && initiator.CurJobDef != SI_JobDefOf.DateLovin))
+                    
+                    // Check if the initiator is doing a joy job
+                    bool isDoingJoyJob = false;
+                    if (initiator != null && initiator.CurJob != null)
+                    {
+                        // Check if the job is a joy job
+                        foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
+                        {
+                            if (joyGiver.jobDef == initiator.CurJob.def)
+                            {
+                                isDoingJoyJob = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // If we can't find a valid initiator or the initiator is not doing a joy job or DateLovin job, advance the date
+                    if (initiator == null || initiator.jobs == null || initiator.CurJob == null || (!isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef))
                     {
                         SLog.Message(string.Format("[SocialInteractions] Found stuck date for pawn {0}, advancing stage.", pawn.Name.ToStringShort));
                         AdvanceDateStage(pawn);
@@ -372,9 +386,17 @@ namespace SocialInteractions
 
         public static void AdvanceDateStage(Pawn pawn)
         {
+            SLog.Message(string.Format("[SocialInteractions] DatingManager.AdvanceDateStage called for pawn {0}", 
+                pawn != null ? pawn.LabelShort : "NULL"));
+            
             lock (datesLock)
             {
-                if (pawn == null) return;
+                if (pawn == null) 
+                {
+                    SLog.Message("[SocialInteractions] DatingManager.AdvanceDateStage: pawn is null, returning");
+                    return;
+                }
+                
                 Date date = GetDateWith_Unlocked(pawn);
                 if (date != null)
                 {
@@ -485,8 +507,8 @@ namespace SocialInteractions
                     if (bed == null || bed.Destroyed || !bed.Spawned) return false;
                     // Remove the restriction on bed size since we're not actually laying in bed
                     // if (bed.SleepingSlotsCount < 2) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Bed {0} has < 2 slots.", bed.LabelShort));*/ return false; }
-                    if (!initiator.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Initiator cannot reserve/reach {0}.", bed.LabelShort));*/ return false; }
-                    if (!partner.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Partner cannot reserve/reach {0}.", bed.LabelShort));*/ return false; }
+                    if (!initiator.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Initiator cannot reserve/reach {0}.\", bed.LabelShort));*/ return false; }
+                    if (!partner.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Partner cannot reserve/reach {0}.\", bed.LabelShort));*/ return false; }
                     return true;
                 });
             SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} beds that are reachable.", potentialBeds.Count()));
@@ -511,189 +533,5 @@ namespace SocialInteractions
             SLog.Warning("[SocialInteractions] FindSuitableBedForLovin: No suitable bed found after all checks.");
             return null;
         }
-
-        public static List<Tuple<Thing, JoyGiverDef, IntVec3>> FindJoySpotFor(Pawn pawn, Pawn partner)
-        {
-            if (pawn == null || partner == null) return new List<Tuple<Thing, JoyGiverDef, IntVec3>>();
-            SLog.Message(string.Format("[SocialInteractions] DatingManager.FindJoySpotFor called for {0} and {1}.", pawn.Name.ToStringShort, partner.Name.ToStringShort));
-            List<Tuple<Thing, JoyGiverDef, IntVec3>> foundSpots = new List<Tuple<Thing, JoyGiverDef, IntVec3>>();
-
-            // 1. Filter for suitable social JoyGiverDefs
-            List<JoyGiverDef> suitableJoyGivers = new List<JoyGiverDef>();
-            try
-            {
-                // Convert to list first to avoid multiple enumerations
-                List<JoyGiverDef> allJoyGivers = DefDatabase<JoyGiverDef>.AllDefsListForReading;
-                
-                foreach (JoyGiverDef jg in allJoyGivers)
-                {
-                    if (jg.jobDef == null)
-                    {
-                        continue;
-                    }
-                    if (jg.jobDef == JobDefOf.Lovin) { continue; }
-                    if (jg.jobDef.defName == "VisitSickPawn") { continue; }
-                    if (jg.jobDef.defName == "StandAndChat") { continue; }
-                    if (jg.thingDefs == null || !jg.thingDefs.Any()) { continue; }
-                    
-                    if (jg.Worker == null)
-                    {
-                        continue;
-                    }
-
-                    try
-                    {
-                        if (!jg.Worker.CanBeGivenTo(pawn)) { continue; }
-                    }
-                    catch (Exception ex)
-                    {
-                        SLog.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception checking CanBeGivenTo for initiator on {0}: {1}", jg.defName, ex.Message));
-                        continue;
-                    }
-
-                    try
-                    {
-                        if (!jg.Worker.CanBeGivenTo(partner)) { continue; }
-                    }
-                    catch (Exception ex)
-                    {
-                        SLog.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception checking CanBeGivenTo for partner on {0}: {1}", jg.defName, ex.Message));
-                        continue;
-                    }
-                    
-                    suitableJoyGivers.Add(jg);
-                }
-            }
-            catch (Exception ex)
-            {
-                SLog.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception during JoyGiverDef filtering: {0}", ex.Message));
-            }
-            SLog.Message(string.Format("[SocialInteractions] DatingManager.FindJoySpotFor: Found {0} suitable joy givers.", suitableJoyGivers.Count));
-
-            try
-            {
-                foreach (var giver in suitableJoyGivers)
-                {
-                    // 2. For each JoyGiverDef, find compatible buildings on the map
-                    if (giver.thingDefs != null)
-                    {
-                        foreach (var thingDef in giver.thingDefs)
-                        {
-                            if (pawn.Map == null || pawn.Map.listerBuildings == null)
-                            {
-                                continue;
-                            }
-                            
-                            // Get buildings once and convert to list to avoid multiple enumerations
-                            List<Building> allBuildings = pawn.Map.listerBuildings.allBuildingsColonist;
-                            
-                            foreach (Building building in allBuildings)
-                            {
-                                // Basic validity checks
-                                if (building == null || building.Destroyed || !building.Spawned)
-                                {
-                                    continue;
-                                }
-                                
-                                // Check if building matches the required thingDef
-                                if (building.def != thingDef)
-                                {
-                                    continue;
-                                }
-                                
-                                // Check if building has positive joy gain factor
-                                if (building.def.GetStatValueAbstract(StatDefOf.JoyGainFactor) <= 0)
-                                {
-                                    continue;
-                                }
-                                
-                                // Check if both pawns can reach and reserve the building
-                                if (!pawn.CanReserveAndReach(building, PathEndMode.InteractionCell, Danger.None) || 
-                                    !partner.CanReserveAndReach(building, PathEndMode.InteractionCell, Danger.None))
-                                {
-                                    continue;
-                                }
-
-                                // Add a robust check for building's position in EdificeGrid
-                                try
-                                {
-                                    // Attempt to access the edifice grid. If this throws, the building is problematic.
-                                    Thing edifice = building.Map.edificeGrid[building.Position];
-                                    // Only add to foundSpots if the edifice is the expected building and it's spawned.
-                                    if (edifice != building || !building.Spawned)
-                                    {
-                                        SLog.Message(string.Format("[SocialInteractions] FindJoySpotFor: Excluding problematic building {0} at {1}. Edifice mismatch or not spawned. Edifice: {2}, Spawned: {3}", building.LabelShort, building.Position, edifice != null ? edifice.LabelShort : "NULL", building.Spawned));
-                                        continue;
-                                    }
-                                    
-                                    // Add explicit reservation check for the building itself
-                                    if (!pawn.CanReserve(building) || !partner.CanReserve(building))
-                                    {
-                                        SLog.Message(string.Format("[SocialInteractions] FindJoySpotFor: Building {0} at {1} cannot be reserved by both pawns. Skipping.", building.LabelShort, building.Position));
-                                        continue; // Skip this building if it cannot be reserved
-                                    }
-
-                                    // NEW LOGIC: Find an accessible interaction cell
-                                    IntVec3 interactionCell = IntVec3.Invalid;
-
-                                    // Prioritize interaction cells defined by the building
-                                    IntVec3 potentialCell = building.InteractionCell;
-                                    if (potentialCell.IsValid && potentialCell.InBounds(building.Map) && !potentialCell.Impassable(building.Map) &&
-                                        pawn.CanReach(potentialCell, PathEndMode.OnCell, Danger.None) &&
-                                        partner.CanReach(potentialCell, PathEndMode.OnCell, Danger.None) &&
-                                        pawn.CanReserve(potentialCell) && partner.CanReserve(potentialCell))
-                                    {
-                                        interactionCell = potentialCell;
-                                    }
-
-                                    // If no specific interaction cell, try adjacent cells
-                                    if (interactionCell == IntVec3.Invalid)
-                                    {
-                                        foreach (IntVec3 c in GenAdj.CellsAdjacent8Way(building))
-                                        {
-                                            if (c.IsValid && c.InBounds(building.Map) && !c.Impassable(building.Map) &&
-                                                pawn.CanReach(c, PathEndMode.OnCell, Danger.None) &&
-                                                partner.CanReach(c, PathEndMode.OnCell, Danger.None) &&
-                                                pawn.CanReserve(c) && partner.CanReserve(c))
-                                            {
-                                                interactionCell = c;
-                                                break; // Found a suitable cell, break
-                                            }
-                                        }
-                                    }
-
-                                    if (interactionCell != IntVec3.Invalid)
-                                    {
-                                        foundSpots.Add(new Tuple<Thing, JoyGiverDef, IntVec3>(building, giver, interactionCell));
-                                        SLog.Message(string.Format("[SocialInteractions] FindJoySpotFor: Found joy spot {0} at {1} with interaction cell {2}.", building.LabelShort, building.Position, interactionCell));
-                                    }
-                                    else
-                                    {
-                                        SLog.Message(string.Format("[SocialInteractions] FindJoySpotFor: No suitable interaction cell found for building {0} at {1}.", building.LabelShort, building.Position));
-                                    }
-                                }
-                                catch (IndexOutOfRangeException ex)
-                                {
-                                    SLog.Error(string.Format("[SocialInteractions] FindJoySpotFor: Excluding problematic building {0} at {1} due to IndexOutOfRangeException in EdificeGrid: {2}", building.LabelShort, building.Position, ex.Message));
-                                }
-                                catch (Exception ex) // Catch other potential exceptions during access
-                                {
-                                    SLog.Error(string.Format("[SocialInteractions] FindJoySpotFor: Excluding problematic building {0} at {1} due to unexpected exception during EdificeGrid access: {2}", building.LabelShort, building.Position, ex.Message));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                SLog.Error(string.Format("[SocialInteractions] FindJoySpotFor: Exception during iteration through suitable JoyGiverDefs: {0}", ex.Message));
-            }
-            
-            SLog.Message(string.Format("[SocialInteractions] DatingManager.FindJoySpotFor: Returning {0} joy spots.", foundSpots.Count));
-            return foundSpots;
-        }
-
-        
     }
 }

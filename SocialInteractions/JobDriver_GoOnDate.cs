@@ -14,19 +14,9 @@ namespace SocialInteractions
             get { return (Pawn)this.job.targetA.Thing; }
         }
 
-        private Thing JoySpot
-        {
-            get { return this.job.targetB.Thing; }
-        }
-
-        private JoyGiverDef joyGiverDef;
-        private int joyDuration;
-
         public override void ExposeData()
         {
             base.ExposeData();
-            Scribe_Defs.Look(ref this.joyGiverDef, "joyGiverDef");
-            Scribe_Values.Look(ref this.joyDuration, "joyDuration", 0);
         }
 
         public override void Notify_Starting()
@@ -54,8 +44,6 @@ namespace SocialInteractions
             // Reserve the partner for this job
             return this.pawn.Reserve(this.Partner, this.job, 1, -1, null, errorOnFailed);
         }
-
-        
 
         protected override IEnumerable<Toil> MakeNewToils()
         {
@@ -114,7 +102,6 @@ namespace SocialInteractions
                     Find.PlayLog.Add(new PlayLogEntry_Interaction(DefDatabase<InteractionDef>.GetNamed("DateAccepted"), this.pawn, this.Partner, null));
                     DatingManager.StartDate(this.pawn, this.Partner);
                     Messages.Message(string.Format("{0} and {1} are now going on a date.", this.pawn.Name.ToStringShort, this.Partner.Name.ToStringShort), new LookTargets(this.pawn, this.Partner), MessageTypeDefOf.PositiveEvent);
-                    // LLM interaction will be triggered after the joy spot is found in findSpotAndAssign
                 }
                 else
                 {
@@ -128,139 +115,106 @@ namespace SocialInteractions
             askToil.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return askToil;
 
-            // Find a joy spot and assign jobs
-            Toil findSpotAndAssign = new Toil();
-            findSpotAndAssign.initAction = () =>
+            // Find a joy job and assign jobs
+            Toil findJoyJobAndAssign = new Toil();
+            findJoyJobAndAssign.initAction = () =>
             {
                 // Add null checks
                 if (this.pawn == null || this.Partner == null)
                 {
-                    SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn or Partner is null in findSpotAndAssign, ending job.");
+                    SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn or Partner is null in findJoyJobAndAssign, ending job.");
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
                 
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: findSpotAndAssign initAction called for pawn {0}.", this.pawn != null ? this.pawn.Name.ToStringShort : "NULL"));
-                var joySpots = DatingManager.FindJoySpotFor(this.pawn, this.Partner);
-                if (joySpots == null || !joySpots.Any())
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: findJoyJobAndAssign initAction called for pawn {0}.", this.pawn != null ? this.pawn.Name.ToStringShort : "NULL"));
+                
+                // Find a suitable joy job for the initiator
+                Job joyJob = FindJoyJobFor(this.pawn, this.Partner);
+                if (joyJob == null)
                 {
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Could not find a suitable joy job for pawn {0}.", this.pawn.Name.ToStringShort));
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
-
-                var chosenSpot = joySpots.RandomElement();
-                this.job.targetB = chosenSpot.Item1; // Set the joy spot as TargetB
-                this.pawn.Reserve(this.job.targetB, this.job);
-
-                JoyGiverDef joyGiver = chosenSpot.Item2;
-                IntVec3 interactionCell = chosenSpot.Item3;
-
+                
                 // --- Trigger LLM Interaction with correct subject ---
-                // Now that we have the joy spot, we can generate a proper subject.
-                string dateSubject = SpeechBubbleManager.GetDateSubject(this.pawn, this.Partner, this.job.targetB);
+                string dateSubject = SpeechBubbleManager.GetDateSubject(this.pawn, this.Partner, joyJob.targetA);
                 SocialInteractions.HandleNonStoppingInteraction(this.pawn, this.Partner, SI_InteractionDefOf.DateAccepted, dateSubject);
                 // --- End LLM Interaction ---
-
-                // The GoOnDate job itself will handle the joy activity in the subsequent toils.
-                // We just need to make sure the job's targets are set correctly.
-                // The initiator's job is NOT replaced here.
-                this.joyGiverDef = joyGiver;
-
-                Job partnerJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn, this.job.targetB);
+                
+                // Create the FollowAndWatch job for the partner
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Creating FollowAndWatch job for partner {0}", 
+                    this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
+                Job partnerJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn);
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Starting FollowAndWatch job for partner {0}", 
+                    this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
                 this.Partner.jobs.StartJob(partnerJob, JobCondition.InterruptForced);
-
-                this.joyDuration = Rand.Range(1000, 2000);
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: FollowAndWatch job started for partner {0}", 
+                    this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
+                
+                // Replace this job with the actual joy job
+                this.pawn.jobs.StartJob(joyJob, JobCondition.InterruptForced);
             };
-            findSpotAndAssign.defaultCompleteMode = ToilCompleteMode.Instant;
-            yield return findSpotAndAssign;
-
-            // Go to the joy spot
-            yield return Toils_Goto.GotoThing(TargetIndex.B, PathEndMode.InteractionCell);
-
-            // Do the joy activity
-            Toil doJoy = new Toil();
-            doJoy.initAction = () =>
+            findJoyJobAndAssign.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return findJoyJobAndAssign;
+        }
+        
+        private Job FindJoyJobFor(Pawn initiator, Pawn partner)
+        {
+            if (initiator == null || partner == null || initiator.Map == null)
             {
-                // Add null check
-                if (this.pawn == null)
+                return null;
+            }
+            
+            // Get all joy givers
+            List<JoyGiverDef> joyGivers = DefDatabase<JoyGiverDef>.AllDefsListForReading;
+            
+            // Shuffle the list to randomize selection
+            joyGivers.Shuffle();
+            
+            // Try to find a suitable joy job
+            foreach (JoyGiverDef joyGiverDef in joyGivers)
+            {
+                if (joyGiverDef == null || joyGiverDef.Worker == null)
                 {
-                    SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn is null in doJoy initAction, ending job.");
-                    this.EndJobWith(JobCondition.Incompletable);
-                    return;
+                    continue;
                 }
                 
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: doJoy init for {0}.", this.pawn.Name.ToStringShort));
-                this.startTick = Find.TickManager.TicksGame;
-            };
-            doJoy.defaultCompleteMode = ToilCompleteMode.Never;
-            doJoy.tickAction = () =>
-            {
-                Pawn initiator = this.pawn;
-                Pawn partner = this.Partner;
-                Thing joySpot = this.JoySpot;
-
-                // Add comprehensive null checks
-                if (initiator == null || partner == null || joySpot == null)
+                try
                 {
-                    SLog.Warning("[SocialInteractions] JobDriver_GoOnDate: doJoy - initiator, partner, or joySpot is null. Ending job.");
-                    this.EndJobWith(JobCondition.Incompletable);
-                    return;
-                }
-
-                initiator.rotationTracker.FaceCell(joySpot.InteractionCell);
-
-                if (this.joyGiverDef != null)
-                {
-                    // Manual joy gain
-                    initiator.needs.joy.GainJoy(this.joyGiverDef.jobDef.joyGainRate * 0.36f / 2500f, this.joyGiverDef.joyKind);
-
-                    // Manual skill learn
-                    if (this.joyGiverDef.jobDef.joySkill != null)
+                    // Check if both pawns can do this joy activity
+                    if (!joyGiverDef.Worker.CanBeGivenTo(initiator) || !joyGiverDef.Worker.CanBeGivenTo(partner))
                     {
-                        initiator.skills.GetSkill(this.joyGiverDef.jobDef.joySkill).Learn(this.joyGiverDef.jobDef.joyXpPerTick);
+                        continue;
+                    }
+                    
+                    // Try to get a job for the initiator
+                    Job joyJob = joyGiverDef.Worker.TryGiveJob(initiator);
+                    if (joyJob != null)
+                    {
+                        // Try to reserve the target for both pawns
+                        if (initiator.CanReserveAndReach(joyJob.targetA, PathEndMode.InteractionCell, Danger.None) &&
+                            partner.CanReserveAndReach(joyJob.targetA, PathEndMode.InteractionCell, Danger.None))
+                        {
+                            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Found suitable joy job {0} for {1} at {2}.", 
+                                joyJob.def.defName, initiator.Name.ToStringShort, joyJob.targetA.ToString()));
+                            return joyJob;
+                        }
+                        // If we can't reserve it, we just continue to the next joy giver
+                        // No need to explicitly clean up the job
                     }
                 }
-
-                // Check for time limits
-                int ticksPassed = Find.TickManager.TicksGame - this.startTick;
-
-                if (ticksPassed > this.joyDuration) // Use random joyDuration
+                catch (Exception ex)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Max duration ({0} ticks) passed. Advancing to next stage.", this.joyDuration));
-                    this.ReadyForNextToil();
-                    return;
+                    SLog.Warning(string.Format("[SocialInteractions] JobDriver_GoOnDate: Exception while trying joy giver {0}: {1}", 
+                        joyGiverDef.defName, ex.Message));
+                    // Continue to the next joy giver
                 }
-
-                // Check if the partner is still around and on the date
-                JobDef followAndWatchJobDef = SI_JobDefOf.FollowAndWatchInitiator;
-                if (partner.CurJobDef != followAndWatchJobDef && !DatingManager.IsOnDate(partner))
-                {
-                    SLog.Warning(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner ({0}) is no longer following or on the date. Ending date.", partner.LabelShort));
-                    this.ReadyForNextToil();
-                    return;
-                }
-            };
-            yield return doJoy;
-
-            // Advance the date stage
-            Toil advanceDate = new Toil();
-            advanceDate.initAction = () =>
-            {
-                // Add null check
-                if (this.pawn == null)
-                {
-                    SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn is null in advanceDate, ending job.");
-                    this.EndJobWith(JobCondition.Incompletable);
-                    return;
-                }
-                
-                SLog.Message("[SocialInteractions] JobDriver_GoOnDate: advanceDate toil initAction STARTING.");
-                DatingManager.WasDateStageAdvancedByJob = true; // Set the flag
-                DatingManager.AdvanceDateStage(this.pawn);
-                SLog.Message("[SocialInteractions] JobDriver_GoOnDate: advanceDate toil initAction FINISHED.");
-            };
-            advanceDate.defaultCompleteMode = ToilCompleteMode.Instant;
-            yield return advanceDate;
+            }
+            
+            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: No suitable joy job found for {0}.", initiator.Name.ToStringShort));
+            return null;
         }
     }
 }
