@@ -39,3 +39,10 @@ harmony.log.txt
 
 # Other mods
 other_mods_ignore_this/
+
+# Temporary/unused code files
+JobDriver_ViewArt.cs
+JobDriver_VisitJoyThing.cs
+JoyGiver.cs
+JoyGiver_ViewArt.cs
+*.busted
