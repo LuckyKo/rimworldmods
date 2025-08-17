@@ -118,7 +118,7 @@ namespace SocialInteractions
             // This overrides the game's default behavior of setting it to 9999999 if the partner already has a lovin' job.
             // We need to use reflection to access the private 'ticksLeft' field.
             __instance.GetType().GetField("ticksLeft", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                .SetValue(__instance, (int)(2500f * UnityEngine.Mathf.Clamp(Rand.Range(0.1f, 1.1f), 0.1f, 2f)));
+                .SetValue(__instance, (int)(SocialInteractions.Settings.dateLovinTicks * UnityEngine.Mathf.Clamp(Rand.Range(0.1f, 1.1f), 0.1f, 2f)));
 
             // Symmetry breaking: only the pawn whose name comes first alphabetically will trigger the dialogue.
             if (initiator.Name.ToStringShort.CompareTo(partner.Name.ToStringShort) < 0)

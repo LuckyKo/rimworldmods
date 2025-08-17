@@ -78,11 +78,11 @@ namespace SocialInteractions
                     else
                     {
                         // --- Enhanced Logging ---
-                        //Log.Warning(string.Format("[SocialInteractions] Invalid API key format after trimming, skipping Authorization header. Key length: {0}, Key (first 10 chars): '{1}'", _apiKey.Length, _apiKey.Length > 0 ? _apiKey.Substring(0, System.Math.Min(10, _apiKey.Length)) : ""));
+                        //SLog.Warning(string.Format("[SocialInteractions] Invalid API key format after trimming, skipping Authorization header. Key length: {0}, Key (first 10 chars): '{1}'", _apiKey.Length, _apiKey.Length > 0 ? _apiKey.Substring(0, System.Math.Min(10, _apiKey.Length)) : ""));
                         // --- End Enhanced Logging ---
                     }
                 }
-                catch (Exception ex)
+                catch (Exception /*ex*/)
                 {
                     // --- Enhanced Logging ---
                     int apiKeyLength = (_apiKey != null) ? _apiKey.Length : 0;
@@ -91,7 +91,7 @@ namespace SocialInteractions
                     {
                         apiKeyPreview = _apiKey.Substring(0, System.Math.Min(10, _apiKey.Length));
                     }
-                    Log.Warning(string.Format("[SocialInteractions] Failed to add Authorization header. API Key Length: {0}, API Key Preview (first 10 chars): '{1}'. Error: {2}", apiKeyLength, apiKeyPreview, ex.Message));
+                    //SLog.Warning(string.Format("[SocialInteractions] Failed to add Authorization header. API Key Length: {0}, API Key Preview (first 10 chars): '{1}'. Error: {2}", apiKeyLength, apiKeyPreview, ex.Message));
                     // --- End Enhanced Logging ---
                 }
             }
@@ -169,12 +169,12 @@ namespace SocialInteractions
             }
             catch (HttpRequestException ex)
             {
-                Log.Warning(string.Format("[SocialInteractions] KoboldApiClient: HTTP request failed: {0}", ex.Message));
+                SLog.Warning(string.Format("[SocialInteractions] KoboldApiClient: HTTP request failed: {0}", ex.Message));
                 return null;
             }
             catch (Exception ex)
             {
-                Log.Warning(string.Format("[SocialInteractions] KoboldApiClient: Unexpected error during text generation: {0}", ex.Message));
+                SLog.Warning(string.Format("[SocialInteractions] KoboldApiClient: Unexpected error during text generation: {0}", ex.Message));
                 return null;
             }
         }

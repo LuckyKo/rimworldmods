@@ -55,6 +55,19 @@ It's currently [time], on [date] and the weather is [weather].
         public bool enableXtcSampling = false;
         public float joyThresholdForDate = 0.5f; // New setting
         public bool verboseLogging = false;
+        
+        // Magic number settings (not exposed in UI)
+        public float meleeTauntProbability = 0.35f;
+        public float shootTauntProbability = 0.15f;
+        public float gettingHitComplaintProbability = 0.3f;
+        public float downedCallForHelpProbability = 0.85f;
+        public float baseLovinChance = 0.75f;
+        public int dateCooldownTicks = 3000;
+        public int dateLovinTicks = 2000;
+        public int maxDistanceForDate = 50;
+        public int jobCheckIntervalTicks = 60;
+        public int initialToleranceTicks = 60;
+        public int goOnDateCooldownTicks = 600;
 
 
         public override void ExposeData()
@@ -89,6 +102,19 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref enableXtcSampling, "enableXtcSampling", false);
             Scribe_Values.Look(ref joyThresholdForDate, "joyThresholdForDate", 0.8f); // New setting
             Scribe_Values.Look(ref verboseLogging, "verboseLogging", false);
+            
+            // Magic number settings (not exposed in UI)
+            Scribe_Values.Look(ref meleeTauntProbability, "meleeTauntProbability", 0.35f);
+            Scribe_Values.Look(ref shootTauntProbability, "shootTauntProbability", 0.15f);
+            Scribe_Values.Look(ref gettingHitComplaintProbability, "gettingHitComplaintProbability", 0.3f);
+            Scribe_Values.Look(ref downedCallForHelpProbability, "downedCallForHelpProbability", 0.85f);
+            Scribe_Values.Look(ref baseLovinChance, "baseLovinChance", 0.75f);
+            Scribe_Values.Look(ref dateCooldownTicks, "dateCooldownTicks", 3000);
+            Scribe_Values.Look(ref dateLovinTicks, "dateLovinTicks", 2000);
+            Scribe_Values.Look(ref maxDistanceForDate, "maxDistanceForDate", 50);
+            Scribe_Values.Look(ref jobCheckIntervalTicks, "jobCheckIntervalTicks", 60);
+            Scribe_Values.Look(ref initialToleranceTicks, "initialToleranceTicks", 60);
+            Scribe_Values.Look(ref goOnDateCooldownTicks, "goOnDateCooldownTicks", 600);
         }
     }
 

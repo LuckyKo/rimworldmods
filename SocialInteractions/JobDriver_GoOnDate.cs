@@ -61,7 +61,7 @@ namespace SocialInteractions
                     return;
                 }
                 
-                int maxDistance = 50; // 50x50 tiles
+                int maxDistance = SocialInteractions.Settings.maxDistanceForDate; // 50x50 tiles
                 if ((Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)) > maxDistance)
                 {
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Aborting job. Recipient {0} is too far from initiator {1}. Distance: {2}, Max Distance: {3}", recipient.Name.ToStringShort, this.pawn.Name.ToStringShort, (Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)), maxDistance));

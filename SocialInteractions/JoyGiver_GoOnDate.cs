@@ -9,7 +9,7 @@ namespace SocialInteractions
     public class JoyGiver_GoOnDate : JoyGiver
     {
         private static Dictionary<Pawn, int> lastAttemptTick = new Dictionary<Pawn, int>();
-        private const int CooldownTicks = 600; // 10 seconds (60 ticks per second)
+        // private const int CooldownTicks = 600; // 10 seconds (60 ticks per second) (now configurable in settings)
 
         public override Job TryGiveJob(Pawn pawn)
         {
@@ -38,7 +38,7 @@ namespace SocialInteractions
 
             // Check cooldown to prevent spamming attempts
             int lastTick;
-            if (lastAttemptTick.TryGetValue(pawn, out lastTick) && Find.TickManager.TicksGame - lastTick < CooldownTicks)
+            if (lastAttemptTick.TryGetValue(pawn, out lastTick) && Find.TickManager.TicksGame - lastTick < SocialInteractions.Settings.goOnDateCooldownTicks)
             {
                 SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate: Pawn {0} is on attempt cooldown, returning null.", pawn.Name.ToStringShort));
                 return null;

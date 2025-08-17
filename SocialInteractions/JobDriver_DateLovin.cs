@@ -46,7 +46,7 @@ namespace SocialInteractions
             Toil lovinToil = ToilMaker.MakeToil("LovinToil");
             lovinToil.initAction = delegate
             {
-                ticksLeft = 2500;
+                ticksLeft = SocialInteractions.Settings.dateLovinTicks;
                 SLog.Message(string.Format("[SocialInteractions] Adding SI_Naked hediff to {0} and {1}",
                     initiator != null ? initiator.LabelShort : "NULL",
                     partner != null ? partner.LabelShort : "NULL"));
@@ -125,7 +125,7 @@ namespace SocialInteractions
                     }
                     catch (Exception ex)
                     {
-                        Log.Warning(string.Format("[SocialInteractions] Exception in DateLovin tickAction when handling thoughts/advancement: {0}", ex.Message));
+                        SLog.Warning(string.Format("[SocialInteractions] Exception in DateLovin tickAction when handling thoughts/advancement: {0}", ex.Message));
                     }
 
                     ReadyForNextToil();
@@ -142,7 +142,7 @@ namespace SocialInteractions
                     }
                     catch (Exception ex)
                     {
-                        Log.Warning(string.Format("[SocialInteractions] Exception in DateLovin tickAction: {0}", ex.Message));
+                        SLog.Warning(string.Format("[SocialInteractions] Exception in DateLovin tickAction: {0}", ex.Message));
                     }
                 }
             };
@@ -180,7 +180,7 @@ namespace SocialInteractions
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(string.Format("[SocialInteractions] Exception removing SI_Naked hediff: {0}", ex.Message));
+                    SLog.Warning(string.Format("[SocialInteractions] Exception removing SI_Naked hediff: {0}", ex.Message));
                 }
             };
             yield return cleanupToil;

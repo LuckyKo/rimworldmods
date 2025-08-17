@@ -16,7 +16,7 @@ namespace SocialInteractions
                 return;
             }
             
-            if (pawn.IsHashIntervalTick(60)) // Check every second
+            if (pawn.IsHashIntervalTick(SocialInteractions.Settings.jobCheckIntervalTicks)) // Check every second
             {
                 Pawn partner = pawn.relations.GetFirstDirectRelationPawn(PawnRelationDefOf.Lover, (p) => !p.Dead);
                 if (partner == null)

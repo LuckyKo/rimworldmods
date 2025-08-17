@@ -121,7 +121,7 @@ namespace SocialInteractions
     {
         public static void Postfix(Verb_MeleeAttack __instance, bool __result)
         {
-            if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && __instance.CasterPawn.RaceProps.Humanlike && Rand.Value < 0.75f)
+            if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && __instance.CasterPawn.RaceProps.Humanlike && Rand.Value < SocialInteractions.Settings.meleeTauntProbability)
             {
                 string taunt = CombatTaunts.AttackingTaunts.RandomElement();
                 float duration = SocialInteractions.EstimateReadingTime(taunt);
@@ -137,7 +137,7 @@ namespace SocialInteractions
     {
         public static void Postfix(Verb_Shoot __instance, bool __result)
         {
-            if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && __instance.CasterPawn.RaceProps.Humanlike && Rand.Value < 0.25f)
+            if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && __instance.CasterPawn.RaceProps.Humanlike && Rand.Value < SocialInteractions.Settings.shootTauntProbability)
             {
                 Pawn casterPawn = __instance.CasterPawn;
                 string taunt = CombatTaunts.AttackingTaunts.RandomElement();
@@ -161,7 +161,7 @@ namespace SocialInteractions
 
             if (dinfo.Instigator.HostileTo(pawn))
             {
-                if (Rand.Value < 0.4f)
+                if (Rand.Value < SocialInteractions.Settings.gettingHitComplaintProbability)
                 {
                     string complaint = CombatTaunts.GettingHitComplaints.RandomElement();
                     float duration = SocialInteractions.EstimateReadingTime(complaint);
@@ -178,7 +178,7 @@ namespace SocialInteractions
         {
             if (!SocialInteractions.Settings.enableCombatTaunts) return;
             Pawn pawn = (Pawn)AccessTools.Field(typeof(Pawn_HealthTracker), "pawn").GetValue(__instance);
-            if (pawn.Spawned && pawn.RaceProps.Humanlike && Rand.Value < 0.85f)
+            if (pawn.Spawned && pawn.RaceProps.Humanlike && Rand.Value < SocialInteractions.Settings.downedCallForHelpProbability)
             {
                 string callForHelp = CombatTaunts.DownedCallsForHelp.RandomElement();
                 float duration = SocialInteractions.EstimateReadingTime(callForHelp);

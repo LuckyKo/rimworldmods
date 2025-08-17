@@ -110,7 +110,7 @@ namespace SocialInteractions
                 // Pathing Logic - Continuously update path to follow the initiator
                 try
                 {
-                    if (this.pawn.IsHashIntervalTick(60))
+                    if (this.pawn.IsHashIntervalTick(SocialInteractions.Settings.jobCheckIntervalTicks))
                     {
                         // Check if pawn or pather is null before accessing
                         if (this.pawn.pather == null)
@@ -203,10 +203,10 @@ namespace SocialInteractions
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Is joy job: {0}", isJoyJob));
 
                     // During the initial tolerance period, be more lenient with job checks
-                    if (ticksSinceStart < InitialToleranceTicks)
+                    if (ticksSinceStart < SocialInteractions.Settings.initialToleranceTicks)
                     {
                         SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: In initial tolerance period ({0}/{1} ticks), being lenient with job check.", 
-                            ticksSinceStart, InitialToleranceTicks));
+                            ticksSinceStart, SocialInteractions.Settings.initialToleranceTicks));
                         return; // Skip the job termination check during initial tolerance period
                     }
 

@@ -46,7 +46,7 @@ namespace SocialInteractions
         private static List<Date> dates = new List<Date>();
         private static readonly object datesLock = new object();
         private static Dictionary<int, int> dateCooldowns = new Dictionary<int, int>();
-        private const int DateCooldownTicks = 300; // 5 min
+        // private const int DateCooldownTicks = 300; // 5 min (now configurable in settings)
 
         // Add methods for serialization
         public static void ExposeData()
@@ -119,7 +119,7 @@ namespace SocialInteractions
             // Add cooldown to prevent immediate re-invitation
             if (initiator != null && partner != null)
             {
-                int expiryTick = Find.TickManager.TicksGame + DateCooldownTicks;
+                int expiryTick = Find.TickManager.TicksGame + SocialInteractions.Settings.dateCooldownTicks;
                 dateCooldowns[initiator.thingIDNumber] = expiryTick;
                 dateCooldowns[partner.thingIDNumber] = expiryTick;
             }
@@ -156,7 +156,7 @@ namespace SocialInteractions
                 }
 
                 // Add cooldown for non-null pawns
-                int expiryTick = Find.TickManager.TicksGame + DateCooldownTicks;
+                int expiryTick = Find.TickManager.TicksGame + SocialInteractions.Settings.dateCooldownTicks;
                 if (date.Initiator != null)
                     dateCooldowns[date.Initiator.thingIDNumber] = expiryTick;
                 if (date.Partner != null)
@@ -597,7 +597,7 @@ namespace SocialInteractions
                 return 0f;
             }
 
-            // If all checks pass, return a positive compatibility factor based on attractiveness
+             // If all checks pass, return a positive compatibility factor based on attractiveness
             float pawn1Attractiveness = CalculateAttractiveness(pawn1, pawn2);
             float pawn2Attractiveness = CalculateAttractiveness(pawn2, pawn1);
             
@@ -639,12 +639,11 @@ namespace SocialInteractions
             }
 
             // Social compatibility and probability check
-            float baseChance = 0.75f;
-            float opinionFactor = Mathf.InverseLerp(-100f, 100f, initiator.relations.OpinionOf(partner)) * Mathf.InverseLerp(-100f, 100f, partner.relations.OpinionOf(initiator));
+            float baseChance = SocialInteractions.Settings.baseLovinChance;
             float moodFactor = (initiator.needs.mood.CurLevel + partner.needs.mood.CurLevel) / 2f;
             float dateCompatibility = CalculateDateCompatibility(initiator, partner);
-            float finalChance = baseChance * ((opinionFactor + moodFactor) / 2f) * dateCompatibility;
-            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance calculation: base({0}) * (opinion({1}) + mood({2}))/2 * compatibility({3}) = {4}", baseChance, opinionFactor, moodFactor, dateCompatibility, finalChance));
+            float finalChance = baseChance * moodFactor * dateCompatibility;
+            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance calculation: base({0}) * mood({1}) * compatibility({2}) = {3}", baseChance, moodFactor, dateCompatibility, finalChance));
 
             if (!Rand.Chance(finalChance))
             {
@@ -661,12 +660,11 @@ namespace SocialInteractions
                     if (bed == null || bed.Destroyed || !bed.Spawned) return false;
                     // Remove the restriction on bed size since we're not actually laying in bed
                     // if (bed.SleepingSlotsCount < 2) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Bed {0} has < 2 slots.", bed.LabelShort));*/ return false; }
-                    if (!initiator.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Initiator cannot reserve/reach {0}.\", bed.LabelShort));*/ return false; }
-                    if (!partner.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Partner cannot reserve/reach {0}.\", bed.LabelShort));*/ return false; }
+                    if (!initiator.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Initiator cannot reserve/reach {0}.", bed.LabelShort));*/ return false; }
+                    if (!partner.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Partner cannot reserve/reach {0}.", bed.LabelShort));*/ return false; }
                     return true;
                 });
             SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} beds that are reachable.", potentialBeds.Count()));
-            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} beds that are reachable and have enough slots.", potentialBeds.Count()));
 
             // Prioritize owned beds
             Building_Bed ownedBed = potentialBeds.FirstOrDefault(b => b.OwnersForReading.Contains(initiator));

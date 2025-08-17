@@ -25,7 +25,7 @@ namespace SocialInteractions
             base.MapComponentTick();
 
             // Check every second
-            if (Find.TickManager.TicksGame % 60 == 0)
+            if (Find.TickManager.TicksGame % SocialInteractions.Settings.jobCheckIntervalTicks == 0)
             {
                 // Check for stuck dates
                 DatingManager.CheckForStuckDates(this.map);
