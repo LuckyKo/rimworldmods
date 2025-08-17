@@ -171,6 +171,35 @@ namespace SocialInteractions
                     this.pawn.needs.joy.GainJoy(0.000144f, JoyKindDefOf.Social);
                 }
 
+                // Check if the partner (this pawn) is currently doing a joy job
+                // If so, check if their joy need is satisfied and they should go back to following
+                if (this.pawn.jobs != null && this.pawn.CurJob != null)
+                {
+                    // Check if the current job is a joy job
+                    bool isCurrentJobJoyJob = false;
+                    foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
+                    {
+                        if (joyGiver.jobDef == this.pawn.CurJob.def)
+                        {
+                            isCurrentJobJoyJob = true;
+                            break;
+                        }
+                    }
+                    
+                    // If the partner is doing a joy job, check if their joy need is satisfied
+                    if (isCurrentJobJoyJob && this.pawn.needs != null && this.pawn.needs.joy != null)
+                    {
+                        // If the partner's joy need is nearly satisfied (95% or more), they should go back to following
+                        if (this.pawn.needs.joy.CurLevelPercentage >= 0.95f)
+                        {
+                            SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Partner {0} joy need is satisfied ({1:P}), going back to following {2}.", 
+                                this.pawn.Name.ToStringShort, this.pawn.needs.joy.CurLevelPercentage, initiator.Name.ToStringShort));
+                            // End the joy job and continue with the follow behavior
+                            this.pawn.jobs.EndCurrentJob(JobCondition.Succeeded);
+                        }
+                    }
+                }
+
                 // Check if the initiator has finished their joy job
                 if (initiator.jobs == null || initiator.CurJob == null)
                 {
@@ -188,7 +217,7 @@ namespace SocialInteractions
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} is now doing job {1} (defName: {2})", 
                         initiator.Name.ToStringShort, initiator.CurJob.def.defName, initiator.CurJob.def.defName));
 
-                    // Check if the initiator's job is still a joy job
+                    // Check if the initiator's job is a joy job
                     bool isJoyJob = false;
                     foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
                     {
@@ -202,17 +231,97 @@ namespace SocialInteractions
                     // Log the joy job check result
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Is joy job: {0}", isJoyJob));
 
-                    // During the initial tolerance period, be more lenient with job checks
+                    // If it's a joy job, try to have the partner join the same activity
+                    // We do this even during the initial tolerance period
+                    // But only if the partner's joy bar is not already satisfied
+                    if (isJoyJob && this.pawn.needs != null && this.pawn.needs.joy != null && this.pawn.needs.joy.CurLevelPercentage < 0.95f)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} started a joy job and partner {1} joy bar is low ({2:P}), trying to have partner join.", 
+                            initiator.Name.ToStringShort, this.pawn.Name.ToStringShort, this.pawn.needs.joy.CurLevelPercentage));
+                        
+                        // Try to find a joy giver that matches the initiator's job
+                        JoyGiverDef matchingJoyGiver = null;
+                        foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
+                        {
+                            if (joyGiver.jobDef == initiator.CurJob.def)
+                            {
+                                matchingJoyGiver = joyGiver;
+                                break;
+                            }
+                        }
+                        
+                        if (matchingJoyGiver != null)
+                        {
+                            SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Found matching joy giver {0} for job {1}", 
+                                matchingJoyGiver.defName, initiator.CurJob.def.defName));
+                            
+                            // Try to give the same joy job to the partner
+                            Job partnerJoyJob = matchingJoyGiver.Worker.TryGiveJob(this.pawn);
+                            if (partnerJoyJob != null)
+                            {
+                                // Check if the partner's joy job targets the same main object as the initiator's job
+                                // For most joy activities, this would be targetA (the main object/spot)
+                                bool targetsMatch = true;
+                                
+                                // Check targetA (main object/spot)
+                                if (partnerJoyJob.targetA != null && initiator.CurJob.targetA != null)
+                                {
+                                    // For things like meditation spots or game tables, check if they're the same thing
+                                    if (partnerJoyJob.targetA.Thing != null && initiator.CurJob.targetA.Thing != null)
+                                    {
+                                        targetsMatch = partnerJoyJob.targetA.Thing == initiator.CurJob.targetA.Thing;
+                                    }
+                                    // For positions, check if they're close enough (within 7 cells)
+                                    else if (partnerJoyJob.targetA.Cell.IsValid && initiator.CurJob.targetA.Cell.IsValid)
+                                    {
+                                        targetsMatch = partnerJoyJob.targetA.Cell.DistanceTo(initiator.CurJob.targetA.Cell) <= 7f;
+                                    }
+                                }
+                                
+                                if (targetsMatch)
+                                {
+                                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Successfully created joy job {0} for partner {1} targeting the same object/spot as initiator", 
+                                        partnerJoyJob.def.defName, this.pawn.Name.ToStringShort));
+                                    
+                                    // Start the joy job for the partner
+                                    this.pawn.jobs.StartJob(partnerJoyJob, JobCondition.InterruptForced);
+                                    // Don't return here - let the FollowAndWatch job continue
+                                    // If the partner can't actually join (e.g., all positions busy), they'll continue following
+                                }
+                                else
+                                {
+                                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Partner {0} joy job targets different object/spot than initiator. Continuing to follow.", 
+                                        this.pawn.Name.ToStringShort));
+                                    // Continue with the follow behavior if the targets don't match
+                                }
+                            }
+                            else
+                            {
+                                SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Could not create joy job for partner {0}. Continuing to follow.", 
+                                    this.pawn.Name.ToStringShort));
+                                // Continue with the follow behavior if we can't join the joy activity
+                            }
+                        }
+                        else
+                        {
+                            SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Could not find matching joy giver for job {0}", 
+                                initiator.CurJob.def.defName));
+                        }
+                        
+                        // Continue with the rest of the logic even for joy jobs
+                    }
+
+                    // During the initial tolerance period, be more lenient with job checks for non-joy jobs
                     if (ticksSinceStart < SocialInteractions.Settings.initialToleranceTicks)
                     {
-                        SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: In initial tolerance period ({0}/{1} ticks), being lenient with job check.", 
+                        SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: In initial tolerance period ({0}/{1} ticks), being lenient with non-joy job check.", 
                             ticksSinceStart, SocialInteractions.Settings.initialToleranceTicks));
-                        return; // Skip the job termination check during initial tolerance period
+                        return; // Skip the job termination check during initial tolerance period for non-joy jobs
                     }
 
                     // After the initial tolerance period, enforce job type checks
                     // If it's not a joy job, check if it's a DateLovin job (which is also a valid continuation of the date)
-                    if (!isJoyJob && initiator.CurJob.def != SI_JobDefOf.DateLovin)
+                    if (initiator.CurJob.def != SI_JobDefOf.DateLovin)
                     {
                         SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} is no longer doing a joy job or DateLovin job, advancing date stage.", initiator.Name.ToStringShort));
                         // Advance the date stage for the initiator

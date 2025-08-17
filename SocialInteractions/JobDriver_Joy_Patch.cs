@@ -43,11 +43,31 @@ namespace SocialInteractions
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_Joy_Patch: Job {0} is joy job: {1}", 
                         __instance.curJob.def.defName, isJoyJob));
                     
-                    // If it was a joy job, advance the date stage
+                    // If it was a joy job, check if this pawn is the initiator of the date
                     if (isJoyJob)
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Joy job completed for pawn {0}, advancing date stage.", __instance.pawn.Name.ToStringShort));
-                        DatingManager.AdvanceDateStage(__instance.pawn);
+                        Pawn initiator = DatingManager.GetInitiatorOfDateWith(__instance.pawn);
+                        if (initiator == __instance.pawn)
+                        {
+                            // This pawn is the initiator, so advance the date stage
+                            SLog.Message(string.Format("[SocialInteractions] Joy job completed for initiator {0}, advancing date stage.", __instance.pawn.Name.ToStringShort));
+                            DatingManager.AdvanceDateStage(__instance.pawn);
+                        }
+                        else
+                        {
+                            // This pawn is the partner, so restart their follow job
+                            SLog.Message(string.Format("[SocialInteractions] Joy job completed for partner {0}, restarting follow job.", __instance.pawn.Name.ToStringShort));
+                            
+                            // Get the initiator of the date
+                            Pawn dateInitiator = DatingManager.GetInitiatorOfDateWith(__instance.pawn);
+                            if (dateInitiator != null)
+                            {
+                                // Create and start the FollowAndWatch job for the partner
+                                Job followJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, dateInitiator);
+                                __instance.pawn.jobs.StartJob(followJob, JobCondition.InterruptForced);
+                                SLog.Message(string.Format("[SocialInteractions] Restarted FollowAndWatch job for partner {0}", __instance.pawn.Name.ToStringShort));
+                            }
+                        }
                     }
                 }
                 else

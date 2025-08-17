@@ -1,4 +1,4 @@
-# Social Interactions Mod - Implementation Flow Graph
+# Social Interactions Mod - Updated Implementation Architecture
 
 ## 1. Core Architecture
 
@@ -56,7 +56,6 @@
         |
         v
 [SocialInteractions.HandleInteraction()]
-        |
         +--> [Is LLM Enabled for Interaction Type?]
         |           |
         |           +--> [Yes] --> [HandleNonStoppingInteraction()]
@@ -105,29 +104,37 @@
 
 ### A. Date Initiation
 ```
-[JobDriver_GoOnDate]
+[JoyGiver_GoOnDate.TryGiveJob()]
         |
         v
-[Ask For Date] --> [Opinion-Based Acceptance Check]
+[Find Suitable Partner] --> [Opinion-Based Acceptance Check]
         |
-        +--> [Accepted] --> [DatingManager.StartDate()]
+        +--> [Partner Found] --> [JobDriver_GoOnDate Creation]
         |               |
         |               v
-        |       [Add "OnDate" Hediff to Both Pawns]
+        |       [Ask For Date] --> [Opinion-Based Acceptance Check]
         |               |
-        |               v
-        |       [Create Date Object in Manager]
+        |               +--> [Accepted] --> [DatingManager.StartDate()]
+        |               |               |
+        |               |               v
+        |               |       [Add "OnDate" Hediff to Both Pawns]
+        |               |               |
+        |               |               v
+        |               |       [Create Date Object in Manager]
+        |               |               |
+        |               |               v
+        |               |       [Handle Date Accepted Interaction]
         |               |
-        |               v
-        |       [Handle Date Accepted Interaction]
-        |
-        +--> [Rejected] --> [Handle Date Rejected Interaction]
+        |               +--> [Rejected] --> [Handle Date Rejected Interaction]
+        |                               |
+        |                               v
+        |                       [DatingManager.RejectDate()]
         |
         v
 [Find Joy Spot] --> [Assign Joy Activities]
         |
         v
-[Partner Follows Initiator]
+[Partner Follows Initiator] --> [JobDriver_FollowAndWatch]
         |
         v
 [Perform Joy Activity] --> [Wait for Completion]
@@ -329,4 +336,49 @@ Speech Bubble Types:
 [Settings Accessed by Other Components]
 ```
 
-This flow graph shows how the Social Interactions mod integrates with RimWorld to enhance social interactions with LLM-generated dialogue, adds a dating system, and implements combat taunts. The system is modular, with clear separation between the core interaction handling, the LLM integration, the dating system, and the UI presentation through speech bubbles.
+## 10. Additional Systems
+
+### A. Date Tracking
+```
+[DateTracker_MapComponent.MapComponentTick()]
+        |
+        v
+[Check for Stuck Dates]
+        |
+        v
+[Check Pawn Status (Dead/Downed)]
+        |
+        v
+[Advance/End Date as Needed]
+        |
+        v
+[Periodic Cleanup of Expired Cooldowns]
+```
+
+### B. Cheating Detection
+```
+[Pawn_Tick_Patch.Postfix()]
+        |
+        v
+[Check for Nearby Lovers on Dates]
+        |
+        v
+[InteractionWorker_CaughtCheating.Interacted()]
+        |
+        v
+[End Date] --> [Apply Thought Memories]
+        |
+        v
+[Start Social Fight]
+```
+
+### C. Joy Activity Completion
+```
+[JobDriver_Joy_Patch.Postfix()]
+        |
+        v
+[Check if Completed Joy Job]
+        |
+        v
+[Advance Date Stage if Applicable]
+```
