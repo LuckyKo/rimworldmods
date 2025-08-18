@@ -9,16 +9,12 @@ namespace SocialInteractions
 {
     public class JobDriver_FollowAndWatch : JobDriver
     {
-        private JobDef lastKnownJobDef = null;
-        private int ticksSinceStart = 0;
-        private const int InitialToleranceTicks = 60; // 1 second of tolerance for job transitions
-        
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             // Add null check to prevent NullReferenceException
             if (this.pawn == null)
             {
-                SLog.Warning("[SocialInteractions] JobDriver_FollowAndWatch: pawn is null in TryMakePreilReservations.");
+                SLog.Warning("[SocialInteractions] JobDriver_FollowAndWatch: pawn is null in TryMakePreToilReservations.");
                 return false;
             }
             return true;
@@ -71,8 +67,6 @@ namespace SocialInteractions
 
             Toil watch = new Toil();
             watch.tickAction = () => {
-                ticksSinceStart++;
-                
                 // Add comprehensive null checks at the beginning
                 if (this.pawn == null)
                 {
@@ -169,87 +163,6 @@ namespace SocialInteractions
                 if (this.pawn.needs != null && this.pawn.needs.joy != null)
                 {
                     this.pawn.needs.joy.GainJoy(0.000144f, JoyKindDefOf.Social);
-                }
-
-                // Check if the partner (this pawn) is currently doing a joy job
-                // If so, check if their joy need is satisfied and they should go back to following
-                if (this.pawn.jobs != null && this.pawn.CurJob != null)
-                {
-                    // Check if the current job is a joy job
-                    bool isCurrentJobJoyJob = false;
-                    foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
-                    {
-                        if (joyGiver.jobDef == this.pawn.CurJob.def)
-                        {
-                            isCurrentJobJoyJob = true;
-                            break;
-                        }
-                    }
-                    
-                    // If the partner is doing a joy job, check if their joy need is satisfied
-                    if (isCurrentJobJoyJob && this.pawn.needs != null && this.pawn.needs.joy != null)
-                    {
-                        // If the partner's joy need is nearly satisfied (95% or more), they should go back to following
-                        if (this.pawn.needs.joy.CurLevelPercentage >= 0.95f)
-                        {
-                            SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Partner {0} joy need is satisfied ({1:P}), going back to following {2}.", 
-                                this.pawn.Name.ToStringShort, this.pawn.needs.joy.CurLevelPercentage, initiator.Name.ToStringShort));
-                            // End the joy job and continue with the follow behavior
-                            this.pawn.jobs.EndCurrentJob(JobCondition.Succeeded);
-                        }
-                    }
-                }
-
-                // Check if the initiator has finished their joy job
-                if (initiator.jobs == null || initiator.CurJob == null)
-                {
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} has no current job, ending watch.", initiator.Name.ToStringShort));
-                    this.ReadyForNextToil();
-                    return;
-                }
-
-                // Only check job type if the job has changed
-                if (lastKnownJobDef != initiator.CurJob.def)
-                {
-                    lastKnownJobDef = initiator.CurJob.def;
-                    
-                    // Log the current job for debugging
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} is now doing job {1} (defName: {2})", 
-                        initiator.Name.ToStringShort, initiator.CurJob.def.defName, initiator.CurJob.def.defName));
-
-                    // Check if the initiator's job is a joy job
-                    //bool isJoyJob = false;
-                    //foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
-                    //{
-                    //    if (joyGiver.jobDef == initiator.CurJob.def)
-                    //    {
-                    //        isJoyJob = true;
-                    //        break;
-                    //    }
-                    //}
-
-                    // We are removing the logic that gives a joy job to the partner from here.
-                    // This will be handled by a ThinkNode instead.
-
-                    // During the initial tolerance period, be more lenient with job checks for non-joy jobs
-                    if (ticksSinceStart < SocialInteractions.Settings.initialToleranceTicks)
-                    {
-                        SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: In initial tolerance period ({0}/{1} ticks), being lenient with non-joy job check.", 
-                            ticksSinceStart, SocialInteractions.Settings.initialToleranceTicks));
-                        return; // Skip the job termination check during initial tolerance period for non-joy jobs
-                    }
-
-                    // After the initial tolerance period, enforce job type checks
-                    // If it's not a joy job, check if it's a DateLovin job (which is also a valid continuation of the date)
-                    if (initiator.CurJob.def != SI_JobDefOf.DateLovin)
-                    {
-                        SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} is no longer doing a joy job or DateLovin job, advancing date stage.", initiator.Name.ToStringShort));
-                        // Advance the date stage for the initiator
-                        DatingManager.AdvanceDateStage(initiator);
-                        // End this job
-                        this.ReadyForNextToil();
-                        return;
-                    }
                 }
             };
             watch.AddFinishAction(() => {

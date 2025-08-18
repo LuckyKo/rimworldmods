@@ -13,6 +13,23 @@ namespace SocialInteractions
         {
             get { return (Pawn)this.job.targetA.Thing; }
         }
+        
+        private JobDef lastKnownInitiatorJobDef = null;
+        private const int JoyJobJoinDelay = 180; // 3 seconds delay before trying to join joy job
+        private int? initiatorJoyJobStartTick = null; // Track when the initiator started a joy job
+        private bool partnerHasStartedJoyJob = false; // Track if partner has started a joy job for current joy activity
+        private JobDef partnerJoyJobDef = null; // Track the joy job the partner is doing
+
+        public override bool TryMakePreToilReservations(bool errorOnFailed)
+        {
+            // Add null check to prevent NullReferenceException
+            if (this.pawn == null)
+            {
+                SLog.Warning("[SocialInteractions] JobDriver_GoOnDate: pawn is null in TryMakePreToilReservations.");
+                return false;
+            }
+            return true;
+        }
 
         public override void ExposeData()
         {
@@ -28,27 +45,19 @@ namespace SocialInteractions
             SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Starting job for {0} to date {1}.", pawnName, partnerName));
         }
 
-        public override bool TryMakePreToilReservations(bool errorOnFailed)
-        {
-            // Add null checks to prevent NullReferenceException
-            string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
-            string partnerName = (this.Partner != null && this.Partner.Name != null) ? this.Partner.Name.ToStringShort : "NULL";
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations for {0} to date {1}.", pawnName, partnerName));
-            
-            // Make sure we can reserve the partner
-            if (this.pawn == null || this.Partner == null)
-            {
-                return false;
-            }
-            
-            // Reserve the partner for this job
-            return this.pawn.Reserve(this.Partner, this.job, 1, -1, null, errorOnFailed);
-        }
-
         protected override IEnumerable<Toil> MakeNewToils()
         {
-            this.FailOnDespawnedOrNull(TargetIndex.A); // Partner
+            // Add null check for pawn
+            if (this.pawn == null)
+            {
+                SLog.Warning("[SocialInteractions] JobDriver_GoOnDate: pawn is null in MakeNewToils, ending job.");
+                yield break;
+            }
 
+            // Fail if the partner is null or despawned
+            this.FailOnDespawnedOrNull(TargetIndex.A);
+
+            // Check if recipient is within range
             Toil rangeCheck = new Toil();
             rangeCheck.initAction = () =>
             {
@@ -78,23 +87,31 @@ namespace SocialInteractions
             Toil askToil = new Toil();
             askToil.initAction = () => {
                 Pawn recipient = this.Partner;
-                // Add comprehensive null checks
-                if (this.pawn == null || recipient == null)
+                if (recipient == null || this.pawn == null)
                 {
                     SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn or recipient is null in askToil, ending job.");
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
 
-                float acceptanceChance = 0.5f;
-                if (recipient.relations != null)
-                {
-                    int opinion = recipient.relations.OpinionOf(this.pawn);
-                    acceptanceChance += opinion / 200f;
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Calculating acceptance chance for {0} asking {1}. Base: 0.5, Opinion: {2}, Final: {3}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, opinion, acceptanceChance));
-                }
-                bool accepted = Rand.Value < acceptanceChance;
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Acceptance roll for {0} asking {1}. Rolled: {2}, Chance: {3}, Accepted: {4}", this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, Rand.Value, acceptanceChance, accepted));
+                // Calculate acceptance chance based on opinion
+                float baseChance = 0.5f; // 50% base chance
+                int opinion = recipient.relations.OpinionOf(this.pawn);
+                float opinionFactor = System.Math.Max(0f, System.Math.Min(1f, 0.5f + (opinion / 100f))); // Convert opinion to a 0-1 factor
+                float finalChance = baseChance * opinionFactor;
+                
+                // Cap the chance at 100%
+                finalChance = System.Math.Min(finalChance, 1.0f);
+                
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Calculating acceptance chance for {0} asking {1}. Base: {2}, Opinion: {3}, Final: {4}", 
+                    this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, baseChance, opinion, finalChance));
+
+                // Roll for acceptance
+                float roll = Rand.Value;
+                bool accepted = roll < finalChance;
+                
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Acceptance roll for {0} asking {1}. Rolled: {2}, Chance: {3}, Accepted: {4}", 
+                    this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, roll, finalChance, accepted));
 
                 if (accepted)
                 {
@@ -128,7 +145,7 @@ namespace SocialInteractions
                 }
                 
                 SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: findJoyJobAndAssign initAction called for pawn {0}.", this.pawn != null ? this.pawn.Name.ToStringShort : "NULL"));
-                
+
                 // Find a suitable joy job for the initiator
                 Job joyJob = FindJoyJobFor(this.pawn, this.Partner);
                 if (joyJob == null)
@@ -153,51 +170,114 @@ namespace SocialInteractions
                 SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: FollowAndWatch job started for partner {0}", 
                     this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
                 
+                // Store the job def for monitoring
+                lastKnownInitiatorJobDef = joyJob.def;
+                
                 // Replace this job with the actual joy job
                 this.pawn.jobs.StartJob(joyJob, JobCondition.InterruptForced);
+                
+                // End this job successfully since we've set up the date
+                this.EndJobWith(JobCondition.Succeeded);
             };
             findJoyJobAndAssign.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return findJoyJobAndAssign;
         }
-        
-        private Job FindJoyJobFor(Pawn initiator, Pawn partner)
+
+        private void TryHavePartnerJoinJoyActivity(JobDef joyJobDef)
         {
-            if (initiator == null || partner == null || initiator.Map == null)
+            // Check if the partner's joy need is high enough that they don't want to join
+            if (this.Partner.needs != null && this.Partner.needs.joy != null && 
+                this.Partner.needs.joy.CurLevelPercentage >= 0.95f)
             {
-                return null;
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner {0}'s joy level is too high to join activity", 
+                    this.Partner.Name.ToStringShort));
+                return;
             }
             
+            // Find the joy giver for this job def
+            JoyGiverDef initiatorJoyGiver = null;
+            foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
+            {
+                if (joyGiver.jobDef == joyJobDef)
+                {
+                    initiatorJoyGiver = joyGiver;
+                    break;
+                }
+            }
+            
+            if (initiatorJoyGiver == null)
+            {
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Could not find joy giver for job def {0}", 
+                    joyJobDef.defName));
+                return;
+            }
+            
+            // Try to give the partner the same joy job as the initiator
+            Job partnerJoyJob = initiatorJoyGiver.Worker.TryGiveJob(this.Partner);
+            if (partnerJoyJob == null)
+            {
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner {0} cannot do the same joy activity as initiator {1}", 
+                    this.Partner.Name.ToStringShort, this.pawn.Name.ToStringShort));
+                return;
+            }
+            
+            // Check if the target locations match or are nearby
+            bool targetsMatch = false;
+            if (partnerJoyJob.targetA.Thing != null && this.pawn.CurJob.targetA.Thing != null)
+            {
+                targetsMatch = partnerJoyJob.targetA.Thing == this.pawn.CurJob.targetA.Thing;
+            }
+            else if (partnerJoyJob.targetA.Cell.IsValid && this.pawn.CurJob.targetA.Cell.IsValid)
+            {
+                targetsMatch = partnerJoyJob.targetA.Cell.DistanceTo(this.pawn.CurJob.targetA.Cell) <= 7f;
+            }
+            
+            if (targetsMatch)
+            {
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner {0} is joining initiator {1} in joy activity {2}.", 
+                    this.Partner.Name.ToStringShort, this.pawn.Name.ToStringShort, partnerJoyJob.def.defName));
+                
+                // Track the joy job we're starting for the partner
+                partnerJoyJobDef = partnerJoyJob.def;
+                
+                // Enqueue the joy job and then interrupt the current job for a smooth transition
+                this.Partner.jobs.jobQueue.EnqueueFirst(partnerJoyJob);
+                this.Partner.jobs.EndCurrentJob(JobCondition.InterruptForced);
+            }
+            else
+            {
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Target locations don't match for partner {0} and initiator {1}", 
+                    this.Partner.Name.ToStringShort, this.pawn.Name.ToStringShort));
+            }
+        }
+
+        private Job FindJoyJobFor(Pawn initiator, Pawn partner)
+        {
+            if (initiator == null || partner == null)
+            {
+                SLog.Warning("[SocialInteractions] JobDriver_GoOnDate: initiator or partner is null in FindJoyJobFor, returning null.");
+                return null;
+            }
+
             // Get all joy givers
-            List<JoyGiverDef> joyGivers = DefDatabase<JoyGiverDef>.AllDefsListForReading;
-            
-            // Shuffle the list to randomize selection
-            joyGivers.Shuffle();
-            
-            // Try to find a suitable joy job
+            IEnumerable<JoyGiverDef> joyGivers = DefDatabase<JoyGiverDef>.AllDefs.OrderByDescending(jg => jg.Worker.GetChance(initiator));
+
             foreach (JoyGiverDef joyGiverDef in joyGivers)
             {
-                if (joyGiverDef == null || joyGiverDef.Worker == null)
-                {
-                    continue;
-                }
-                
                 try
                 {
-                    // Check if both pawns can do this joy activity
-                    if (!joyGiverDef.Worker.CanBeGivenTo(initiator) || !joyGiverDef.Worker.CanBeGivenTo(partner))
-                    {
-                        continue;
-                    }
-                    
-                    // Try to get a job for the initiator
+                    // Try to get a job from this joy giver
                     Job joyJob = joyGiverDef.Worker.TryGiveJob(initiator);
-                    if (joyJob != null && joyJob.def != null)
+                    if (joyJob != null)
                     {
-                        // Additional null checks for the job and its target
-                        if (joyJob.targetA == null || joyJob.targetA.Thing == null)
+                        // Skip jobs that don't have a valid target
+                        if (joyJob.targetA.Thing == null && !joyJob.targetA.Cell.IsValid)
                         {
-                            SLog.Warning(string.Format("[SocialInteractions] JobDriver_GoOnDate: Joy giver {0} returned job with null target, skipping.", 
-                                joyGiverDef.defName));
+                            // Clean up the job since we're not using it
+                            if (joyJob.def != null)
+                            {
+                                // No need to explicitly clean up, the job will be garbage collected
+                            }
                             continue;
                         }
                         
