@@ -23,12 +23,14 @@ namespace SocialInteractions
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
+            SLog.Message("[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations called.");
             // Add null check to prevent NullReferenceException
             if (this.pawn == null)
             {
                 SLog.Warning("[SocialInteractions] JobDriver_GoOnDate: pawn is null in TryMakePreToilReservations.");
                 return false;
             }
+            SLog.Message("[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations returning true.");
             return true;
         }
 
@@ -39,6 +41,7 @@ namespace SocialInteractions
 
         public override void Notify_Starting()
         {
+            SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Notify_Starting called.");
             base.Notify_Starting();
             // Add null checks to prevent NullReferenceException
             string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
@@ -48,6 +51,8 @@ namespace SocialInteractions
 
         protected override IEnumerable<Toil> MakeNewToils()
         {
+            SLog.Message("[SocialInteractions] JobDriver_GoOnDate: MakeNewToils called.");
+            
             // Add null check for pawn
             if (this.pawn == null)
             {
@@ -95,17 +100,32 @@ namespace SocialInteractions
                     return;
                 }
 
-                // Calculate acceptance chance based on opinion
+                // Calculate acceptance chance based on opinion and mood
                 float baseChance = 0.95f; // 95% base chance
+                
+                // Factor in the recipient's opinion of the initiator
                 int opinion = recipient.relations.OpinionOf(this.pawn);
                 float opinionFactor = System.Math.Max(0f, System.Math.Min(1f, 0.5f + (opinion / 100f))); // Convert opinion to a 0-1 factor
-                float finalChance = baseChance * opinionFactor;
+                
+                // Factor in the recipient's current mood
+                float moodFactor = 1.0f;
+                if (recipient.needs != null && recipient.needs.mood != null)
+                {
+                    // Convert mood level (0.0 to 1.0) to a factor between 0.5 and 1.5
+                    // When mood is very low (0.0), factor is 0.5 (reduces chance)
+                    // When mood is neutral (0.5), factor is 1.0 (no effect)
+                    // When mood is very high (1.0), factor is 1.5 (increases chance)
+                    moodFactor = 0.5f + recipient.needs.mood.CurLevelPercentage;
+                }
+                
+                // Calculate final chance as base chance adjusted by both factors
+                float finalChance = baseChance * opinionFactor * moodFactor;
                 
                 // Cap the chance at 100%
                 finalChance = System.Math.Min(finalChance, 1.0f);
                 
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Calculating acceptance chance for {0} asking {1}. Base: {2}, Opinion: {3}, Final: {4}", 
-                    this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, baseChance, opinion, finalChance));
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Calculating acceptance chance for {0} asking {1}. Base: {2}, Opinion: {3}, Mood Factor: {4}, Final: {5}", 
+                    this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, baseChance, opinion, moodFactor, finalChance));
 
                 // Roll for acceptance
                 float roll = Rand.Value;
@@ -217,7 +237,7 @@ namespace SocialInteractions
             Job partnerJoyJob = initiatorJoyGiver.Worker.TryGiveJob(this.Partner);
             if (partnerJoyJob == null)
             {
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner {0} cannot do the same joy activity as initiator {1}", 
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner {0} cannot do the same joy activity as initiator {1}, will continue following.", 
                     this.Partner.Name.ToStringShort, this.pawn.Name.ToStringShort));
                 return;
             }
@@ -338,6 +358,12 @@ namespace SocialInteractions
                         // If we can't reserve it, we try again with a different joy giver
                         // No need to explicitly clean up the job
                     }
+                }
+                catch (NullReferenceException nre)
+                {
+                    SLog.Warning(string.Format("[SocialInteractions] JobDriver_GoOnDate: NullReferenceException while trying joy giver {0}: {1}", 
+                        selectedJoyGiverDef.defName, nre.Message));
+                    // Continue to the next attempt
                 }
                 catch (Exception ex)
                 {

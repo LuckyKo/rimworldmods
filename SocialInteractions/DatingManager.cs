@@ -48,24 +48,30 @@ namespace SocialInteractions
         private static Dictionary<int, int> dateCooldowns = new Dictionary<int, int>();
         // private const int DateCooldownTicks = 300; // 5 min (now configurable in settings)
 
-        // Add methods for serialization
-        public static void ExposeData()
+        // Property to track if a date stage was advanced by a job (prevents double advancement)
+        private static bool _wasDateStageAdvancedByJob = false;
+        public static bool WasDateStageAdvancedByJob { get { return _wasDateStageAdvancedByJob; } set { _wasDateStageAdvancedByJob = value; } }
+
+        /// <summary>
+        /// Gets a copy of all current dates (thread-safe)
+        /// </summary>
+        /// <returns>A list of all current dates</returns>
+        public static List<Date> GetAllDates()
         {
             lock (datesLock)
             {
-                // Serialize the dates list
-                Scribe_Collections.Look(ref dates, "dates", LookMode.Deep);
-                
-                // Serialize the date cooldowns dictionary
-                Scribe_Collections.Look(ref dateCooldowns, "dateCooldowns", LookMode.Value, LookMode.Value);
+                return new List<Date>(dates);
             }
         }
 
-        // Flag to track if AdvanceDateStage was called from within JobDriver_GoOnDate
-        // This helps distinguish between successful advancement and interruption.
-        [ThreadStatic] // Use ThreadStatic to avoid conflicts in multi-threaded scenarios, though RimWorld jobs are mostly single-threaded per pawn.
-        private static bool _wasDateStageAdvancedByJob = false;
-        public static bool WasDateStageAdvancedByJob { get { return _wasDateStageAdvancedByJob; } set { _wasDateStageAdvancedByJob = value; } }
+        /// <summary>
+        /// Expose data for serialization/deserialization
+        /// </summary>
+        public static void ExposeData()
+        {
+            Scribe_Collections.Look(ref dates, "dates", LookMode.Deep);
+            Scribe_Collections.Look(ref dateCooldowns, "dateCooldowns", LookMode.Value, LookMode.Value);
+        }
 
         public static void StartDate(Pawn initiator, Pawn partner)
         {
@@ -219,6 +225,33 @@ namespace SocialInteractions
                         }
                     }
                 }
+                
+                // Also end any FollowAndWatch jobs
+                JobDef followAndWatchJobDef = SI_JobDefOf.FollowAndWatchInitiator;
+                if (date.Initiator != null && date.Initiator.jobs != null && date.Initiator.CurJobDef == followAndWatchJobDef)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] Ending FollowAndWatch job for initiator {0}.", initiatorLabel));
+                    try
+                    {
+                        date.Initiator.jobs.EndCurrentJob(JobCondition.Succeeded);
+                    }
+                    catch (Exception ex)
+                    {
+                        SLog.Warning(string.Format("[SocialInteractions] Exception ending FollowAndWatch job for initiator {0}: {1}", initiatorLabel, ex.Message));
+                    }
+                }
+                if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == followAndWatchJobDef)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] Ending FollowAndWatch job for partner {0}.", partnerLabel));
+                    try
+                    {
+                        date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
+                    }
+                    catch (Exception ex)
+                    {
+                        SLog.Warning(string.Format("[SocialInteractions] Exception ending FollowAndWatch job for partner {0}: {1}", partnerLabel, ex.Message));
+                    }
+                }
             }
         }
 
@@ -356,6 +389,7 @@ namespace SocialInteractions
             if (map == null || map.mapPawns == null) return;
             
             JobDef dateLovinJobDef = SI_JobDefOf.DateLovin;
+            JobDef goOnDateJobDef = SI_JobDefOf.GoOnDate;
             
             // Get a snapshot of all pawns to avoid modification during iteration
             List<Pawn> allPawns = new List<Pawn>(map.mapPawns.AllPawns);
@@ -381,8 +415,28 @@ namespace SocialInteractions
                         }
                     }
                     
-                    // If we can't find a valid initiator or the initiator is not doing a joy job or DateLovin job, advance the date
-                    if (initiator == null || initiator.jobs == null || initiator.CurJob == null || (!isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef))
+                    // If the initiator is doing a joy job, DateLovin job, or GoOnDate job, the date is not stuck
+                    // Also, if the initiator is on a path to a joy job or DateLovin job, the date is not stuck
+                    if (initiator != null && initiator.jobs != null && initiator.CurJob != null)
+                    {
+                        if (isDoingJoyJob || initiator.CurJobDef == dateLovinJobDef || initiator.CurJobDef == goOnDateJobDef)
+                        {
+                            // Date is not stuck
+                            continue;
+                        }
+                        
+                        // Check if the initiator is pathing to a joy job or DateLovin job
+                        if (initiator.pather != null && initiator.pather.curPath != null && !initiator.pather.curPath.NodesLeftCount.Equals(0))
+                        {
+                            // Initiator is still pathing, so the date is not stuck
+                            continue;
+                        }
+                    }
+                    
+                    // If we can't find a valid initiator or the initiator is not doing a joy job or DateLovin job, 
+                    // and they're not pathing to one, advance the date
+                    if (initiator == null || initiator.jobs == null || initiator.CurJob == null || 
+                        (!isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef && initiator.CurJobDef != goOnDateJobDef))
                     {
                         SLog.Message(string.Format("[SocialInteractions] Found stuck date for pawn {0}, advancing stage.", pawn.Name.ToStringShort));
                         AdvanceDateStage(pawn);
@@ -445,7 +499,17 @@ namespace SocialInteractions
 
         private static void TransitionToLovin(Date date)
         {
-            SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Attempting to transition date for {0} and {1} to Lovin stage.", date.Initiator.LabelShort, date.Partner.LabelShort));
+            SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Attempting to transition date for {0} and {1} to Lovin stage.", 
+                date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
+                date.Partner != null ? date.Partner.LabelShort : "NULL"));
+
+            if (date.Initiator == null || date.Partner == null)
+            {
+                SLog.Warning("[SocialInteractions] TransitionToLovin: Initiator or Partner is null, ending date.");
+                date.Stage = DateStage.Finished;
+                HandleDateStage(date);
+                return;
+            }
 
             if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == SI_JobDefOf.FollowAndWatchInitiator)
             {
@@ -476,7 +540,9 @@ namespace SocialInteractions
             }
             else
             {
-                SLog.Warning(string.Format("[SocialInteractions] TransitionToLovin: No suitable bed found. Ending date for {0} and {1}.", date.Initiator.LabelShort, date.Partner.LabelShort));
+                SLog.Warning(string.Format("[SocialInteractions] TransitionToLovin: No suitable bed found. Ending date for {0} and {1}.", 
+                    date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
+                    date.Partner != null ? date.Partner.LabelShort : "NULL"));
                 date.Stage = DateStage.Finished;
                 HandleDateStage(date);
             }

@@ -34,6 +34,7 @@ namespace SocialInteractions
             if (!Settings.llmInteractionsEnabled) return false;
 
             
+            if (interactionDef == InteractionDefOf.Chitchat && Settings.enableChitchat) return true;
             if (interactionDef == InteractionDefOf.DeepTalk && Settings.enableDeepTalk) return true;
             if (interactionDef == InteractionDefOf.Insult && Settings.enableInsult) return true;
             if (interactionDef == InteractionDefOf.RomanceAttempt && Settings.enableRomanceAttempt) return true;
@@ -76,7 +77,8 @@ namespace SocialInteractions
 
             bool isEnabled = false;
             
-            if (interactionDef == InteractionDefOf.DeepTalk && Settings.enableDeepTalk) isEnabled = true;
+            if (interactionDef == InteractionDefOf.Chitchat && Settings.enableChitchat) isEnabled = true;
+            else if (interactionDef == InteractionDefOf.DeepTalk && Settings.enableDeepTalk) isEnabled = true;
             else if (interactionDef == InteractionDefOf.Insult && Settings.enableInsult) isEnabled = true;
             else if (interactionDef == InteractionDefOf.RomanceAttempt && Settings.enableRomanceAttempt) isEnabled = true;
             else if (interactionDef == InteractionDefOf.MarriageProposal && Settings.enableMarriageProposal) isEnabled = true;
@@ -332,7 +334,16 @@ namespace SocialInteractions
             {
                 var relationsList = initiator.GetRelations(recipient).ToList(); // Force enumeration here
                 PawnRelationDef relationDef = relationsList.FirstOrDefault();
-                if (relationDef != null) return relationDef.label;
+                if (relationDef != null) 
+                {
+                    // Use gender-specific label if available
+                    string genderedLabel = relationDef.GetGenderSpecificLabel(recipient);
+                    if (!string.IsNullOrEmpty(genderedLabel))
+                    {
+                        return genderedLabel;
+                    }
+                    return relationDef.label;
+                }
             }
             catch (Exception ex)
             {
@@ -518,7 +529,7 @@ namespace SocialInteractions
         {
             if (IsLlmInteractionEnabled(interactionDef))
             {
-                HandleNonStoppingInteraction(initiator, recipient, interactionDef, null);
+                HandleNonStoppingInteraction(initiator, recipient, interactionDef, defaultText);
             }
             else
             {
@@ -532,7 +543,15 @@ namespace SocialInteractions
         public static void HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
             SLog.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy));
-            if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
+            if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) 
+            {
+                // Show default bubble when LLM is busy and we're preventing spam
+                if (!string.IsNullOrEmpty(subject))
+                {
+                    SpeechBubbleManager.ShowDefaultBubble(initiator, subject);
+                }
+                return;
+            }
 
             string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
 

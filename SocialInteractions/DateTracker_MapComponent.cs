@@ -25,52 +25,42 @@ namespace SocialInteractions
         {
             base.MapComponentTick();
 
-            // Check every second
-            if (Find.TickManager.TicksGame % SocialInteractions.Settings.jobCheckIntervalTicks == 0)
+            // Check dates every 180 ticks (3 seconds)
+            if (Find.TickManager.TicksGame % 180 == 0)
             {
-                // Debug logging to see if we're entering this method
-                //SLog.Message("[SocialInteractions] DateTracker: MapComponentTick called.");
-                
                 // Check for stuck dates
                 DatingManager.CheckForStuckDates(this.map);
                 
-                // Create a snapshot of all pawns to avoid collection modification during iteration
-                List<Pawn> allPawns = new List<Pawn>(this.map.mapPawns.AllPawns);
-                
-                // Debug logging to see how many pawns we're checking
-                //SLog.Message(string.Format("[SocialInteractions] DateTracker: Checking {0} pawns for dates.", allPawns.Count));
-                
-                foreach (Pawn pawn in allPawns)
+                foreach (Date date in DatingManager.GetAllDates())
                 {
-                    if (DatingManager.IsOnDate(pawn))
+                    Pawn initiator = date.Initiator;
+                    Pawn partner = date.Partner;
+                    
+                    // Skip invalid dates
+                    if (initiator == null || partner == null)
                     {
-                        // Debug logging to see which pawns are on a date
-                        //SLog.Message(string.Format("[SocialInteractions] DateTracker: Pawn {0} is on a date.", pawn.LabelShort));
-                        
-                        Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
-                        Pawn partner = DatingManager.GetPartnerOfDateWith(pawn);
-                        JobDef dateLovinJobDef = SI_JobDefOf.DateLovin;
-                        
-                        // Check if the initiator is doing a joy job
-                        bool isDoingJoyJob = false;
-                        JobDef initiatorJoyJobDef = null;
-                        if (initiator != null && initiator.CurJob != null)
-                        {
-                            // Check if the job is a joy job
-                            foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
-                            {
-                                if (joyGiver.jobDef == initiator.CurJob.def)
-                                {
-                                    isDoingJoyJob = true;
-                                    initiatorJoyJobDef = initiator.CurJob.def;
-                                    break;
-                                }
-                            }
-                        }
-                        
+                        SLog.Warning("[SocialInteractions] DateTracker: Found date with null initiator or partner, ending date.");
+                        DatingManager.EndDate(date);
+                        continue;
+                    }
+                    
+                    // Check if either pawn in the date is no longer in a valid state for dating
+                    if (initiator.Dead || partner.Dead || 
+                        initiator.Downed || partner.Downed || 
+                        initiator.InMentalState || partner.InMentalState ||
+                        !IsPawnHealthyForDating(initiator) || !IsPawnHealthyForDating(partner))
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] DateTracker: Ending date between {0} and {1} due to health/mental state issues.", initiator.LabelShort, partner.LabelShort));
+                        DatingManager.EndDate(date);
+                        continue;
+                    }
+
+                    // Advance date stage based on joy need
+                    if (date.Stage == DateStage.Joy)
+                    {
                         // Check if the initiator's joy need is satisfied
                         if (initiator != null && initiator.needs != null && initiator.needs.joy != null && 
-                            initiator.needs.joy.CurLevelPercentage >= 0.95f)
+                            initiator.needs.joy.CurLevelPercentage >= 0.99f)
                         {
                             // Check if the date is already in the Lovin stage or beyond
                             Date dateStatus = DatingManager.GetDateWith(initiator);
@@ -82,56 +72,29 @@ namespace SocialInteractions
                                 DatingManager.AdvanceDateStage(initiator);
                             }
                         }
-                        else if (initiator != null && !isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef)
+                        else
                         {
-                            // Initiator is no longer doing a joy job or DateLovin job, so advance the date stage
-                            SLog.Message(string.Format("[SocialInteractions] DateTracker: Initiator {0} is no longer doing a joy job or DateLovin job, advancing date stage.", 
-                                initiator.LabelShort));
-                            DatingManager.AdvanceDateStage(pawn);
-                        }
-                        else if (initiator != null && isDoingJoyJob && initiatorJoyJobDef != null)
-                        {
-                            // Initiator is doing a joy job, check if the partner should join in or continue with their current activity
-                            HandlePartnerJoyActivity(initiator, partner, initiatorJoyJobDef);
-                        }
-                        // Additional check: if either pawn is dead or downed, end the date
-                        else if (pawn.Dead || pawn.Downed || (initiator != null && (initiator.Dead || initiator.Downed)))
-                        {
-                            DatingManager.EndDate(DatingManager.GetDateWith(pawn));
-                        }
-                        // Additional check: if the partner is no longer in a valid date job, end the date
-                        else if (partner != null)
-                        {
-                            // Check if the partner is in a valid date job
-                            bool isInValidDateJob = false;
-                            
-                            // Partner should be in FollowAndWatch job, a joy job, or DateLovin job
-                            if (partner.CurJobDef == SI_JobDefOf.FollowAndWatchInitiator)
-                            {
-                                isInValidDateJob = true;
-                            }
-                            else if (partner.CurJobDef == SI_JobDefOf.DateLovin)
-                            {
-                                isInValidDateJob = true;
-                            }
-                            else if (partner.CurJob != null)
+                            // Check if the initiator is doing a joy job
+                            bool isDoingJoyJob = false;
+                            JobDef initiatorJoyJobDef = null;
+                            if (initiator != null && initiator.CurJob != null)
                             {
                                 // Check if the job is a joy job
                                 foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
                                 {
-                                    if (joyGiver.jobDef == partner.CurJob.def)
+                                    if (joyGiver.jobDef == initiator.CurJob.def)
                                     {
-                                        isInValidDateJob = true;
+                                        isDoingJoyJob = true;
+                                        initiatorJoyJobDef = initiator.CurJob.def;
                                         break;
                                     }
                                 }
                             }
                             
-                            // If the partner is not in a valid date job, end the date
-                            if (!isInValidDateJob)
+                            // If the initiator is doing a joy job, check if the partner should join in or continue with their current activity
+                            if (initiator != null && isDoingJoyJob && initiatorJoyJobDef != null)
                             {
-                                SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0} is no longer in a valid date job, ending date.", partner.LabelShort));
-                                DatingManager.EndDate(DatingManager.GetDateWith(initiator));
+                                HandlePartnerJoyActivity(initiator, partner, initiatorJoyJobDef);
                             }
                         }
                     }
@@ -144,6 +107,27 @@ namespace SocialInteractions
                 DatingManager.CleanupExpiredDateCooldowns();
                 lastCleanupTick = Find.TickManager.TicksGame;
             }
+        }
+
+        /// <summary>
+        /// Checks if a pawn is healthy enough for dating activities
+        /// </summary>
+        /// <param name="pawn">The pawn to check</param>
+        /// <returns>True if the pawn is healthy enough for dating, false otherwise</returns>
+        private bool IsPawnHealthyForDating(Pawn pawn)
+        {
+            if (pawn == null || pawn.health == null || pawn.health.capacities == null)
+            {
+                return false;
+            }
+
+            // Check if the pawn is capable of being awake (basic health check)
+            if (!pawn.health.capacities.CanBeAwake)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private void HandlePartnerJoyActivity(Pawn initiator, Pawn partner, JobDef joyJobDef)
@@ -253,6 +237,15 @@ namespace SocialInteractions
             {
                 targetsMatch = partnerJoyJob.targetA.Cell.DistanceTo(initiator.CurJob.targetA.Cell) <= 7f;
             }
+            else
+            {
+                // For jobs without fixed locations (like reading a book), we'll assume they can join
+                // if they're reasonably close to each other
+                if (partner.Position.IsValid && initiator.Position.IsValid)
+                {
+                    targetsMatch = partner.Position.DistanceTo(initiator.Position) <= 15f;
+                }
+            }
             
             if (targetsMatch)
             {
@@ -265,7 +258,7 @@ namespace SocialInteractions
             }
             else
             {
-                SLog.Message(string.Format("[SocialInteractions] DateTracker: Target locations don't match for partner {0} and initiator {1}", 
+                SLog.Message(string.Format("[SocialInteractions] DateTracker: Target locations don't match for partner {0} and initiator {1}, partner will continue following.", 
                     partner.LabelShort, initiator.LabelShort));
             }
         }
