@@ -29,7 +29,31 @@ namespace SocialInteractions
             {
                 return false;
             }
-            return pawn.Reserve(Partner, job, 1, -1, null, errorOnFailed);
+
+            // Add health check - if pawn is downed, dead, or in a mental state, don't start the job
+            if (pawn.Dead || pawn.Downed || pawn.InMentalState)
+            {
+                return false;
+            }
+
+            // Add health check - if partner is downed, dead, or in a mental state, don't start the job
+            if (Partner.Dead || Partner.Downed || Partner.InMentalState)
+            {
+                return false;
+            }
+
+            // Check if both pawns are capable of doing lovin'
+            if (pawn.health == null || pawn.health.capacities == null || !pawn.health.capacities.CanBeAwake)
+            {
+                return false;
+            }
+
+            if (Partner.health == null || Partner.health.capacities == null || !Partner.health.capacities.CanBeAwake)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         protected override IEnumerable<Toil> MakeNewToils()
@@ -74,6 +98,15 @@ namespace SocialInteractions
                 {
                     return;
                 }
+                
+                // Re-validate partner reference
+                Pawn currentPartner = Partner;
+                if (currentPartner == null)
+                {
+                    SLog.Warning("[SocialInteractions] JobDriver_DateLovin: Partner became null during tick, ending job.");
+                    ReadyForNextToil();
+                    return;
+                }
 
                 ticksLeft--;
                 if (ticksLeft <= 0)
@@ -97,7 +130,7 @@ namespace SocialInteractions
                             }
 
                             // Give thoughts to both pawns
-                            if (initiator != null && partnerFromDate != null)
+                            if (initiator != null && partnerFromDate != null && currentPartner == partnerFromDate)
                             {
                                 // Give thought to initiator
                                 if (initiator.needs != null && initiator.needs.mood != null && initiator.needs.mood.thoughts != null && initiator.needs.mood.thoughts.memories != null)
@@ -118,8 +151,8 @@ namespace SocialInteractions
                                 // Handle pregnancy
                                 if (ModsConfig.BiotechActive)
                                 {
-                                    Pawn malePawn = ((initiator.gender == Gender.Male) ? initiator : ((partnerFromDate.gender == Gender.Male) ? partnerFromDate : null));
-                                    Pawn femalePawn = ((initiator.gender == Gender.Female) ? initiator : ((partnerFromDate.gender == Gender.Female) ? partnerFromDate : null));
+                                    Pawn malePawn = ((initiator.gender == Gender.Male) ? initiator : ((currentPartner.gender == Gender.Male) ? currentPartner : null));
+                                    Pawn femalePawn = ((initiator.gender == Gender.Female) ? initiator : ((currentPartner.gender == Gender.Female) ? currentPartner : null));
                                     
                                     if (malePawn != null && femalePawn != null)
                                     {
@@ -183,9 +216,12 @@ namespace SocialInteractions
             {
                 try
                 {
+                    // Re-validate partner reference
+                    Pawn currentPartner = Partner;
+                    
                     SLog.Message(string.Format("[SocialInteractions] Removing SI_Naked hediff from {0} and {1}",
                         initiator != null ? initiator.LabelShort : "NULL",
-                        partner != null ? partner.LabelShort : "NULL"));
+                        currentPartner != null ? currentPartner.LabelShort : "NULL"));
 
                     if (initiator != null && initiator.health != null && initiator.health.hediffSet != null)
                     {
@@ -197,13 +233,13 @@ namespace SocialInteractions
                         }
                     }
 
-                    if (partner != null && partner.health != null && partner.health.hediffSet != null)
+                    if (currentPartner != null && currentPartner.health != null && currentPartner.health.hediffSet != null)
                     {
-                        Hediff hediff = partner.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
+                        Hediff hediff = currentPartner.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
                         if (hediff != null)
                         {
-                            partner.health.RemoveHediff(hediff);
-                            SLog.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", partner.LabelShort));
+                            currentPartner.health.RemoveHediff(hediff);
+                            SLog.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", currentPartner.LabelShort));
                         }
                     }
                 }
@@ -230,6 +266,13 @@ namespace SocialInteractions
 
                 // If we can't get the initiator, just return zero offset
                 if (initiator == null)
+                {
+                    return Vector3.zero;
+                }
+
+                // Re-validate partner reference
+                Pawn currentPartner = Partner;
+                if (currentPartner == null)
                 {
                     return Vector3.zero;
                 }

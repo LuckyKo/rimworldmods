@@ -100,6 +100,15 @@ namespace SocialInteractions
                     this.ReadyForNextToil(); // End the FollowAndWatch job
                     return;
                 }
+                
+                // Also check if the follower is still on the date
+                if (!DatingManager.IsOnDate(this.pawn))
+                {
+                    string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Date ended for follower ({0}), ending job.", pawnName));
+                    this.ReadyForNextToil(); // End the FollowAndWatch job
+                    return;
+                }
 
                 // Pathing Logic - Continuously update path to follow the initiator
                 try
