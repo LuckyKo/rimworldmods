@@ -64,7 +64,6 @@ namespace SocialInteractions
             }
 
             // Check pawn's joy need - only initiate date if joy is low enough
-            /* Temporarily removed for testing
             if (pawn.needs == null || pawn.needs.joy == null)
             {
                 SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate: Pawn {0} has no joy needs, returning null.", pawn.Name.ToStringShort));
@@ -79,7 +78,6 @@ namespace SocialInteractions
                 SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate: Pawn {0} joy level {1} is above threshold {2}, returning null.", pawn.Name.ToStringShort, joyLevel, SocialInteractions.Settings.joyThresholdForDate));
                 return null;
             }
-            */
 
             // Check if pawn is awake and able to interact
             if (!pawn.Awake())
@@ -176,111 +174,256 @@ namespace SocialInteractions
             List<Pawn> allPawns = pawn.Map.mapPawns.AllPawnsSpawned.Where(p => p != null && p.Faction != null && p.Faction.IsPlayer).ToList();
             SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found {0} pawns on map.", allPawns.Count));
             
-            // Filter for potential partners
-            Pawn partner = allPawns.FirstOrDefault(p => {
-                // Basic checks
+            // Create a list to hold potential partners and their scores
+            List<KeyValuePair<Pawn, float>> potentialPartners = new List<KeyValuePair<Pawn, float>>();
+            
+            // Evaluate each pawn as a potential partner
+            foreach (Pawn p in allPawns)
+            {
+                // Basic checks (same as before)
                 if (p == null) 
                 {
                     // This should not happen with our Where filter, but let's be extra safe
                     SLog.Message("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found null pawn in list (this should not happen).");
-                    return false;
+                    continue;
                 }
                 
                 if (p == pawn) 
                 {
                     SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Skipping self pawn {0}.", p.Name != null ? p.Name.ToStringShort : "NULL"));
-                    return false;
+                    continue;
                 }
                 
                 if (p.relations == null) 
                 {
                     SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} has no relations.", p.Name != null ? p.Name.ToStringShort : "NULL"));
-                    return false;
+                    continue;
                 }
                 
                 if (!p.IsColonist) 
                 {
                     SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is not a colonist.", p.Name != null ? p.Name.ToStringShort : "NULL"));
-                    return false;
+                    continue;
                 }
                 
                 if (p.IsPrisoner) 
                 {
                     SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is a prisoner.", p.Name != null ? p.Name.ToStringShort : "NULL"));
-                    return false;
+                    continue;
                 }
                 
                 if (p.Downed) 
                 {
                     SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is downed.", p.Name != null ? p.Name.ToStringShort : "NULL"));
-                    return false;
+                    continue;
                 }
                 
                 if (!p.Awake()) 
                 {
                     SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is not awake.", p.Name != null ? p.Name.ToStringShort : "NULL"));
-                    return false;
+                    continue;
                 }
                 
                 if (p.InBed()) 
                 {
                     SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is in bed.", p.Name != null ? p.Name.ToStringShort : "NULL"));
-                    return false;
+                    continue;
                 }
                 
                 // Don't select drafted pawns for dating (would interrupt combat)
                 if (p.Drafted) 
                 {
                     SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is drafted.", p.Name != null ? p.Name.ToStringShort : "NULL"));
-                    return false;
+                    continue;
                 }
                 
                 if (DatingManager.IsOnDate(p)) 
                 {
                     SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is already on a date.", p.Name != null ? p.Name.ToStringShort : "NULL"));
-                    return false;
+                    continue;
                 }
                 
                 if (DatingManager.IsOnDateCooldown(p)) 
                 {
                     SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is on date cooldown.", p.Name != null ? p.Name.ToStringShort : "NULL"));
-                    return false;
+                    continue;
                 }
                 
                 if (!pawn.CanReserveAndReach(p, PathEndMode.InteractionCell, Danger.None)) 
                 {
                     SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} cannot reserve and reach {1}.", pawn.Name != null ? pawn.Name.ToStringShort : "NULL", p.Name != null ? p.Name.ToStringShort : "NULL"));
-                    return false;
+                    continue;
                 }
                 
-                // Relationship checks
-                bool isRelated = pawn.relations.DirectRelationExists(PawnRelationDefOf.Lover, p) ||
-                                pawn.relations.DirectRelationExists(PawnRelationDefOf.Fiance, p) ||
-                                pawn.relations.DirectRelationExists(PawnRelationDefOf.Spouse, p);
+                // Calculate date attractiveness score
+                float score = CalculateDateAttractiveness(pawn, p);
+                SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} has date attractiveness score: {1}", p.Name != null ? p.Name.ToStringShort : "NULL", score));
                 
-                int opinion = pawn.relations.OpinionOf(p);
-                SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Checking pawn {0}. IsRelated: {1}, Opinion: {2}", p.Name != null ? p.Name.ToStringShort : "NULL", isRelated, opinion));
-                
-                if (!isRelated && opinion <= 10) 
+                // Only consider pawns with a positive score
+                if (score > 0)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is not a lover/fiance/spouse and opinion ({1}) is not > 10.", p.Name != null ? p.Name.ToStringShort : "NULL", opinion));
-                    return false;
+                    potentialPartners.Add(new KeyValuePair<Pawn, float>(p, score));
+                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is a potential partner for {1} with score {2}.", p.Name != null ? p.Name.ToStringShort : "NULL", pawn.Name != null ? pawn.Name.ToStringShort : "NULL", score));
                 }
-                
-                SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is a potential partner for {1}. IsRelated: {2}, Opinion: {3}", p.Name != null ? p.Name.ToStringShort : "NULL", pawn.Name != null ? pawn.Name.ToStringShort : "NULL", isRelated, opinion));
-                return true;
-            });
-
-            if (partner != null)
-            {
-                SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found partner {0} for pawn {1}.", partner.Name.ToStringShort, pawn.Name.ToStringShort));
             }
-            else
+
+            // If we have potential partners, select one based on their scores
+            if (potentialPartners.Count > 0)
             {
-                SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: No suitable partner found for pawn {0}.", pawn.Name.ToStringShort));
+                // Sort by score descending for easier debugging (not necessary for selection)
+                potentialPartners.Sort((x, y) => y.Value.CompareTo(x.Value));
+                
+                // Select a partner based on weighted random selection
+                Pawn selectedPartner = SelectPartnerWeighted(pawn, potentialPartners);
+                
+                if (selectedPartner != null)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Selected partner {0} for pawn {1} based on weighted scores.", selectedPartner.Name.ToStringShort, pawn.Name.ToStringShort));
+                    return selectedPartner;
+                }
             }
             
-            return partner;
+            SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: No suitable partner found for pawn {0}.", pawn.Name.ToStringShort));
+            return null;
+        }
+        
+        /// <summary>
+        /// Calculates a "date attractiveness" score for a potential partner.
+        /// Higher scores mean the pawn is more likely to be chosen for a date.
+        /// </summary>
+        /// <param name="initiator">The pawn initiating the date</param>
+        /// <param name="partner">The potential partner</param>
+        /// <returns>A float representing the attractiveness score (higher is better)</returns>
+        private float CalculateDateAttractiveness(Pawn initiator, Pawn partner)
+        {
+            // Start with a base score
+            float score = 0f;
+            
+            // Check for direct romantic relationships (highest priority)
+            bool isLover = initiator.relations.DirectRelationExists(PawnRelationDefOf.Lover, partner);
+            bool isFiance = initiator.relations.DirectRelationExists(PawnRelationDefOf.Fiance, partner);
+            bool isSpouse = initiator.relations.DirectRelationExists(PawnRelationDefOf.Spouse, partner);
+            
+            // If they are already in a direct romantic relationship, give a very high score
+            if (isLover || isFiance || isSpouse)
+            {
+                // Different weights for different relationship types
+                if (isSpouse) 
+                {
+                    score = SocialInteractions.Settings.spouseDateWeight; // Highest priority for spouse
+                }
+                else if (isFiance) 
+                {
+                    score = SocialInteractions.Settings.fianceDateWeight;  // High priority for fiance
+                }
+                else if (isLover) 
+                {
+                    score = SocialInteractions.Settings.loverDateWeight;  // High priority for lover
+                }
+                
+                // Adjust slightly based on opinion (range: -2 to +2)
+                int opinion = initiator.relations.OpinionOf(partner);
+                float opinionAdjustment = System.Math.Max(-2f, System.Math.Min(2f, opinion / SocialInteractions.Settings.opinionAdjustmentFactor));
+                score += opinionAdjustment;
+                
+                return score;
+            }
+            
+            // For non-related pawns, base the score primarily on opinion
+            int baseOpinion = initiator.relations.OpinionOf(partner);
+            
+            // If opinion is very low, they're not a suitable partner
+            if (baseOpinion <= 10)
+            {
+                return 0f;
+            }
+            
+            // Base score is the opinion multiplied by the general weight factor for non-related partners
+            score = baseOpinion * SocialInteractions.Settings.nonRelatedPartnerWeightFactor;
+            
+            // Check if the initiator has an official romantic partner
+            Pawn officialPartner = initiator.relations.GetFirstDirectRelationPawn(PawnRelationDefOf.Spouse);
+            if (officialPartner == null)
+            {
+                officialPartner = initiator.relations.GetFirstDirectRelationPawn(PawnRelationDefOf.Fiance);
+            }
+            if (officialPartner == null)
+            {
+                officialPartner = initiator.relations.GetFirstDirectRelationPawn(PawnRelationDefOf.Lover);
+            }
+            
+            // Only apply cheating penalty if the initiator has an official partner
+            if (officialPartner != null)
+            {
+                // Calculate the opinion difference between the official partner and the potential partner
+                int opinionOfOfficialPartner = initiator.relations.OpinionOf(officialPartner);
+                int opinionDifference = baseOpinion - opinionOfOfficialPartner;
+                
+                // Apply a penalty based on the opinion difference
+                // If the potential partner is much better (higher opinion), reduce or eliminate the penalty
+                // If the potential partner is worse (lower opinion), apply a full penalty
+                
+                // Base penalty
+                float cheatingPenalty = SocialInteractions.Settings.cheatingPenalty;
+                
+                // Adjust penalty based on opinion difference
+                // If opinion difference is positive (potential partner is preferred), reduce penalty
+                // If opinion difference is negative (official partner is preferred), keep full penalty
+                if (opinionDifference > 0)
+                {
+                    // Reduce penalty linearly as opinion difference increases
+                    // When opinion difference is threshold or more, penalty is eliminated
+                    float reductionFactor = System.Math.Max(0f, System.Math.Min(1f, opinionDifference / SocialInteractions.Settings.opinionDifferenceThreshold));
+                    cheatingPenalty = cheatingPenalty * (1f - reductionFactor);
+                }
+                
+                score -= cheatingPenalty;
+            }
+            
+            // Ensure the score doesn't go negative
+            score = System.Math.Max(0f, score);
+            
+            return score;
+        }
+        
+        /// <summary>
+        /// Selects a partner from a list of potential partners using weighted random selection.
+        /// </summary>
+        /// <param name="initiator">The pawn initiating the date</param>
+        /// <param name="potentialPartners">List of potential partners and their scores</param>
+        /// <returns>The selected partner pawn, or null if none selected</returns>
+        private Pawn SelectPartnerWeighted(Pawn initiator, List<KeyValuePair<Pawn, float>> potentialPartners)
+        {
+            if (potentialPartners == null || potentialPartners.Count == 0)
+            {
+                return null;
+            }
+            
+            // Calculate the total score
+            float totalScore = potentialPartners.Sum(pair => pair.Value);
+            
+            // If all scores are zero, just pick the first one
+            if (totalScore <= 0f)
+            {
+                return potentialPartners[0].Key;
+            }
+            
+            // Generate a random value between 0 and totalScore
+            float randomValue = Rand.Value * totalScore;
+            
+            // Find the partner that corresponds to this random value
+            float currentScore = 0f;
+            foreach (var pair in potentialPartners)
+            {
+                currentScore += pair.Value;
+                if (randomValue <= currentScore)
+                {
+                    return pair.Key;
+                }
+            }
+            
+            // Fallback (shouldn't happen, but just in case)
+            return potentialPartners.Last().Key;
         }
         
         /// <summary>

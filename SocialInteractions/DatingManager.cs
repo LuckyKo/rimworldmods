@@ -265,18 +265,25 @@ namespace SocialInteractions
             }
         }
 
-        public static Pawn GetPartnerOnDateWith(Pawn pawn)
+                public static Pawn GetPartnerOfDateWith(Pawn pawn)
         {
+            if (pawn == null) return null;
+
             lock (datesLock)
             {
-                if (pawn == null) return null;
-                Date date = GetDateWith(pawn);
-                if (date != null)
+                foreach (Date date in dates)
                 {
-                    return date.Initiator == pawn ? date.Partner : date.Initiator;
+                    if (date.Initiator == pawn)
+                    {
+                        return date.Partner;
+                    }
+                    else if (date.Partner == pawn)
+                    {
+                        return date.Initiator;
+                    }
                 }
-                return null;
             }
+            return null;
         }
 
         public static Pawn GetInitiatorOfDateWith(Pawn pawn)
@@ -465,7 +472,7 @@ namespace SocialInteractions
                 date.Partner.jobs.StartJob(lovinJobPartner, JobCondition.InterruptForced);
                 SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for partner {0}.", date.Partner.LabelShort));
 
-                SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, "");
+                SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, SpeechBubbleManager.GetDateLovinSubject(date.Initiator, date.Partner));
             }
             else
             {
@@ -592,10 +599,11 @@ namespace SocialInteractions
             }
 
             // Age check (both must be at least 16)
-            if (pawn1.ageTracker.AgeBiologicalYearsFloat < 16f || pawn2.ageTracker.AgeBiologicalYearsFloat < 16f)
-            {
-                return 0f;
-            }
+			// temprorary disabled for debug
+            // if (pawn1.ageTracker.AgeBiologicalYearsFloat < 16f || pawn2.ageTracker.AgeBiologicalYearsFloat < 16f)
+            // {
+            //     return 0f;
+            // }
 
              // If all checks pass, return a positive compatibility factor based on attractiveness
             float pawn1Attractiveness = CalculateAttractiveness(pawn1, pawn2);

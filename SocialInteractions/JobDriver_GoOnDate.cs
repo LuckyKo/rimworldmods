@@ -4,6 +4,7 @@ using Verse.AI;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using Verse.Utility;
 
 namespace SocialInteractions
 {
@@ -95,7 +96,7 @@ namespace SocialInteractions
                 }
 
                 // Calculate acceptance chance based on opinion
-                float baseChance = 0.5f; // 50% base chance
+                float baseChance = 0.95f; // 95% base chance
                 int opinion = recipient.relations.OpinionOf(this.pawn);
                 float opinionFactor = System.Math.Max(0f, System.Math.Min(1f, 0.5f + (opinion / 100f))); // Convert opinion to a 0-1 factor
                 float finalChance = baseChance * opinionFactor;
@@ -125,7 +126,7 @@ namespace SocialInteractions
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Date rejected between {0} and {1}.", this.pawn.Name.ToStringShort, this.Partner.Name.ToStringShort));
                     Find.PlayLog.Add(new PlayLogEntry_Interaction(DefDatabase<InteractionDef>.GetNamed("DateRejected"), this.pawn, this.Partner, null));
                     DatingManager.RejectDate(this.pawn, this.Partner);
-                    SocialInteractions.HandleNonStoppingInteraction(this.pawn, this.Partner, SI_InteractionDefOf.DateRejected, "date");
+                    SocialInteractions.HandleNonStoppingInteraction(this.pawn, this.Partner, SI_InteractionDefOf.DateRejected, SpeechBubbleManager.GetDateRejectionSubject(this.pawn, this.Partner));
                     this.EndJobWith(JobCondition.Incompletable);
                 }
             };
@@ -262,12 +263,57 @@ namespace SocialInteractions
             // Get all joy givers
             IEnumerable<JoyGiverDef> joyGivers = DefDatabase<JoyGiverDef>.AllDefs.OrderByDescending(jg => jg.Worker.GetChance(initiator));
 
+            // Create a list of joy givers with their weights (using base chance as weight)
+            List<Pair<JoyGiverDef, float>> weightedJoyGivers = new List<Pair<JoyGiverDef, float>>();
+            float totalWeight = 0f;
+
             foreach (JoyGiverDef joyGiverDef in joyGivers)
             {
+                float weight = joyGiverDef.Worker.GetChance(initiator);
+                
+                if (weight > 0)
+                {
+                    weightedJoyGivers.Add(new Pair<JoyGiverDef, float>(joyGiverDef, weight));
+                    totalWeight += weight;
+                }
+            }
+
+            // If we have no valid joy givers, return null
+            if (weightedJoyGivers.Count == 0 || totalWeight <= 0)
+            {
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: No suitable joy job found for {0}.", initiator.Name.ToStringShort));
+                return null;
+            }
+
+            // Try multiple times to find a suitable job using weighted random selection
+            const int maxAttempts = 10;
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
+            {
+                // Select a joy giver using weighted random selection
+                float randomValue = Rand.Value * totalWeight;
+                float currentWeight = 0f;
+                JoyGiverDef selectedJoyGiverDef = null;
+
+                foreach (var pair in weightedJoyGivers)
+                {
+                    currentWeight += pair.Second;
+                    if (randomValue <= currentWeight)
+                    {
+                        selectedJoyGiverDef = pair.First;
+                        break;
+                    }
+                }
+
+                // If we didn't select a joy giver (shouldn't happen), default to the first one
+                if (selectedJoyGiverDef == null)
+                {
+                    selectedJoyGiverDef = weightedJoyGivers[0].First;
+                }
+
                 try
                 {
                     // Try to get a job from this joy giver
-                    Job joyJob = joyGiverDef.Worker.TryGiveJob(initiator);
+                    Job joyJob = selectedJoyGiverDef.Worker.TryGiveJob(initiator);
                     if (joyJob != null)
                     {
                         // Skip jobs that don't have a valid target
@@ -289,19 +335,19 @@ namespace SocialInteractions
                                 joyJob.def.defName, initiator.Name.ToStringShort, joyJob.targetA.ToString()));
                             return joyJob;
                         }
-                        // If we can't reserve it, we just continue to the next joy giver
+                        // If we can't reserve it, we try again with a different joy giver
                         // No need to explicitly clean up the job
                     }
                 }
                 catch (Exception ex)
                 {
                     SLog.Warning(string.Format("[SocialInteractions] JobDriver_GoOnDate: Exception while trying joy giver {0}: {1}", 
-                        joyGiverDef.defName, ex.Message));
-                    // Continue to the next joy giver
+                        selectedJoyGiverDef.defName, ex.Message));
+                    // Continue to the next attempt
                 }
             }
             
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: No suitable joy job found for {0}.", initiator.Name.ToStringShort));
+            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: No suitable joy job found for {0} after {1} attempts.", initiator.Name.ToStringShort, maxAttempts));
             return null;
         }
     }

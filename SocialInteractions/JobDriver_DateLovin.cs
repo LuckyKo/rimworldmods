@@ -114,6 +114,35 @@ namespace SocialInteractions
                                     thought.otherPawn = initiator;
                                     partnerFromDate.needs.mood.thoughts.memories.TryGainMemory(thought, null);
                                 }
+                                
+                                // Handle pregnancy
+                                if (ModsConfig.BiotechActive)
+                                {
+                                    Pawn malePawn = ((initiator.gender == Gender.Male) ? initiator : ((partnerFromDate.gender == Gender.Male) ? partnerFromDate : null));
+                                    Pawn femalePawn = ((initiator.gender == Gender.Female) ? initiator : ((partnerFromDate.gender == Gender.Female) ? partnerFromDate : null));
+                                    
+                                    if (malePawn != null && femalePawn != null)
+                                    {
+                                        // Use the same pregnancy chance as vanilla lovin
+                                        float pregnancyChance = 0.05f;
+                                        
+                                        if (Rand.Chance(pregnancyChance * PregnancyUtility.PregnancyChanceForPartners(femalePawn, malePawn)))
+                                        {
+                                            bool success;
+                                            GeneSet inheritedGeneSet = PregnancyUtility.GetInheritedGeneSet(malePawn, femalePawn, out success);
+                                            if (success)
+                                            {
+                                                Hediff_Pregnant hediff_Pregnant = (Hediff_Pregnant)HediffMaker.MakeHediff(HediffDefOf.PregnantHuman, femalePawn);
+                                                hediff_Pregnant.SetParents(null, malePawn, inheritedGeneSet);
+                                                femalePawn.health.AddHediff(hediff_Pregnant);
+                                            }
+                                            else if (PawnUtility.ShouldSendNotificationAbout(malePawn) || PawnUtility.ShouldSendNotificationAbout(femalePawn))
+                                            {
+                                                Messages.Message("MessagePregnancyFailed".Translate(malePawn.Named("FATHER"), femalePawn.Named("MOTHER")) + ": " + "CombinedGenesExceedMetabolismLimits".Translate(), new LookTargets(malePawn, femalePawn), MessageTypeDefOf.NegativeEvent);
+                                            }
+                                        }
+                                    }
+                                }
                             }
 
                             // Advance the date stage
@@ -137,7 +166,7 @@ namespace SocialInteractions
                         FleckMaker.ThrowMetaIcon(initiator.Position, initiator.Map, FleckDefOf.Heart);
                         if (initiator.needs != null && initiator.needs.joy != null)
                         {
-                            initiator.needs.joy.GainJoy(0.01f, JoyKindDefOf.Social);
+                            initiator.needs.joy.GainJoy(0.05f, JoyKindDefOf.Social);
                         }
                     }
                     catch (Exception ex)

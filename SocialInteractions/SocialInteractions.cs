@@ -395,9 +395,55 @@ namespace SocialInteractions
                 .Take(3)
                 .Select(h => h.LabelCap);
 
+            // Check for pregnancy separately since it's not considered a "bad" hediff
+            Hediff pregnancyHediff = null;
+            if (ModsConfig.BiotechActive)
+            {
+                pregnancyHediff = pawn.health.hediffSet.GetFirstHediffOfDef(HediffDefOf.PregnantHuman);
+            }
+            else
+            {
+                pregnancyHediff = pawn.health.hediffSet.GetFirstHediffOfDef(HediffDefOf.Pregnant);
+            }
+
+            List<string> afflictionsList = new List<string>();
             if (significantHediffs.Any())
             {
-                return string.Join(", ", significantHediffs.ToArray());
+                afflictionsList.AddRange(significantHediffs);
+            }
+
+            if (pregnancyHediff != null)
+            {
+                // Add pregnancy information with trimester if available
+                string pregnancyInfo = "pregnant";
+                Hediff_Pregnant pregnant = pregnancyHediff as Hediff_Pregnant;
+                if (pregnant != null)
+                {
+                    switch (pregnant.CurStageIndex)
+                    {
+                        case 0:
+                            pregnancyInfo = "pregnant (1st trimester)";
+                            break;
+                        case 1:
+                            pregnancyInfo = "pregnant (2nd trimester)";
+                            break;
+                        case 2:
+                            pregnancyInfo = "pregnant (3rd trimester)";
+                            break;
+                    }
+                }
+                afflictionsList.Add(pregnancyInfo);
+            }
+
+            // Limit to 3 most significant afflictions
+            if (afflictionsList.Count > 3)
+            {
+                afflictionsList = afflictionsList.Take(3).ToList();
+            }
+
+            if (afflictionsList.Any())
+            {
+                return string.Join(", ", afflictionsList.ToArray());
             }
 
             return "None";

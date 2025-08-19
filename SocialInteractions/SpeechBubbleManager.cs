@@ -100,7 +100,7 @@ namespace SocialInteractions
                               initiator.relations.DirectRelationExists(PawnRelationDefOf.Fiance, recipient) ||
                               initiator.relations.DirectRelationExists(PawnRelationDefOf.Spouse, recipient);
 
-            string joySpotLabel = joySpot.Thing != null ? joySpot.Thing.Label : "a specific spot";
+            string joySpotLabel = joySpot.Thing != null ? joySpot.Thing.Label : "a nice spot";
 
             if (isRomantic)
             {
@@ -108,13 +108,23 @@ namespace SocialInteractions
             }
             else
             {
-                return string.Format("Hanging out together, {0} and {1}, at {2}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort, joySpotLabel);
+                return string.Format("{0} and {1} are hanging out together at {2}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort, joySpotLabel);
             }
         }
 
         public static string GetDateEndSubject(Pawn initiator, Pawn recipient)
         {
             return string.Format("A successful date between {0} and {1} ends with a bang!", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+        }
+        
+        public static string GetDateLovinSubject(Pawn initiator, Pawn recipient)
+        {
+            return string.Format("{0} and {1} are getting intimate after a fun date.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+        }
+        
+        public static string GetDateRejectionSubject(Pawn initiator, Pawn recipient)
+        {
+            return string.Format("{0} asks {1} for a date, but {1} declines.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
         }
 
         public static void EnqueueJob(Action jobAction)

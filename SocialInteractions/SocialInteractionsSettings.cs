@@ -68,6 +68,15 @@ It's currently [time], on [date] and the weather is [weather].
         public int jobCheckIntervalTicks = 60;
         public int initialToleranceTicks = 60;
         public int goOnDateCooldownTicks = 600;
+        
+        // Dating partner selection weights/penalties
+        public float spouseDateWeight = 100f;
+        public float fianceDateWeight = 90f;
+        public float loverDateWeight = 80f;
+        public float opinionAdjustmentFactor = 50f; // For relationship partners, opinion adjustment range: -2 to +2
+        public float nonRelatedPartnerWeightFactor = 0.7f; // General weight factor for non-related partners
+        public float cheatingPenalty = 30f;
+        public float opinionDifferenceThreshold = 20f; // Opinion difference needed to eliminate cheating penalty
 
 
         public override void ExposeData()
@@ -115,6 +124,15 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref jobCheckIntervalTicks, "jobCheckIntervalTicks", 60);
             Scribe_Values.Look(ref initialToleranceTicks, "initialToleranceTicks", 60);
             Scribe_Values.Look(ref goOnDateCooldownTicks, "goOnDateCooldownTicks", 600);
+            
+            // Dating partner selection weights/penalties
+            Scribe_Values.Look(ref spouseDateWeight, "spouseDateWeight", 100f);
+            Scribe_Values.Look(ref fianceDateWeight, "fianceDateWeight", 90f);
+            Scribe_Values.Look(ref loverDateWeight, "loverDateWeight", 80f);
+            Scribe_Values.Look(ref opinionAdjustmentFactor, "opinionAdjustmentFactor", 50f);
+            Scribe_Values.Look(ref nonRelatedPartnerWeightFactor, "nonRelatedPartnerWeightFactor", 1.0f);
+            Scribe_Values.Look(ref cheatingPenalty, "cheatingPenalty", 30f);
+            Scribe_Values.Look(ref opinionDifferenceThreshold, "opinionDifferenceThreshold", 20f);
         }
     }
 
