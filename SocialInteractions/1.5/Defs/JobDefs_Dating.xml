@@ -5,7 +5,7 @@
   <JobDef>
     <defName>GoOnDate</defName>
     <driverClass>SocialInteractions.JobDriver_GoOnDate</driverClass>
-    <reportString>going on a date</reportString>
+    <reportString>going on a play date</reportString>
     <joyKind>Dating</joyKind>
     <suspendable>false</suspendable>
   </JobDef>
