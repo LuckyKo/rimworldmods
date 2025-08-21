@@ -161,7 +161,7 @@ namespace SocialInteractions
 
         private Pawn FindPartnerFor(Pawn pawn)
         {
-            SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Searching for partner for pawn {0}.", pawn != null ? pawn.Name.ToStringShort : "NULL"));
+            // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Searching for partner for pawn {0}.", pawn != null ? pawn.Name.ToStringShort : "NULL"));
             
             // Basic null and map checks
             if (pawn == null || pawn.Map == null || pawn.Map.mapPawns == null) 
@@ -172,7 +172,7 @@ namespace SocialInteractions
             
             // Get all pawns on the map
             List<Pawn> allPawns = pawn.Map.mapPawns.AllPawnsSpawned.Where(p => p != null && p.Faction != null && p.Faction.IsPlayer).ToList();
-            SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found {0} pawns on map.", allPawns.Count));
+            // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Found {0} pawns on map.", allPawns.Count));
             
             // Create a list to hold potential partners and their scores
             List<KeyValuePair<Pawn, float>> potentialPartners = new List<KeyValuePair<Pawn, float>>();
@@ -190,65 +190,66 @@ namespace SocialInteractions
                 
                 if (p == pawn) 
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Skipping self pawn {0}.", p.Name != null ? p.Name.ToStringShort : "NULL"));
+                    // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Skipping self pawn {0}.", p.Name != null ? p.Name.ToStringShort : "NULL"));
                     continue;
                 }
                 
                 if (p.relations == null) 
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} has no relations.", p.Name != null ? p.Name.ToStringShort : "NULL"));
+                    // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} has no relations.", p.Name != null ? p.Name.ToStringShort : "NULL"));
                     continue;
                 }
                 
                 if (!p.IsColonist) 
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is not a colonist.", p.Name != null ? p.Name.ToStringShort : "NULL"));
+                    // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is not a colonist.", p.Name != null ? p.Name.ToStringShort : "NULL"));
                     continue;
                 }
                 
                 if (p.IsPrisoner) 
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is a prisoner.", p.Name != null ? p.Name.ToStringShort : "NULL"));
+                    // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is a prisoner.", p.Name != null ? p.Name.ToStringShort : "NULL"));
                     continue;
                 }
                 
                 if (p.Downed) 
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is downed.", p.Name != null ? p.Name.ToStringShort : "NULL"));
+                    // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is downed.", p.Name != null ? p.Name.ToStringShort : "NULL"));
                     continue;
                 }
                 
                 if (!p.Awake()) 
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is not awake.", p.Name != null ? p.Name.ToStringShort : "NULL"));
+                    // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is not awake.", p.Name != null ? p.Name.ToStringShort : "NULL"));
                     continue;
                 }
                 
                 if (p.InBed()) 
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is in bed.", p.Name != null ? p.Name.ToStringShort : "NULL"));
+                    // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is in bed.", p.Name != null ? p.Name.ToStringShort : "NULL"));
                     continue;
                 }
                 
                 // Don't select drafted pawns for dating (would interrupt combat)
                 if (p.Drafted) 
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is drafted.", p.Name != null ? p.Name.ToStringShort : "NULL"));
+                    // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is drafted.", p.Name != null ? p.Name.ToStringShort : "NULL"));
                     continue;
                 }
                 
                 if (DatingManager.IsOnDate(p)) 
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is already on a date.", p.Name != null ? p.Name.ToStringShort : "NULL"));
+                    // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is already on a date.", p.Name != null ? p.Name.ToStringShort : "NULL"));
                     continue;
                 }
                 
                 if (DatingManager.IsOnDateCooldown(p)) 
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is on date cooldown.", p.Name != null ? p.Name.ToStringShort : "NULL"));
+                    // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is on date cooldown.", p.Name != null ? p.Name.ToStringShort : "NULL"));
                     continue;
                 }
                 
+				
                 if (!pawn.CanReserveAndReach(p, PathEndMode.InteractionCell, Danger.None)) 
                 {
                     SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} cannot reserve and reach {1}.", pawn.Name != null ? pawn.Name.ToStringShort : "NULL", p.Name != null ? p.Name.ToStringShort : "NULL"));
@@ -257,13 +258,13 @@ namespace SocialInteractions
                 
                 // Calculate date attractiveness score
                 float score = CalculateDateAttractiveness(pawn, p);
-                SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} has date attractiveness score: {1}", p.Name != null ? p.Name.ToStringShort : "NULL", score));
+                //SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} has date attractiveness score: {1}", p.Name != null ? p.Name.ToStringShort : "NULL", score));
                 
                 // Only consider pawns with a positive score
                 if (score > 0)
                 {
                     potentialPartners.Add(new KeyValuePair<Pawn, float>(p, score));
-                    SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is a potential partner for {1} with score {2}.", p.Name != null ? p.Name.ToStringShort : "NULL", pawn.Name != null ? pawn.Name.ToStringShort : "NULL", score));
+                    //SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is a potential partner for {1} with score {2}.", p.Name != null ? p.Name.ToStringShort : "NULL", pawn.Name != null ? pawn.Name.ToStringShort : "NULL", score));
                 }
             }
 

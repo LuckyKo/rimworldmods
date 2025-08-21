@@ -257,36 +257,37 @@ namespace SocialInteractions
 
         private static Date GetDateWith_Unlocked(Pawn pawn)
         {
-            return dates.FirstOrDefault(d => d.Initiator == pawn || d.Partner == pawn);
+            Date foundDate = dates.FirstOrDefault(d => d.Initiator == pawn || d.Partner == pawn);
+            // Reduce log spam by commenting out this message
+            // SLog.Message(string.Format("[SocialInteractions] GetDateWith_Unlocked: Found date for pawn {0}: {1}", 
+            //     pawn != null ? pawn.LabelShort : "NULL", 
+            //     foundDate != null ? "YES" : "NO"));
+            return foundDate;
         }
 
         public static bool IsOnDate(Pawn pawn)
         {
             if (pawn == null) 
             {
-                // Only log in debug mode or remove entirely
-                // SLog.Message("[SocialInteractions] DatingManager.IsOnDate: Pawn is null, returning false.");
                 return false;
             }
             
             if (pawn.health == null || pawn.health.hediffSet == null) 
             {
-                // Only log in debug mode or remove entirely
-                // SLog.Message(string.Format("[SocialInteractions] DatingManager.IsOnDate: Pawn {0} has no health or hediffSet, returning false.", pawn.Name.ToStringShort));
                 return false;
             }
             
             HediffDef onDateDef = HediffDef.Named("OnDate");
             if (onDateDef == null) 
             {
-                // Only log in debug mode or remove entirely
-                // SLog.Message("[SocialInteractions] DatingManager.IsOnDate: OnDate hediff def is null, returning false.");
                 return false;
             }
             
             bool hasHediff = pawn.health.hediffSet.HasHediff(onDateDef);
-            // Only log in debug mode or remove entirely
-            // SLog.Message(string.Format("[SocialInteractions] DatingManager.IsOnDate: Pawn {0} has OnDate hediff: {1}", pawn.Name.ToStringShort, hasHediff));
+            // Only log when a pawn is actually on a date to reduce log spam
+            // SLog.Message(string.Format("[SocialInteractions] DatingManager.IsOnDate: Pawn {0} has OnDate hediff: {1}", 
+            //     pawn.Name != null ? pawn.Name.ToStringShort : "NULL", 
+            //     hasHediff));
             return hasHediff;
         }
 
@@ -308,14 +309,25 @@ namespace SocialInteractions
                 {
                     if (date.Initiator == pawn)
                     {
+                        // Reduce log spam by commenting out these messages
+                        // SLog.Message(string.Format("[SocialInteractions] GetPartnerOfDateWith: Found partner {0} for initiator {1}", 
+                        //     date.Partner != null ? date.Partner.LabelShort : "NULL", 
+                        //     pawn.LabelShort != null ? pawn.LabelShort : "NULL"));
                         return date.Partner;
                     }
                     else if (date.Partner == pawn)
                     {
+                        // Reduce log spam by commenting out these messages
+                        // SLog.Message(string.Format("[SocialInteractions] GetPartnerOfDateWith: Found initiator {0} for partner {1}", 
+                        //     date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
+                        //     pawn.LabelShort != null ? pawn.LabelShort : "NULL"));
                         return date.Initiator;
                     }
                 }
             }
+            // Reduce log spam by commenting out this message
+            // SLog.Message(string.Format("[SocialInteractions] GetPartnerOfDateWith: No date found for pawn {0}", 
+            //     pawn.LabelShort != null ? pawn.LabelShort : "NULL"));
             return null;
         }
 
@@ -388,6 +400,9 @@ namespace SocialInteractions
         {
             if (map == null || map.mapPawns == null) return;
             
+            // Only check for stuck dates once per 180 ticks (3 seconds) instead of every tick
+            if (Current.Game.tickManager.TicksGame % 180 != 0) return;
+            
             JobDef dateLovinJobDef = SI_JobDefOf.DateLovin;
             JobDef goOnDateJobDef = SI_JobDefOf.GoOnDate;
             
@@ -438,7 +453,9 @@ namespace SocialInteractions
                     if (initiator == null || initiator.jobs == null || initiator.CurJob == null || 
                         (!isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef && initiator.CurJobDef != goOnDateJobDef))
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Found stuck date for pawn {0}, advancing stage.", pawn.Name.ToStringShort));
+                        // Only log when we actually find a stuck date to reduce log spam
+                        SLog.Message(string.Format("[SocialInteractions] Found stuck date for pawn {0}, advancing stage.", 
+                            pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
                         AdvanceDateStage(pawn);
                     }
                 }
@@ -447,14 +464,16 @@ namespace SocialInteractions
 
         public static void AdvanceDateStage(Pawn pawn)
         {
-            SLog.Message(string.Format("[SocialInteractions] DatingManager.AdvanceDateStage called for pawn {0}", 
-                pawn != null ? pawn.LabelShort : "NULL"));
+            // Reduce log spam by commenting out this message
+            // SLog.Message(string.Format("[SocialInteractions] DatingManager.AdvanceDateStage called for pawn {0}", 
+            //     pawn != null ? (pawn.LabelShort != null ? pawn.LabelShort : "NULL") : "NULL"));
             
             lock (datesLock)
             {
                 if (pawn == null) 
                 {
-                    SLog.Message("[SocialInteractions] DatingManager.AdvanceDateStage: pawn is null, returning");
+                    // Reduce log spam by commenting out this message
+                    // SLog.Message("[SocialInteractions] DatingManager.AdvanceDateStage: pawn is null, returning");
                     return;
                 }
                 
@@ -463,29 +482,37 @@ namespace SocialInteractions
                 {
                     if (date.Stage == DateStage.Finished) 
                     {
-                        SLog.Message(string.Format("[SocialInteractions] AdvanceDateStage: Date for {0} and {1} is already finished. No action taken.", 
-                            date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
-                            date.Partner != null ? date.Partner.LabelShort : "NULL"));
+                        // Reduce log spam by commenting out this message
+                        // SLog.Message(string.Format("[SocialInteractions] AdvanceDateStage: Date for {0} and {1} is already finished. No action taken.", 
+                        //     date.Initiator != null ? (date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL") : "NULL", 
+                        //     date.Partner != null ? (date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL") : "NULL"));
                         return;
                     }
 
                     date.Stage++;
-                    SLog.Message(string.Format("[SocialInteractions] AdvanceDateStage: Advancing date stage for {0} and {1}. New stage: {2}", 
-                        date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
-                        date.Partner != null ? date.Partner.LabelShort : "NULL", 
-                        date.Stage));
+                    // Reduce log spam by commenting out this message
+                    // SLog.Message(string.Format("[SocialInteractions] AdvanceDateStage: Advancing date stage for {0} and {1}. New stage: {2}", 
+                    //     date.Initiator != null ? (date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL") : "NULL", 
+                    //     date.Partner != null ? (date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL") : "NULL", 
+                    //     date.Stage));
                     HandleDateStage(date);
                 }
                 else
                 {
-                    SLog.Warning(string.Format("[SocialInteractions] AdvanceDateStage: Called for pawn {0} who is not on a date.", pawn.LabelShort));
+                    // Reduce log spam by commenting out this message
+                    // SLog.Warning(string.Format("[SocialInteractions] AdvanceDateStage: Called for pawn {0} who is not on a date.", 
+                    //     pawn.LabelShort != null ? pawn.LabelShort : "NULL"));
                 }
             }
         }
 
         private static void HandleDateStage(Date date)
         {
-            SLog.Message(string.Format("[SocialInteractions] HandleDateStage: Handling date stage {0} for {1} and {2}", date.Stage, date.Initiator.LabelShort, date.Partner.LabelShort));
+            // Reduce log spam by commenting out this message
+            // SLog.Message(string.Format("[SocialInteractions] HandleDateStage: Handling date stage {0} for {1} and {2}", 
+            //     date.Stage, 
+            //     (date.Initiator != null && date.Initiator.LabelShort != null) ? date.Initiator.LabelShort : "NULL", 
+            //     (date.Partner != null && date.Partner.LabelShort != null) ? date.Partner.LabelShort : "NULL"));
             switch (date.Stage)
             {
                 case DateStage.Lovin:
@@ -499,13 +526,15 @@ namespace SocialInteractions
 
         private static void TransitionToLovin(Date date)
         {
-            SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Attempting to transition date for {0} and {1} to Lovin stage.", 
-                date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
-                date.Partner != null ? date.Partner.LabelShort : "NULL"));
+            // Reduce log spam by commenting out this message
+            // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Attempting to transition date for {0} and {1} to Lovin stage.", 
+            //     date.Initiator != null ? (date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL") : "NULL", 
+            //     date.Partner != null ? (date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL") : "NULL"));
 
             if (date.Initiator == null || date.Partner == null)
             {
-                SLog.Warning("[SocialInteractions] TransitionToLovin: Initiator or Partner is null, ending date.");
+                // Reduce log spam by commenting out this message
+                // SLog.Warning("[SocialInteractions] TransitionToLovin: Initiator or Partner is null, ending date.");
                 date.Stage = DateStage.Finished;
                 HandleDateStage(date);
                 return;
@@ -513,14 +542,18 @@ namespace SocialInteractions
 
             if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == SI_JobDefOf.FollowAndWatchInitiator)
             {
-                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Ending partner's ({0}) FollowAndWatch job.", date.Partner.LabelShort));
+                // Reduce log spam by commenting out this message
+                // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Ending partner's ({0}) FollowAndWatch job.", 
+                //     date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
                 date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
             }
 
             Building_Bed bed = FindSuitableBedForLovin(date.Initiator, date.Partner);
             if (bed != null)
             {
-                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Found suitable bed {0} at {1}. Assigning lovin' jobs.", bed.LabelShort, bed.Position));
+                // Reduce log spam by commenting out this message
+                // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Found suitable bed {0} at {1}. Assigning lovin' jobs.", 
+                //     bed.LabelShort != null ? bed.LabelShort : "NULL", bed.Position));
 
                 // End any existing jobs that might interfere
                 if (date.Initiator != null && date.Initiator.jobs != null) date.Initiator.jobs.EndCurrentJob(JobCondition.InterruptForced, false);
@@ -530,19 +563,24 @@ namespace SocialInteractions
                 // This allows spouses to potentially catch them in the act
                 Job lovinJobInitiator = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Partner, bed.Position);
                 date.Initiator.jobs.StartJob(lovinJobInitiator, JobCondition.InterruptForced);
-                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for initiator {0}.", date.Initiator.LabelShort));
+                // Reduce log spam by commenting out this message
+                // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for initiator {0}.", 
+                //     date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL"));
 
                 Job lovinJobPartner = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Initiator, bed.Position);
                 date.Partner.jobs.StartJob(lovinJobPartner, JobCondition.InterruptForced);
-                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for partner {0}.", date.Partner.LabelShort));
+                // Reduce log spam by commenting out this message
+                // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for partner {0}.", 
+                //     date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
 
                 SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, SpeechBubbleManager.GetDateLovinSubject(date.Initiator, date.Partner));
             }
             else
             {
-                SLog.Warning(string.Format("[SocialInteractions] TransitionToLovin: No suitable bed found. Ending date for {0} and {1}.", 
-                    date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
-                    date.Partner != null ? date.Partner.LabelShort : "NULL"));
+                // Reduce log spam by commenting out this message
+                // SLog.Warning(string.Format("[SocialInteractions] TransitionToLovin: No suitable bed found. Ending date for {0} and {1}.", 
+                //     date.Initiator != null ? (date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL") : "NULL", 
+                //     date.Partner != null ? (date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL") : "NULL"));
                 date.Stage = DateStage.Finished;
                 HandleDateStage(date);
             }
@@ -582,6 +620,16 @@ namespace SocialInteractions
                     positiveTraitMatches++;
                 if (pawn1.story.traits.HasTrait(TraitDefOf.Joyous) && pawn2.story.traits.HasTrait(TraitDefOf.Joyous))
                     positiveTraitMatches++;
+                
+                // Check for Masochist trait (may be from a mod)
+                TraitDef masochistTrait = DefDatabase<TraitDef>.GetNamed("Masochist", false);
+                if (masochistTrait != null)
+                {
+                    if (pawn1.story.traits.HasTrait(TraitDefOf.Brawler) && pawn2.story.traits.HasTrait(masochistTrait))
+                        positiveTraitMatches++;
+                    if (pawn1.story.traits.HasTrait(masochistTrait) && pawn2.story.traits.HasTrait(TraitDefOf.Brawler))
+                        positiveTraitMatches++;
+                }
 
                 // Check for conflicting traits
                 if (pawn1.story.traits.HasTrait(TraitDefOf.Kind) && pawn2.story.traits.HasTrait(TraitDefOf.Psychopath))
@@ -601,6 +649,16 @@ namespace SocialInteractions
             float ageCompatibility = Mathf.InverseLerp(20f, 0f, ageDifference); // More compatible with less age difference
             compatibility *= Mathf.Lerp(0.8f, 1.2f, ageCompatibility);
 
+            // Check for blood relations and apply a heavy penalty if they exist
+            // In RimWorld, blood relations can happen but should be heavily discouraged
+            bool areBloodRelated = pawn1.GetRelations(pawn2).Any(relation => relation.familyByBloodRelation);
+            if (areBloodRelated)
+            {
+                // Apply a heavy penalty for blood relations
+                compatibility *= 0.1f; // 90% reduction in compatibility
+                SLog.Message(string.Format("[SocialInteractions] CalculateDateCompatibility: {0} and {1} are blood related, applying penalty", pawn1.LabelShort, pawn2.LabelShort));
+            }
+
             // Ensure compatibility stays within reasonable bounds
             compatibility = Mathf.Clamp(compatibility, 0.1f, 3.0f);
 
@@ -610,8 +668,14 @@ namespace SocialInteractions
         // Helper method to calculate sexual compatibility based on vanilla RimWorld logic
         public static float CalculateSexualCompatibility(Pawn pawn1, Pawn pawn2)
         {
-            // Check if they're the same pawn or different species
-            if (pawn1.def != pawn2.def || pawn1 == pawn2)
+            // Check if they're the same pawn
+            if (pawn1 == pawn2)
+            {
+                return 0f;
+            }
+
+            // Check if both pawns are humanlike - only humanlike pawns can have romantic relationships
+            if (!pawn1.RaceProps.Humanlike || !pawn2.RaceProps.Humanlike)
             {
                 return 0f;
             }
@@ -687,28 +751,22 @@ namespace SocialInteractions
             {
                 beauty = target.GetStatValue(StatDefOf.PawnBeauty);
             }
-
-            if (beauty < 0f)
-            {
-                return 0.3f; // Unattractive
-            }
-            else if (beauty > 0f)
-            {
-                return 1f + beauty; // Attractive
-            }
-            else
-            {
-                return 1.0f; // Average
-            }
+			
+			// beauty can be from -3 to +3 so we keep the factor between 0.5 and 1.5
+			return 1f + (beauty / 6f);
         }
 
         // Helper method to find a suitable bed for lovin'
         public static Building_Bed FindSuitableBedForLovin(Pawn initiator, Pawn partner)
         {
-            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Searching for bed for {0} and {1}.", initiator.LabelShort, partner.LabelShort));
+            // Reduce log spam by commenting out this message
+            // SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Searching for bed for {0} and {1}.", 
+            //     initiator != null ? (initiator.LabelShort != null ? initiator.LabelShort : "NULL") : "NULL", 
+            //     partner != null ? (partner.LabelShort != null ? partner.LabelShort : "NULL") : "NULL"));
             if (initiator == null || initiator.Map == null || partner == null) 
             {
-                SLog.Error("[SocialInteractions] FindSuitableBedForLovin: Initiator, Partner, or Map is null.");
+                // Reduce log spam by commenting out this message
+                // SLog.Error("[SocialInteractions] FindSuitableBedForLovin: Initiator, Partner, or Map is null.");
                 return null;
             }
 
@@ -724,10 +782,8 @@ namespace SocialInteractions
                 SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance failed. Rolled > {0}.", finalChance));
                 return null;
             }
-            SLog.Message("[SocialInteractions] FindSuitableBedForLovin: Lovin chance succeeded.");
 
             var allBeds = initiator.Map.listerBuildings.AllBuildingsColonistOfClass<Building_Bed>().ToList();
-            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} colonist beds on map.", allBeds.Count));
 
             var potentialBeds = allBeds.Where(bed =>
                 {
@@ -738,13 +794,16 @@ namespace SocialInteractions
                     if (!partner.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Partner cannot reserve/reach {0}.", bed.LabelShort));*/ return false; }
                     return true;
                 });
-            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} beds that are reachable.", potentialBeds.Count()));
+            // Reduce log spam by commenting out this message
+            // SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} beds that are reachable.", potentialBeds.Count()));
 
             // Prioritize owned beds
             Building_Bed ownedBed = potentialBeds.FirstOrDefault(b => b.OwnersForReading.Contains(initiator));
             if (ownedBed != null) 
             {
-                SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found bed owned by initiator: {0}.", ownedBed.LabelShort));
+                // Reduce log spam by commenting out this message
+                // SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found bed owned by initiator: {0}.", 
+                //     ownedBed.LabelShort != null ? ownedBed.LabelShort : "NULL"));
                 return ownedBed;
             }
 
@@ -752,7 +811,8 @@ namespace SocialInteractions
             Building_Bed anyBed = potentialBeds.FirstOrDefault();
             if (anyBed != null) 
             {
-                SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found available bed: {0}.", anyBed.LabelShort));
+                // SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found available bed: {0}.", 
+                //     anyBed.LabelShort != null ? anyBed.LabelShort : "NULL"));
                 return anyBed;
             }
 

@@ -63,6 +63,26 @@ namespace SocialInteractions
 
             yield return Toils_Goto.GotoCell(BedPosInd, PathEndMode.OnCell);
 
+            // Add a toil to wait for the partner to get into position
+            Toil waitForPartnerToil = ToilMaker.MakeToil("WaitForPartner");
+            waitForPartnerToil.initAction = delegate
+            {
+                // Set a reasonable timeout (300 ticks = 5 seconds)
+                waitForPartnerToil.defaultDuration = 300;
+            };
+            waitForPartnerToil.tickAction = delegate
+            {
+                // Check if both pawns are within 1.5 cells of each other
+                if (pawn.Position.DistanceTo(Partner.Position) <= 1.5f)
+                {
+                    // If they're close enough, proceed to the next toil
+                    waitForPartnerToil.actor.jobs.curDriver.ReadyForNextToil();
+                }
+                // If not close enough, continue waiting until timeout
+            };
+            waitForPartnerToil.defaultCompleteMode = ToilCompleteMode.Delay;
+            yield return waitForPartnerToil;
+
             // Store references to both pawns to ensure we can access them later
             Pawn initiator = pawn;
             Pawn partner = Partner;

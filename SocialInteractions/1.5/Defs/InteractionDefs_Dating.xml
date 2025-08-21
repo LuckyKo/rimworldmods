@@ -17,6 +17,34 @@
     </stages>
   </ThoughtDef>
 
+  <ThoughtDef>
+    <defName>GotCaughtCheating</defName>
+    <thoughtClass>SocialInteractions.Thought_GotCaughtCheating</thoughtClass>
+    <durationDays>2</durationDays>
+    <stackLimit>1</stackLimit>
+    <stages>
+      <li>
+        <label>Got caught cheating by {0}</label>
+        <description>I've been caught red-handed...</description>
+        <baseMoodEffect>-15</baseMoodEffect>
+      </li>
+    </stages>
+  </ThoughtDef>
+
+  <ThoughtDef>
+    <defName>WasCheatedOn</defName>
+    <thoughtClass>SocialInteractions.Thought_WasCheatedOn</thoughtClass>
+    <durationDays>2</durationDays>
+    <stackLimit>1</stackLimit>
+    <stages>
+      <li>
+        <label>Was cheated on by {0}</label>
+        <description>Should have been more careful...</description>
+        <baseMoodEffect>-5</baseMoodEffect>
+      </li>
+    </stages>
+  </ThoughtDef>
+
   <InteractionDef>
     <defName>CaughtCheating</defName>
     <label>caught cheating</label>

@@ -15,6 +15,7 @@ namespace SocialInteractions
         public static InteractionDef VisitSickPawn;
         
         public static InteractionDef DateLovin;
+        public static InteractionDef CaughtCheating;
         
     }
 }

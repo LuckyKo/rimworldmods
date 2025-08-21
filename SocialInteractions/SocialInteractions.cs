@@ -16,8 +16,16 @@ namespace SocialInteractions
     [StaticConstructorOnStartup]
     public static class SocialInteractions
     {
-                        public static SocialInteractionsModSettings Settings { get; set; }
+        public static SocialInteractionsModSettings Settings { get; set; }
         public static bool isShowingBubble = false;
+        
+        // Static dictionary to store date partners for cheaters
+        public static Dictionary<string, Pawn> CheaterPartners = new Dictionary<string, Pawn>();
+        
+        // Variables for scheduling the fight after catching cheating
+        public static int scheduledFightTriggerTick = -1;
+        public static Pawn scheduledFightInitiator = null;
+        public static Pawn scheduledFightRecipient = null;
 
         static SocialInteractions()
         {
@@ -45,6 +53,7 @@ namespace SocialInteractions
             if (interactionDef == SI_InteractionDefOf.DateRejected && Settings.enableDating) return true;
             if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) return true;
             if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating) return true;
+            if (interactionDef == SI_InteractionDefOf.CaughtCheating && Settings.enableDating) return true;
             return false;
         }
 
@@ -90,6 +99,7 @@ namespace SocialInteractions
             else if (interactionDef == SI_InteractionDefOf.DateRejected && Settings.enableDating) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating) isEnabled = true;
+            else if (interactionDef == SI_InteractionDefOf.CaughtCheating && Settings.enableDating) isEnabled = true;
 
             SLog.Message(string.Format("[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for {0}: {1}", interactionDef.defName, isEnabled));
             if (!isEnabled)
@@ -542,8 +552,59 @@ namespace SocialInteractions
 
         public static void HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
-            SLog.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy));
-            if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) 
+            HandleNonStoppingInteraction(initiator, recipient, interactionDef, subject, false);
+        }
+
+        public static void HandleCaughtCheatingInteraction(Pawn initiator, Pawn recipient, Pawn partner = null)
+        {
+            // Create a temporary job to hold only the cheater (recipient) in place during the interaction
+            Job holdJob = JobMaker.MakeJob(JobDefOf.Wait);
+            holdJob.expiryInterval = 1800; // 30 seconds should be enough for the interaction
+            holdJob.canBashDoors = false;
+            holdJob.canBashFences = false;
+            holdJob.checkOverrideOnExpire = false;
+            
+            // Start the job only on the recipient (the cheater) to hold them in place
+            if (recipient.jobs != null)
+                recipient.jobs.StartJob(holdJob, JobCondition.InterruptForced);
+                
+            // Generate a descriptive subject line for the LLM
+            // If partner is provided, use it. Otherwise, look it up.
+            string subject;
+            if (partner != null)
+            {
+                subject = string.Format("{0} caught {1} cheating with {2}", 
+                    initiator.LabelShort, recipient.LabelShort, partner.LabelShort);
+            }
+            else
+            {
+                Pawn foundPartner = DatingManager.GetPartnerOfDateWith(recipient);
+                if (foundPartner != null)
+                {
+                    subject = string.Format("{0} caught {1} cheating with {2}", 
+                        initiator.LabelShort, recipient.LabelShort, foundPartner.LabelShort);
+                }
+                else
+                {
+                    subject = string.Format("{0} caught {1} cheating", 
+                        initiator.LabelShort, recipient.LabelShort);
+                }
+            }
+                
+            // Trigger the LLM interaction
+            HandleNonStoppingInteraction(initiator, recipient, SI_InteractionDefOf.CaughtCheating, subject, true);
+            
+            // Schedule the fight logic to be triggered after a delay
+            // We'll use a static variable to track when to trigger the fight
+            scheduledFightTriggerTick = Find.TickManager.TicksGame + 180; // 3 seconds
+            scheduledFightInitiator = initiator;
+            scheduledFightRecipient = recipient;
+        }
+
+        public static void HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject, bool skipSpamProtection)
+        {
+            SLog.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}, skipSpamProtection: {3}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy, skipSpamProtection));
+            if (!skipSpamProtection && Settings.preventSpam && SpeechBubbleManager.isLlmBusy) 
             {
                 // Show default bubble when LLM is busy and we're preventing spam
                 if (!string.IsNullOrEmpty(subject))

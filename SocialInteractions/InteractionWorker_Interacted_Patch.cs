@@ -1,6 +1,7 @@
 using HarmonyLib;
 using RimWorld;
 using Verse;
+using Verse.AI;
 using System.Collections.Generic;
 
 namespace SocialInteractions
@@ -13,27 +14,44 @@ namespace SocialInteractions
             // Only handle interactions when pawns stop on interaction (stopping interactions)
             if (SocialInteractions.Settings.pawnsStopOnInteraction)
             {
-                // Handle all LLM-enabled interactions for stopping interactions
-                if ((__instance.InteractionDef == InteractionDefOf.Chitchat && SocialInteractions.Settings.enableChitchat) ||
-                    (__instance.InteractionDef == InteractionDefOf.RomanceAttempt && SocialInteractions.Settings.enableRomanceAttempt) ||
-                    (__instance.InteractionDef == InteractionDefOf.DeepTalk && SocialInteractions.Settings.enableDeepTalk) ||
-                    (__instance.InteractionDef == InteractionDefOf.Insult && SocialInteractions.Settings.enableInsult) ||
-                    (__instance.InteractionDef == InteractionDefOf.MarriageProposal && SocialInteractions.Settings.enableMarriageProposal) ||
-                    (__instance.InteractionDef == InteractionDefOf.Reassure && SocialInteractions.Settings.enableReassure) ||
-                    (__instance.InteractionDef == InteractionDefOf.DisturbingChat && SocialInteractions.Settings.enableDisturbingChat))
+                // Get the interaction definition through reflection with proper error handling
+                InteractionDef interactionDef = null;
+                try
                 {
-                    // Create a PlayLogEntry_Interaction to get the social log message
-                    PlayLogEntry_Interaction entry = new PlayLogEntry_Interaction(__instance.InteractionDef, initiator, recipient, extraSentencePacks);
-                    string subject = SocialInteractions.RemoveRichTextTags(entry.ToGameStringFromPOV(initiator));
-                    SpeechBubbleManager.ShowDefaultBubble(initiator, subject);
+                    var field = typeof(InteractionWorker).GetField("intDef", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (field != null)
+                    {
+                        interactionDef = (InteractionDef)field.GetValue(__instance);
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    SLog.Warning(string.Format("[SocialInteractions] Error getting interaction def from InteractionWorker: {0}", ex.Message));
+                }
+                
+                if (interactionDef != null)
+                {
+                    if ((interactionDef == InteractionDefOf.Chitchat && SocialInteractions.Settings.enableChitchat) ||
+                        (interactionDef == InteractionDefOf.RomanceAttempt && SocialInteractions.Settings.enableRomanceAttempt) ||
+                        (interactionDef == InteractionDefOf.DeepTalk && SocialInteractions.Settings.enableDeepTalk) ||
+                        (interactionDef == InteractionDefOf.Insult && SocialInteractions.Settings.enableInsult) ||
+                        (interactionDef == InteractionDefOf.MarriageProposal && SocialInteractions.Settings.enableMarriageProposal) ||
+                        (interactionDef == InteractionDefOf.Reassure && SocialInteractions.Settings.enableReassure) ||
+                        (interactionDef == InteractionDefOf.DisturbingChat && SocialInteractions.Settings.enableDisturbingChat))
+                    {
+                        // Create a PlayLogEntry_Interaction to get the social log message
+                        PlayLogEntry_Interaction entry = new PlayLogEntry_Interaction(interactionDef, initiator, recipient, extraSentencePacks);
+                        string subject = SocialInteractions.RemoveRichTextTags(entry.ToGameStringFromPOV(initiator));
+                        SpeechBubbleManager.ShowDefaultBubble(initiator, subject);
 
-                    Job_HaveDeepTalk initiatorJob = new Job_HaveDeepTalk(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
-                    initiatorJob.interactionDef = __instance.InteractionDef;
-                    initiatorJob.subject = subject;
-                    initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
+                        Job_HaveDeepTalk initiatorJob = new Job_HaveDeepTalk(DefDatabase<JobDef>.GetNamed("HaveDeepTalk"), recipient);
+                        initiatorJob.interactionDef = interactionDef;
+                        initiatorJob.subject = subject;
+                        initiator.jobs.TryTakeOrderedJob(initiatorJob, JobTag.Misc);
 
-                    Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
-                    recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
+                        Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
+                        recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
+                    }
                 }
             }
         }

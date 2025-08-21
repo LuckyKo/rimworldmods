@@ -131,7 +131,7 @@ namespace SocialInteractions
                     Toil dialogueToil = new Toil();
                     dialogueToil.initAction = () =>
                     {
-                        SocialInteractions.HandleNonStoppingInteraction(initiator, partner, SI_InteractionDefOf.Lovin, "Lying in bed together, about to make love");
+                        SocialInteractions.HandleNonStoppingInteraction(initiator, partner, SI_InteractionDefOf.Lovin, "Lying in bed together, making love");
                     };
                     dialogueToil.defaultCompleteMode = ToilCompleteMode.Instant;
 

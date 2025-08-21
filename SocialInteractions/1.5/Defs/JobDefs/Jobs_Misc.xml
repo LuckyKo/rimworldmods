@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <JobDef>
+    <defName>CaughtCheatingInteraction</defName>
+    <driverClass>SocialInteractions.JobDriver_CaughtCheating</driverClass>
+    <reportString>Confronting cheater.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+</Defs>

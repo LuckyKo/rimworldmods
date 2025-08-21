@@ -25,6 +25,32 @@ namespace SocialInteractions
         {
             base.MapComponentTick();
 
+            // Check if we need to trigger a fight after catching cheating
+            if (SocialInteractions.scheduledFightTriggerTick > 0 && 
+                Find.TickManager.TicksGame >= SocialInteractions.scheduledFightTriggerTick)
+            {
+                // Trigger fight logic using the InteractionWorker method
+                if (SocialInteractions.scheduledFightInitiator != null && 
+                    SocialInteractions.scheduledFightRecipient != null)
+                {
+                    // The angry pawn (initiator) should be the one who starts the fight
+                    Pawn angryPawn = SocialInteractions.scheduledFightInitiator;
+                    // The cheater is the recipient
+                    Pawn cheater = SocialInteractions.scheduledFightRecipient;
+                    // The partner is the one being cheated on
+                    Pawn partner = DatingManager.GetPartnerOfDateWith(cheater);
+                    
+                    InteractionWorker_CaughtCheating worker = new InteractionWorker_CaughtCheating();
+                    // Parameters: (angryPawn, cheater, partner)
+                    worker.TriggerFightLogic(angryPawn, cheater, partner);
+                }
+                
+                // Reset the scheduled fight variables
+                SocialInteractions.scheduledFightTriggerTick = -1;
+                SocialInteractions.scheduledFightInitiator = null;
+                SocialInteractions.scheduledFightRecipient = null;
+            }
+
             // Check dates every 180 ticks (3 seconds)
             if (Find.TickManager.TicksGame % 180 == 0)
             {

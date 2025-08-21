@@ -11,7 +11,6 @@ SocialInteractionsSettings.cs
 KoboldApiClient.cs
 JobDriver_HaveDeepTalk.cs
 Job_HaveDeepTalk.cs
-JoyGiver_HaveDeepTalk.cs
 JobDriver_BeTalkedTo.cs
 SpeechBubbleManager.cs
 JobPatches.cs
@@ -36,3 +35,15 @@ SLog.cs
 Dating_MapComponent.cs
 DateTracker_MapComponent.cs
 Map_FinalizeInit_Patch.cs
+Pawn_Tick_Patch.cs
+MindStateTick_Patch.cs
+InteractionWorker_Interacted_Patch.cs
+JobDriver_Joy_Patch.cs
+JoyGiver_HaveDeepTalk.cs
+PawnRenderer_RenderPawnAt_Patch.cs
+JoyTickCheckEnd_Patch.cs
+SI_ThoughtDefOf.cs
+Thought_GotCaughtCheating.cs
+Thought_WasCheatedOn.cs
+CustomTraitDefOf.cs
+JobDriver_CaughtCheating.cs
