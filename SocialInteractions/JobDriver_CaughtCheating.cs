@@ -99,6 +99,31 @@ namespace SocialInteractions
                 {
                     SLog.Warning(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Exception while creating speech bubble for pawn {0}: {1}", pawn.LabelShort, ex.Message));
                 }
+                
+                // End the date immediately when the angry pawn reaches the cheater
+                Date date = DatingManager.GetDateWith(Cheater);
+                if (date != null)
+                {
+                    SLog.Message("[SocialInteractions] JobDriver_CaughtCheating: Ending date immediately when angry pawn reaches cheater.");
+                    DatingManager.EndDate(date);
+                }
+                
+                // Make the partner flee
+                Pawn fleeingPartner = null;
+                if (SocialInteractions.CheaterPartners.ContainsKey(Cheater.ThingID))
+                {
+                    fleeingPartner = SocialInteractions.CheaterPartners[Cheater.ThingID];
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Retrieved partner: {0}", fleeingPartner.LabelShort));
+                    
+                    // Create a temporary InteractionWorker_CaughtCheating to use its TryMakePartnerFlee method
+                    InteractionWorker_CaughtCheating interactionWorker = new InteractionWorker_CaughtCheating();
+                    interactionWorker.GetType().GetMethod("TryMakePartnerFlee", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                        .Invoke(interactionWorker, new object[] { fleeingPartner, pawn });
+                }
+                else
+                {
+                    SLog.Warning(string.Format("[SocialInteractions] JobDriver_CaughtCheating: No partner found for cheater {0}", Cheater.LabelShort));
+                }
             };
             
             // Play the appropriate speech sound based on gender using Toil's method

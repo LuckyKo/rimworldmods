@@ -405,6 +405,7 @@ namespace SocialInteractions
             
             JobDef dateLovinJobDef = SI_JobDefOf.DateLovin;
             JobDef goOnDateJobDef = SI_JobDefOf.GoOnDate;
+            JobDef waitMaintainPostureJobDef = JobDefOf.Wait_MaintainPosture; // Add this for cheating events
             
             // Get a snapshot of all pawns to avoid modification during iteration
             List<Pawn> allPawns = new List<Pawn>(map.mapPawns.AllPawns);
@@ -430,11 +431,12 @@ namespace SocialInteractions
                         }
                     }
                     
-                    // If the initiator is doing a joy job, DateLovin job, or GoOnDate job, the date is not stuck
+                    // If the initiator is doing a joy job, DateLovin job, GoOnDate job, or Wait_MaintainPosture job, the date is not stuck
                     // Also, if the initiator is on a path to a joy job or DateLovin job, the date is not stuck
                     if (initiator != null && initiator.jobs != null && initiator.CurJob != null)
                     {
-                        if (isDoingJoyJob || initiator.CurJobDef == dateLovinJobDef || initiator.CurJobDef == goOnDateJobDef)
+                        if (isDoingJoyJob || initiator.CurJobDef == dateLovinJobDef || initiator.CurJobDef == goOnDateJobDef || 
+                            initiator.CurJobDef == waitMaintainPostureJobDef) // Add Wait_MaintainPosture as valid job
                         {
                             // Date is not stuck
                             continue;
@@ -448,10 +450,11 @@ namespace SocialInteractions
                         }
                     }
                     
-                    // If we can't find a valid initiator or the initiator is not doing a joy job or DateLovin job, 
+                    // If we can't find a valid initiator or the initiator is not doing a joy job, DateLovin job, GoOnDate job, or Wait_MaintainPosture job, 
                     // and they're not pathing to one, advance the date
                     if (initiator == null || initiator.jobs == null || initiator.CurJob == null || 
-                        (!isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef && initiator.CurJobDef != goOnDateJobDef))
+                        (!isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef && initiator.CurJobDef != goOnDateJobDef && 
+                         initiator.CurJobDef != waitMaintainPostureJobDef)) // Add Wait_MaintainPosture as valid job
                     {
                         // Only log when we actually find a stuck date to reduce log spam
                         SLog.Message(string.Format("[SocialInteractions] Found stuck date for pawn {0}, advancing stage.", 
