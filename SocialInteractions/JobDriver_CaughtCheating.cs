@@ -2,11 +2,15 @@ using RimWorld;
 using Verse;
 using Verse.AI;
 using System.Collections.Generic;
+using UnityEngine; // Added for Texture2D
 
 namespace SocialInteractions
 {
     public class JobDriver_CaughtCheating : JobDriver
     {
+        // Static field for the speech bubble icon
+        private static readonly Texture2D moteIcon = ContentFinder<Texture2D>.Get("Things/Mote/SpeechSymbols/Speech");
+
         private Pawn Cheater
         {
             get
@@ -82,7 +86,24 @@ namespace SocialInteractions
             {
                 SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Wait toil initAction called for pawn {0}. Start tick: {1}", 
                     pawn.LabelShort, startTick));
+
+                // Create the speech bubble mote when the pawn starts waiting (i.e., confronting)
+                try
+                {
+                    if (moteIcon != null)
+                    {
+                        MoteMaker.MakeSpeechBubble(pawn, moteIcon);
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    SLog.Warning(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Exception while creating speech bubble for pawn {0}: {1}", pawn.LabelShort, ex.Message));
+                }
             };
+            
+            // Play the appropriate speech sound based on gender using Toil's method
+            waitToil.PlaySustainerOrSound(() => (pawn.gender != Gender.Female) ? SoundDefOf.Speech_Leader_Male : SoundDefOf.Speech_Leader_Female, pawn.story.VoicePitchFactor);
+            
             waitToil.tickAction = () => 
             {
                 // Check if the wait duration has elapsed
@@ -91,11 +112,11 @@ namespace SocialInteractions
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Wait duration elapsed for pawn {0}.", pawn.LabelShort));
                     
                     // Get the partner (the one being cheated on)
-                    Pawn currentPartner = DatingManager.GetPartnerOfDateWith(Cheater);
+                    // Pawn currentPartner = DatingManager.GetPartnerOfDateWith(Cheater); // This will be null since the date was ended
                     
                     // Trigger fight logic
                     InteractionWorker_CaughtCheating interactionWorker = new InteractionWorker_CaughtCheating();
-                    interactionWorker.TriggerFightLogic(pawn, Cheater, currentPartner);
+                    interactionWorker.TriggerFightLogic(pawn, Cheater, partner); // Pass the partner we retrieved earlier
                     
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Fight logic triggered for pawn {0}.", pawn.LabelShort));
                     

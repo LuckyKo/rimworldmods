@@ -21,11 +21,6 @@ namespace SocialInteractions
         
         // Static dictionary to store date partners for cheaters
         public static Dictionary<string, Pawn> CheaterPartners = new Dictionary<string, Pawn>();
-        
-        // Variables for scheduling the fight after catching cheating
-        public static int scheduledFightTriggerTick = -1;
-        public static Pawn scheduledFightInitiator = null;
-        public static Pawn scheduledFightRecipient = null;
 
         static SocialInteractions()
         {
@@ -593,12 +588,6 @@ namespace SocialInteractions
                 
             // Trigger the LLM interaction
             HandleNonStoppingInteraction(initiator, recipient, SI_InteractionDefOf.CaughtCheating, subject, true);
-            
-            // Schedule the fight logic to be triggered after a delay
-            // We'll use a static variable to track when to trigger the fight
-            scheduledFightTriggerTick = Find.TickManager.TicksGame + 180; // 3 seconds
-            scheduledFightInitiator = initiator;
-            scheduledFightRecipient = recipient;
         }
 
         public static void HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject, bool skipSpamProtection)

@@ -347,12 +347,15 @@ namespace SocialInteractions
                             continue;
                         }
                         
+                        // Determine the correct PathEndMode based on whether the target is a Thing or a Cell
+                        PathEndMode pathEndMode = joyJob.targetA.HasThing ? PathEndMode.InteractionCell : PathEndMode.OnCell;
+
                         // Try to reserve the target for both pawns
-                        if (initiator.CanReserveAndReach(joyJob.targetA, PathEndMode.InteractionCell, Danger.None) &&
-                            partner.CanReserveAndReach(joyJob.targetA, PathEndMode.InteractionCell, Danger.None))
+                        if (initiator.CanReserveAndReach(joyJob.targetA, pathEndMode, Danger.None) &&
+                            partner.CanReserveAndReach(joyJob.targetA, pathEndMode, Danger.None))
                         {
-                            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Found suitable joy job {0} for {1} at {2}.", 
-                                joyJob.def.defName, initiator.Name.ToStringShort, joyJob.targetA.ToString()));
+                            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Found suitable joy job {0} for {1} at {2} with PathEndMode {3}.", 
+                                joyJob.def.defName, initiator.Name.ToStringShort, joyJob.targetA.ToString(), pathEndMode));
                             return joyJob;
                         }
                         // If we can't reserve it, we try again with a different joy giver

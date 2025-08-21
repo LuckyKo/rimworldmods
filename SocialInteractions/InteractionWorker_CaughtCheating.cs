@@ -63,12 +63,23 @@ namespace SocialInteractions
 
             SLog.Message("[SocialInteractions] TriggerFightLogic: Starting fight logic evaluation.");
             
-            // After the LLM interaction, there's a chance for different outcomes:
-            // 50% chance to break off with nothing but a bad memory
-            // 40% chance to fight the cheater (recipient)
-            // 10% chance to fight the partner (the one being cheated on)
+            // The partner always flees
+            if (partner != null)
+            {
+                // Add a memory to the partner that they were cheated on (using existing WasCheatedOn thought)
+                ThoughtDef wasCheatedOnThought = DefDatabase<ThoughtDef>.GetNamed("WasCheatedOn");
+                if (wasCheatedOnThought != null)
+                {
+                    partner.needs.mood.thoughts.memories.TryGainMemory(wasCheatedOnThought, recipient);
+                }
+                
+                // Make the partner flee from the initiator
+                TryMakePartnerFlee(partner, initiator);
+            }
+            
+            // Determine if we fight the cheater
             float fightRoll = Rand.Value;
-            SLog.Message(string.Format("[SocialInteractions] TriggerFightLogic: Fight roll: {0}.", fightRoll));
+			SLog.Message(string.Format("[SocialInteractions] TriggerFightLogic: Fight roll: {0}.", fightRoll));
             
             if (fightRoll < 0.5f)
             {
@@ -77,10 +88,9 @@ namespace SocialInteractions
                 SLog.Message("[SocialInteractions] TriggerFightLogic: 50% chance - breaking off with no fight.");
                 return;
             }
-            else if (fightRoll < 0.9f)
+            else
             {
-                // 40% chance: Fight the cheater (recipient)
-                SLog.Message("[SocialInteractions] TriggerFightLogic: 40% chance - evaluating fight with cheater.");
+                // 50% chance: Fight the cheater (recipient)
                 if (initiator.Faction == recipient.Faction && 
                     initiator.mindState != null && 
                     initiator.mindState.mentalStateHandler != null &&
@@ -91,120 +101,47 @@ namespace SocialInteractions
                     SocialInteractionUtility.CanInitiateInteraction(initiator) &&
                     SocialInteractionUtility.CanReceiveInteraction(recipient))
                 {
-                    SLog.Message("[SocialInteractions] TriggerFightLogic: All conditions met, starting fight with cheater.");
                     bool fightStarted = initiator.mindState.mentalStateHandler.TryStartMentalState(MentalStateDefOf.SocialFighting, null, false, false, false, recipient);
-                    SLog.Message(string.Format("[SocialInteractions] TriggerFightLogic: TryStartMentalState returned: {0}", fightStarted));
                     if (!fightStarted)
                     {
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Failed to start fight with cheater. Checking why...");
-                        // Check why the fight failed to start
+                        // Log why the fight failed to start if needed for debugging
                         if (initiator.mindState.mentalStateHandler.CurState != null)
                         {
                             SLog.Message(string.Format("[SocialInteractions] TriggerFightLogic: Initiator already in mental state: {0}", initiator.mindState.mentalStateHandler.CurState.def.defName));
-                        }
-                        if (!initiator.mindState.mentalStateHandler.InMentalState)
-                        {
-                            SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator mental state handler reports not in mental state.");
                         }
                     }
                 }
                 else
                 {
-                    SLog.Message("[SocialInteractions] TriggerFightLogic: Conditions not met for fighting cheater.");
-                    // Log which conditions failed
+                    // Log which conditions failed if needed for debugging
                     if (initiator.Faction != recipient.Faction)
                         SLog.Message("[SocialInteractions] TriggerFightLogic: Faction mismatch between initiator and recipient.");
-                    if (initiator.mindState == null)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator mindState is null.");
-                    if (initiator.mindState != null && initiator.mindState.mentalStateHandler == null)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator mentalStateHandler is null.");
-                    if (initiator.Downed)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator is downed.");
-                    if (initiator.Dead)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator is dead.");
-                    if (recipient.Downed)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Recipient is downed.");
-                    if (recipient.Dead)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Recipient is dead.");
-                    if (!initiator.Spawned)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator is not spawned.");
-                    if (!recipient.Spawned)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Recipient is not spawned.");
-                    if (!initiator.Awake())
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator is not awake.");
-                    if (!recipient.Awake())
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Recipient is not awake.");
-                    if (initiator.Spawned && recipient.Spawned && !SocialInteractionUtility.CanInitiateInteraction(initiator))
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator cannot initiate interaction.");
-                    if (initiator.Spawned && recipient.Spawned && !SocialInteractionUtility.CanReceiveInteraction(recipient))
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Recipient cannot receive interaction.");
                 }
             }
-            else
+        }
+        
+        private void TryMakePartnerFlee(Pawn partner, Pawn initiator)
+        {
+            if (partner == null || initiator == null || partner.Map == null)
             {
-                // 10% chance: Fight the partner (the one being cheated on)
-                SLog.Message("[SocialInteractions] TriggerFightLogic: 10% chance - evaluating fight with partner.");
-                if (partner != null &&
-                    initiator.Faction == partner.Faction && 
-                    initiator.mindState != null && 
-                    initiator.mindState.mentalStateHandler != null &&
-                    !initiator.Downed && !initiator.Dead && 
-                    !partner.Downed && !partner.Dead &&
-                    initiator.Spawned && partner.Spawned &&
-                    initiator.Awake() && partner.Awake() &&
-                    SocialInteractionUtility.CanInitiateInteraction(initiator) &&
-                    SocialInteractionUtility.CanReceiveInteraction(partner))
-                {
-                    SLog.Message("[SocialInteractions] TriggerFightLogic: All conditions met, starting fight with partner.");
-                    bool fightStarted = initiator.mindState.mentalStateHandler.TryStartMentalState(MentalStateDefOf.SocialFighting, null, false, false, false, partner);
-                    SLog.Message(string.Format("[SocialInteractions] TriggerFightLogic: TryStartMentalState returned: {0}", fightStarted));
-                    if (!fightStarted)
-                    {
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Failed to start fight with partner. Checking why...");
-                        // Check why the fight failed to start
-                        if (initiator.mindState.mentalStateHandler.CurState != null)
-                        {
-                            SLog.Message(string.Format("[SocialInteractions] TriggerFightLogic: Initiator already in mental state: {0}", initiator.mindState.mentalStateHandler.CurState.def.defName));
-                        }
-                        if (!initiator.mindState.mentalStateHandler.InMentalState)
-                        {
-                            SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator mental state handler reports not in mental state.");
-                        }
-                    }
-                }
-                else
-                {
-                    SLog.Message("[SocialInteractions] TriggerFightLogic: Conditions not met for fighting partner.");
-                    // Log which conditions failed
-                    if (partner == null)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Partner is null.");
-                    if (partner != null && initiator.Faction != partner.Faction)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Faction mismatch between initiator and partner.");
-                    if (initiator.mindState == null)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator mindState is null.");
-                    if (initiator.mindState != null && initiator.mindState.mentalStateHandler == null)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator mentalStateHandler is null.");
-                    if (initiator.Downed)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator is downed.");
-                    if (initiator.Dead)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator is dead.");
-                    if (partner != null && partner.Downed)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Partner is downed.");
-                    if (partner != null && partner.Dead)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Partner is dead.");
-                    if (!initiator.Spawned)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator is not spawned.");
-                    if (partner != null && !partner.Spawned)
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Partner is not spawned.");
-                    if (!initiator.Awake())
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator is not awake.");
-                    if (partner != null && !partner.Awake())
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Partner is not awake.");
-                    if (initiator.Spawned && partner != null && partner.Spawned && !SocialInteractionUtility.CanInitiateInteraction(initiator))
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Initiator cannot initiate interaction.");
-                    if (initiator.Spawned && partner != null && partner.Spawned && !SocialInteractionUtility.CanReceiveInteraction(partner))
-                        SLog.Message("[SocialInteractions] TriggerFightLogic: Partner cannot receive interaction.");
-                }
+                return;
+            }
+            
+            // Create a list of threats (in this case, just the initiator)
+            List<Thing> threats = new List<Thing> { initiator };
+            
+            // Try to find a cell to flee to
+            IntVec3 fleeCell = CellFinderLoose.GetFleeDest(partner, threats, 10f); // Flee 10 cells away
+            
+            if (fleeCell.IsValid && fleeCell != partner.Position)
+            {
+                // Create a job for the partner to go to the flee cell
+                Job fleeJob = JobMaker.MakeJob(JobDefOf.Goto, fleeCell);
+                fleeJob.locomotionUrgency = LocomotionUrgency.Sprint; // Make them sprint away
+                fleeJob.expiryInterval = 900; // Expire the job after 10 seconds if not completed
+                
+                // Start the job
+                partner.jobs.TryTakeOrderedJob(fleeJob);
             }
         }
     }

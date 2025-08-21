@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<Patch>
-    <Operation Class="PatchOperationAdd">
-        <xpath>/Defs/ThinkTreeDef[defName="Joy"]/thinkRoot/subNodes/li[@Class="ThinkNode_Priority_GetJoy"]/subNodes</xpath>
-        <value>
-            <li Class="SocialInteractions.ThinkNode_JoinDateJoyActivity" />
-        </value>
-    </Operation>
-</Patch>

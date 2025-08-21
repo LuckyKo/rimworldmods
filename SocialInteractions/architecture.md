@@ -1,0 +1,113 @@
+# Social Interactions Mod Architecture
+
+## Overview
+
+The SocialInteractions mod enhances RimWorld's social dynamics by integrating LLM-generated dialogue, adding a complex dating and cheating system, and implementing combat taunts. It uses Harmony patches to intercept and modify vanilla game behavior.
+
+## Core Components
+
+### 1. `SocialInteractions.cs` (Core Logic)
+- **Static class** managing mod-wide state and core functionality.
+- **Harmony Patches**: Applies all Harmony patches on startup.
+- **LLM Interaction Logic**:
+  - `IsLlmInteractionEnabled`, `IsLlmJobEnabled`: Determine if an interaction/job should use the LLM based on extensive settings.
+  - `GenerateDeepTalkPrompt`: Constructs detailed prompts for the LLM using pawn (traits, mood, genes, skills, etc.) and world data (date, time, weather).
+  - `HandleInteraction`, `HandleNonStoppingInteraction`, `HandleJobGiverInteraction`: Entry points for triggering LLM interactions, managing asynchronous calls, parsing responses, and queuing speech bubbles.
+  - `HandleCaughtCheatingInteraction`: A special handler that holds the cheating pawn in place, triggers a specific LLM interaction, and schedules a delayed fight between the pawns.
+  - Text utility methods (`WrapText`, `EstimateReadingTime`, `RemoveRichTextTags`, `FormatLlmText`).
+- **Pawn Data Helpers**: Private methods (`GetRelationship`, `GetDislikes`, `GetAfflictions`, etc.) to extract relevant pawn information for prompts.
+
+### 2. `SpeechBubbleManager.cs` (UI/Display)
+- **GameComponent** managing the display and queuing of speech bubbles.
+- **Queuing System**: Ensures sequential display of multi-line LLM dialogue.
+- **Spam/Busy Management**: Prevents new LLM interactions from firing while one is already in progress, falling back to default bubbles.
+- **Threading**: Uses locks to safely manage shared queues (`speechBubbleQueue`, `pendingJobs`) across asynchronous LLM calls and the main game thread.
+- **Display Methods**: `Enqueue` (for sequential), `EnqueueInstant` (for immediate, e.g., taunts), `ShowDefaultBubble` (for non-LLM summaries).
+
+### 3. `DatingManager.cs` (Dating State Machine)
+- **Static class** managing the high-level state of ongoing dates.
+- **Date Tracking**: Maintains a list of active `Date` objects (initiator, partner, stage: `Joy`, `Lovin`, `Finished`).
+- **Lifecycle Management**: `StartDate`, `EndDate`, `RejectDate`, `AdvanceDateStage`. These methods are the "mutations" to the date state.
+- **State Checks**: `IsOnDate`, `IsOnDateCooldown`, `GetPartnerOfDateWith`.
+- **Core Date Logic**:
+  - `TransitionToLovin`: Handles the transition from the "Joy" stage to the "Lovin" stage, finding a bed and starting `JobDriver_DateLovin`.
+  - `CalculateDateCompatibility`, `CalculateSexualCompatibility`: Determines if pawns are compatible for a date/lovin'.
+- **Persistence**: `ExposeData` for saving/loading date state.
+- **Maintenance**: `CleanupExpiredDateCooldowns`, `CheckForStuckDates`.
+
+### 4. `DateTracker_MapComponent.cs` (Date Lifecycle Engine)
+- **MapComponent** that acts as the primary engine for progressing dates. It runs continuously, monitoring pawns and calling state changes on the `DatingManager`.
+- **Core Functionality**: 
+  - **Lifecycle Monitoring**: Continuously checks the status of all pawns on dates, ensuring dates progress correctly through their stages.
+  - **Stage Advancement Logic**: Determines when to call `DatingManager.AdvanceDateStage` based on conditions like the initiator's joy need being satisfied or a pawn being drafted/downed.
+  - **Partner Activity Management**: Manages the date partner's behavior during the "Joy" stage, primarily by assigning and managing the `FollowAndWatch` job.
+
+### 5. `Dating_MapComponent.cs` (Hediff Cleanup)
+- **MapComponent** with a single, specific purpose: cleaning up orphaned `SI_Naked` hediffs.
+- **Functionality**: Ticks every frame, checking for pawns that have the `SI_Naked` hediff but are no longer doing the `JobDriver_DateLovin` job. This is a failsafe for cases where the job is interrupted and its own cleanup logic doesn't run.
+
+### 6. `KoboldApiClient.cs` (LLM Communication)
+- **Class** handling communication with the external LLM API (KoboldCpp).
+- **Data Contracts**: Defines `KoboldApiRequest` and `KoboldApiResponse` for serialization.
+- **`GenerateText`**: Main method to send a prompt to the API and receive a response.
+
+### 7. `SLog.cs` (Logging)
+- **Static class** providing a wrapper around `Verse.Log` with a verbosity toggle based on mod settings.
+
+### 8. `SocialInteractionsSettings.cs` (Configuration)
+- **`SocialInteractionsModSettings`**: Holds all configurable options (API keys, flags for features/interactions, prompt template, UI/UX settings).
+- **`SocialInteractionsMod`**: Implements the in-game settings UI.
+
+## Harmony Patches (`*.cs` files)
+
+### Interaction & Thought Patches
+- **`InteractionWorker_Interacted_Patch.cs`**: Patches `InteractionWorker.Interacted` to call `SocialInteractions.HandleInteraction` for relevant interactions.
+- **`InteractionWorkers.cs`**: Defines custom `InteractionWorker` classes (`InteractionWorker_DateLovin`, `InteractionWorker_CaughtCheating`) that trigger specific LLM interactions or game logic.
+- **`ThoughtHandler_OpinionOffsetOfGroup_Patch.cs`**: Patches `ThoughtHandler.OpinionOffsetOfGroup` to apply opinion modifiers from `Thought_CaughtCheating`.
+
+### Job & JoyGiver Patches/Implementations
+- **`JobDriver_GoOnDate.cs`**: Custom `JobDriver` that initiates the dating sequence (asking, starting joy job, assigning `FollowAndWatch`).
+- **`JobDriver_DateLovin.cs`**: Custom `JobDriver` for the "Lovin" stage of a date, applying temporary hediffs and giving thoughts.
+- **`JobDriver_FollowAndWatch.cs`**: Custom `JobDriver` for the date partner to follow the initiator during the joy stage.
+- **`JobDriver_HaveDeepTalk.cs`, `JobDriver_BeTalkedTo.cs`**: Custom drivers for Deep Talk jobs initiated by pawns.
+- **`JoyGiver_GoOnDate.cs`, `JoyGiver_HaveDeepTalk.cs`**: Custom `JoyGiver`s that create the initial jobs for dating and deep talks.
+- **`JobPatches.cs`**: Patches `JobDriver.TryMakePreToilReservations` to allow pawns to reserve the same item for social interactions.
+- **`JobDriver_Joy_Patch.cs`**: Patches `JobDriver_Joy.MakeNewToils` to allow date partners to potentially join the same joy activity.
+
+### Pawn/Map Lifecycle Patches
+- **`Pawn_Tick_Patch.cs`**: Patches `Pawn.Tick` to trigger the scheduled fight after a cheating interaction is complete.
+- **`Map_FinalizeInit_Patch.cs`**: Patches `Map.FinalizeInit` to initialize the custom map components (`DateTracker_MapComponent`, `Dating_MapComponent`, `SpeechBubbleManager`).
+- **`MindStateTick_Patch.cs`**: Patches `Pawn_MindState.MindStateTick` to handle interrupting pawns for dating.
+- **`Pawn_DraftController_Drafted_Patch.cs`**: Patches `Pawn_DraftController.set_Drafted` to interrupt date jobs when a pawn is drafted.
+
+### Combat & Rendering Patches
+- **`CombatPatches.cs`**: Patches various combat methods (`CheckMeleeAttackAt`, `TakeDamage`, etc.) to trigger combat taunts and complaints via `SpeechBubbleManager.EnqueueInstant`.
+- **`PawnRenderer_GetDrawParms_Patch.cs`, `PawnRenderer_RenderPawnAt_Patch.cs`**: Patches rendering methods to apply visual offsets for pawns engaged in `JobDriver_DateLovin`.
+
+## Data Flow Example: Starting a Date
+1. `JoyGiver_GoOnDate` gives a `JobDriver_GoOnDate` job to an initiator.
+2. `JobDriver_GoOnDate` moves the initiator to a potential partner and rolls for acceptance.
+3. If accepted:
+   - `DatingManager.StartDate` is called, creating the `Date` object and applying the `OnDate` hediff.
+   - `SocialInteractions.HandleNonStoppingInteraction` is called for the date acceptance dialogue.
+   - The initiator finds a joy activity (e.g., watching TV).
+   - The partner is given a `JobDriver_FollowAndWatch` job.
+4. `DateTracker_MapComponent` now monitors the date. It ensures the partner keeps following the initiator.
+5. When the initiator's joy is satisfied, `DateTracker_MapComponent` calls `DatingManager.AdvanceDateStage`.
+6. `DatingManager` transitions the state to `DateStage.Lovin` and calls `TransitionToLovin`.
+7. `TransitionToLovin` finds a bed and starts `JobDriver_DateLovin` for both pawns.
+8. `JobDriver_DateLovin` runs, applying the `SI_Naked` hediff and showing the animation. When it completes, it calls `DatingManager.AdvanceDateStage`.
+9. `DatingManager` transitions the state to `DateStage.Finished` and calls `EndDate`.
+10. `DatingManager.EndDate` cleans up hediffs and puts the pawns on a date cooldown.
+
+## Data Flow Example: Catching a Cheater
+1. A pawn (the "witness") sees two other pawns in `JobDriver_DateLovin`.
+2. The `InteractionWorker_CaughtCheating` interaction is triggered.
+3. It calls `SocialInteractions.HandleCaughtCheatingInteraction` with the witness, the cheater, and the cheater's partner.
+4. `HandleCaughtCheatingInteraction`:
+   - Forces the cheater to pause by giving them a temporary `JobDefOf.Wait` job.
+   - Generates a specific prompt for the LLM about the cheating event.
+   - Calls `HandleNonStoppingInteraction` to display the confrontation dialogue.
+   - Sets static variables (`scheduledFightTriggerTick`, `scheduledFightInitiator`, `scheduledFightRecipient`) to schedule a fight between the witness and the cheater.
+5. A few seconds later, the `Pawn_Tick_Patch` sees that the `scheduledFightTriggerTick` has been reached.
+6. The patch triggers a new social fight interaction between the witness and the cheater.

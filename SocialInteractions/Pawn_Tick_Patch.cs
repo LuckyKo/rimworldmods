@@ -119,10 +119,10 @@ namespace SocialInteractions
                 angryPartner.jobs.StartJob(gotoJob, JobCondition.InterruptForced);
             }
 
-            // Hold the cheater and date partner in place during the dialogue
+            // Hold only the cheater in place during the dialogue
             // The angry partner will be held in place after they arrive
+            // The date partner should be free to move (flee)
             HoldPawnInPlace(cheater, cheater.Position);
-            HoldPawnInPlace(datePartner, datePartner.Position);
             
             // Instead of directly calling HandleNonStoppingInteraction, let's trigger the interaction worker
             // This will handle the thoughts and social fights, and then we can add our LLM interaction
