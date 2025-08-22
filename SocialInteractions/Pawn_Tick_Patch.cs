@@ -119,12 +119,14 @@ namespace SocialInteractions
                 angryPartner.jobs.StartJob(gotoJob, JobCondition.InterruptForced);
             }
 
-            // Don't hold anyone in place yet. This will be done in JobDriver_CaughtCheating
-            // when the angry partner reaches the cheater.
+            // Hold only the cheater in place during the dialogue
+            // The angry partner will be held in place after they arrive
+            // The date partner should be free to move (flee)
+            HoldPawnInPlace(cheater, cheater.Position);
             
             // Instead of directly calling HandleNonStoppingInteraction, let's trigger the interaction worker
             // This will handle the thoughts and social fights, and then we can add our LLM interaction
-            // The date will be ended by the JobDriver_CaughtCheating after the LLM interaction is triggered
+            // The date will be ended by the InteractionWorker_CaughtCheating after the LLM interaction is triggered
             InteractionWorker_CaughtCheating interactionWorker = new InteractionWorker_CaughtCheating();
             string letterText, letterLabel;
             LetterDef letterDef;

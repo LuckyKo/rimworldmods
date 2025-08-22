@@ -62,8 +62,8 @@ It's currently [time], on [date] and the weather is [weather].
         public float gettingHitComplaintProbability = 0.3f;
         public float downedCallForHelpProbability = 0.85f;
         public float baseLovinChance = 0.75f;
-        public int dateCooldownTicks = 3000;
-        public int dateLovinTicks = 2000;
+        public int dateCooldownTicks = 5000;
+        public int dateLovinTicks = 2500;
         public int maxDistanceForDate = 50;
         public int jobCheckIntervalTicks = 60;
         public int initialToleranceTicks = 60;

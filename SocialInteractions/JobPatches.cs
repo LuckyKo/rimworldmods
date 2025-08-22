@@ -31,6 +31,14 @@ namespace SocialInteractions
                     {
                         // Do nothing, let the JobDriver handle it
                     }
+                    else if (interactionDef == SI_InteractionDefOf.DateRejected)
+                    {
+                        // Do nothing, let the JobDriver handle it
+                    }
+                    else if (interactionDef == SI_InteractionDefOf.CaughtCheating)
+                    {
+                        // Do nothing, let the JobDriver handle it
+                    }
                     else
                     {
                         SocialInteractions.HandleInteraction(initiator, recipient, interactionDef, defaultText);

@@ -607,10 +607,16 @@ namespace SocialInteractions
 
             Task.Run(async () => {
                 KoboldApiClient client = null;
+                int conversationId = -1; // Initialize conversation ID
                 try
                 {
                     if (!string.IsNullOrEmpty(prompt))
                     {
+                        // --- Start Conversation ---
+                        conversationId = SpeechBubbleManager.StartConversation();
+                        SLog.Message(string.Format("[SocialInteractions] Started conversation ID: {0} for interaction {1}", conversationId, interactionDef.defName));
+                        // --- End Start Conversation ---
+                        
                         client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
                         string llmResponse = await client.GenerateText(prompt);
                         
@@ -619,13 +625,14 @@ namespace SocialInteractions
                             Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: LLM API returned null response for interaction {0}", interactionDef.defName));
                             // Fallback to default interaction text
                             string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                            SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, 0, null));
+                            SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null));
                             return;
                         }
                         
                         if (!string.IsNullOrEmpty(llmResponse))
                         {
-                            string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                            // Split the response using multiple possible line break characters
+                            string[] messages = llmResponse.Split(new string[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
                             if (messages.Any())
                             {
                                 for (int i = 0; i < messages.Length; i++)
@@ -634,13 +641,16 @@ namespace SocialInteractions
                                     Pawn speaker = null;
 
                                     // Determine speaker and extract dialogue
-                                    if (rawMessage.StartsWith(initiator.Name.ToStringShort + ":"))
+                                    // More robust speaker detection
+                                    if (rawMessage.StartsWith(initiator.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
                                     {
                                         speaker = initiator;
+                                        rawMessage = rawMessage.Substring(initiator.Name.ToStringShort.Length + 1).Trim();
                                     }
-                                    else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":"))
+                                    else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
                                     {
                                         speaker = recipient;
+                                        rawMessage = rawMessage.Substring(recipient.Name.ToStringShort.Length + 1).Trim();
                                     }
                                     else
                                     {
@@ -649,10 +659,15 @@ namespace SocialInteractions
 
                                     if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
                                     {
-                                        string formattedMessage = FormatLlmText(rawMessage);
+                                        // Format the message to include the speaker's name with color
+                                        string speakerNameWithColor = string.Format("<color=#E37910>{0}</color>", speaker.Name.ToStringShort); // orange
+                                        string messageWithSpeaker = string.Format("{0}: {1}", speakerNameWithColor, rawMessage);
+                                        string formattedMessage = FormatLlmText(messageWithSpeaker);
                                         string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
                                         float duration = EstimateReadingTime(rawMessage);
-                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, 0, null));
+                                        // --- Pass conversationId ---
+                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, conversationId, null));
+                                        // --- End Pass conversationId ---
                                     }
                                 }
                             }
@@ -661,7 +676,7 @@ namespace SocialInteractions
                                 Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: LLM API returned empty messages for interaction {0}", interactionDef.defName));
                                 // Fallback to default interaction text
                                 string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                                SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, 0, null));
+                                SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null));
                             }
                         }
                     }
@@ -670,7 +685,7 @@ namespace SocialInteractions
                         Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: Failed to generate prompt for interaction {0}", interactionDef.defName));
                         // Fallback to default interaction text
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, 0, null));
+                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null));
                     }
                 }
                 catch (Exception ex)
@@ -680,7 +695,7 @@ namespace SocialInteractions
                     try
                     {
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, 0, null));
+                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null));
                     }
                     catch (Exception fallbackEx)
                     {
@@ -689,6 +704,13 @@ namespace SocialInteractions
                 }
                 finally
                 {
+                    // --- End Conversation ---
+                    if (conversationId != -1)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Ending conversation ID: {0} for interaction {1}", conversationId, interactionDef.defName));
+                        SpeechBubbleManager.EndConversation(conversationId);
+                    }
+                    // --- End End Conversation ---
                     if (client != null)
                     {
                         client.Dispose();
@@ -727,20 +749,24 @@ namespace SocialInteractions
                         
                         if (!string.IsNullOrEmpty(llmResponse))
                         {
-                            string[] messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                            // Split the response using multiple possible line break characters
+                            string[] messages = llmResponse.Split(new string[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
                             if (messages.Any())
                             {
                                 string rawMessage = messages[0].Trim();
                                 Pawn speaker = null;
 
                                 // Determine speaker and extract dialogue
-                                if (rawMessage.StartsWith(initiator.Name.ToStringShort + ":"))
+                                // More robust speaker detection
+                                if (rawMessage.StartsWith(initiator.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
                                 {
                                     speaker = initiator;
+                                    rawMessage = rawMessage.Substring(initiator.Name.ToStringShort.Length + 1).Trim();
                                 }
-                                else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":"))
+                                else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
                                 {
                                     speaker = recipient;
+                                    rawMessage = rawMessage.Substring(recipient.Name.ToStringShort.Length + 1).Trim();
                                 }
                                 else
                                 {
@@ -749,7 +775,10 @@ namespace SocialInteractions
 
                                 if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
                                 {
-                                    string formattedMessage = FormatLlmText(rawMessage);
+                                    // Format the message to include the speaker's name with color
+                                    string speakerNameWithColor = string.Format("<color=#87CEEB>{0}</color>", speaker.Name.ToStringShort); // Light sky blue
+                                    string messageWithSpeaker = string.Format("{0}: {1}", speakerNameWithColor, rawMessage);
+                                    string formattedMessage = FormatLlmText(messageWithSpeaker);
                                     string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
                                     float duration = EstimateReadingTime(rawMessage);
                                     SpeechBubbleManager.EnqueueInstant(speaker, wrappedMessage, duration);

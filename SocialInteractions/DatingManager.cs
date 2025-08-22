@@ -662,6 +662,40 @@ namespace SocialInteractions
                 SLog.Message(string.Format("[SocialInteractions] CalculateDateCompatibility: {0} and {1} are blood related, applying penalty", pawn1.LabelShort, pawn2.LabelShort));
             }
 
+            // Check for libido compatibility
+            if (ModsConfig.BiotechActive)
+            {
+                // Check if both pawns have genes
+                if (pawn1.genes != null && pawn2.genes != null)
+                {
+                    // Check for libido genes
+                    bool pawn1HasHighLibido = pawn1.genes.HasActiveGene(DefDatabase<GeneDef>.GetNamed("Libido_High", false));
+                    bool pawn1HasLowLibido = pawn1.genes.HasActiveGene(DefDatabase<GeneDef>.GetNamed("Libido_Low", false));
+                    bool pawn2HasHighLibido = pawn2.genes.HasActiveGene(DefDatabase<GeneDef>.GetNamed("Libido_High", false));
+                    bool pawn2HasLowLibido = pawn2.genes.HasActiveGene(DefDatabase<GeneDef>.GetNamed("Libido_Low", false));
+
+                    // Apply bonuses/penalties based on libido compatibility
+                    if (pawn1HasHighLibido && pawn2HasHighLibido)
+                    {
+                        // Both have high libido - bonus
+                        compatibility *= 1.2f; // 20% bonus
+                        SLog.Message(string.Format("[SocialInteractions] CalculateDateCompatibility: {0} and {1} both have high libido, applying bonus", pawn1.LabelShort, pawn2.LabelShort));
+                    }
+                    else if (pawn1HasLowLibido && pawn2HasLowLibido)
+                    {
+                        // Both have low libido - small penalty
+                        compatibility *= 0.9f; // 10% penalty
+                        SLog.Message(string.Format("[SocialInteractions] CalculateDateCompatibility: {0} and {1} both have low libido, applying small penalty", pawn1.LabelShort, pawn2.LabelShort));
+                    }
+                    else if ((pawn1HasHighLibido && pawn2HasLowLibido) || (pawn1HasLowLibido && pawn2HasHighLibido))
+                    {
+                        // Mismatched libido - penalty
+                        compatibility *= 0.7f; // 30% penalty
+                        SLog.Message(string.Format("[SocialInteractions] CalculateDateCompatibility: {0} and {1} have mismatched libido, applying penalty", pawn1.LabelShort, pawn2.LabelShort));
+                    }
+                }
+            }
+
             // Ensure compatibility stays within reasonable bounds
             compatibility = Mathf.Clamp(compatibility, 0.1f, 3.0f);
 
