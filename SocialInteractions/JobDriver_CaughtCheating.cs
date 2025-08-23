@@ -47,36 +47,42 @@ namespace SocialInteractions
             SLog.Message("[SocialInteractions] JobDriver_CaughtCheating: MakeNewToils called.");
             
             // Add null checks
-            if (pawn == null || Cheater == null)
+            if (pawn == null || job == null || job.targetA.Thing == null)
             {
-                SLog.Warning("[SocialInteractions] JobDriver_CaughtCheating: Pawn or Cheater is null, ending job.");
+                SLog.Warning("[SocialInteractions] JobDriver_CaughtCheating: Pawn, job, or job.targetA.Thing is null, ending job.");
                 yield break;
             }
 
+            Pawn cheater = (Pawn)job.targetA.Thing;
+
             // Make sure we're still near the cheater
-            if (!pawn.Position.InHorDistOf(Cheater.Position, 5f))
+            if (!pawn.Position.InHorDistOf(cheater.Position, 5f))
             {
                 SLog.Message("[SocialInteractions] JobDriver_CaughtCheating: Pawn is too far from cheater, ending job.");
                 yield break;
             }
 
             SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Pawn {0} is near cheater {1}, proceeding with job.", 
-                pawn.LabelShort, Cheater.LabelShort));
+                pawn.LabelShort, cheater.LabelShort));
 
             // Retrieve the date partner for the cheater
             Pawn partner = null;
-            if (SocialInteractions.CheaterPartners.ContainsKey(Cheater.ThingID))
+            if (SocialInteractions.CheaterPartners.ContainsKey(cheater.ThingID))
             {
-                partner = SocialInteractions.CheaterPartners[Cheater.ThingID];
+                partner = SocialInteractions.CheaterPartners[cheater.ThingID];
                 SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Retrieved partner: {0}", partner.LabelShort));
             }
             else
             {
-                SLog.Warning(string.Format("[SocialInteractions] JobDriver_CaughtCheating: No partner found for cheater {0}", Cheater.LabelShort));
+                SLog.Warning(string.Format("[SocialInteractions] JobDriver_CaughtCheating: No partner found for cheater {0}", cheater.LabelShort));
             }
 
+            // Create a BeTalkedTo job for the cheater to hold them in place during the conversation
+            Job beTalkedToJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), pawn);
+            cheater.jobs.TryTakeOrderedJob(beTalkedToJob, JobTag.Misc);
+            
             // Trigger the LLM interaction with the partner and store the conversation ID
-            conversationId = SocialInteractions.HandleCaughtCheatingInteraction(pawn, Cheater, partner);
+            conversationId = SocialInteractions.HandleCaughtCheatingInteraction(pawn, cheater, partner);
             
             // Make the partner flee immediately upon the spouse's arrival
             if (partner != null)
@@ -86,12 +92,12 @@ namespace SocialInteractions
             }
             
             // Remove the partner from the dictionary
-            if (SocialInteractions.CheaterPartners.ContainsKey(Cheater.ThingID))
+            if (SocialInteractions.CheaterPartners.ContainsKey(cheater.ThingID))
             {
-                SocialInteractions.CheaterPartners.Remove(Cheater.ThingID);
+                SocialInteractions.CheaterPartners.Remove(cheater.ThingID);
             }
             
-            // Custom wait toil
+            // Custom wait toil to wait for the conversation to finish
             Toil waitToil = new Toil();
             waitToil.initAction = () => 
             {
@@ -142,19 +148,16 @@ namespace SocialInteractions
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Wait duration elapsed for pawn {0}.", pawn.LabelShort));
                     
                     // End the date when the angry spouse arrives and the waiting period is over
-                    Date date = DatingManager.GetDateWith(Cheater);
+                    Date date = DatingManager.GetDateWith(cheater);
                     if (date != null)
                     {
                         SLog.Message("[SocialInteractions] JobDriver_CaughtCheating: Ending date as angry spouse has arrived.");
                         DatingManager.EndDate(date);
                     }
                     
-                    // Get the partner (the one being cheated on)
-                    // Pawn currentPartner = DatingManager.GetPartnerOfDateWith(Cheater); // This will be null since the date was ended
-                    
                     // Trigger fight logic
                     InteractionWorker_CaughtCheating interactionWorker = new InteractionWorker_CaughtCheating();
-                    interactionWorker.TriggerFightLogic(pawn, Cheater, partner); // Pass the partner we retrieved earlier
+                    interactionWorker.TriggerFightLogic(pawn, cheater, partner); // Pass the partner we retrieved earlier
                     
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Fight logic triggered for pawn {0}.", pawn.LabelShort));
                     

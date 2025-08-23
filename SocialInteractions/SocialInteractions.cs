@@ -575,18 +575,6 @@ namespace SocialInteractions
 
         public static int HandleCaughtCheatingInteraction(Pawn initiator, Pawn recipient, Pawn partner = null)
         {
-            // Create a temporary job to hold only the cheater (recipient) in place during the interaction
-            // Using the same setting as JobDriver_CaughtCheating for consistency
-            Job holdJob = JobMaker.MakeJob(JobDefOf.Wait);
-            holdJob.expiryInterval = Settings.cheatingConfrontationTicks; // Use the configured setting
-            holdJob.canBashDoors = false;
-            holdJob.canBashFences = false;
-            holdJob.checkOverrideOnExpire = false;
-            
-            // Start the job only on the recipient (the cheater) to hold them in place
-            if (recipient.jobs != null)
-                recipient.jobs.StartJob(holdJob, JobCondition.InterruptForced);
-                
             // Generate a descriptive subject line for the LLM
             // If partner is provided, use it. Otherwise, look it up.
             string subject;

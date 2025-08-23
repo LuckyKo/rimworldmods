@@ -392,6 +392,27 @@ namespace SocialInteractions
                 return false;
             }
         }
+        
+        public static bool HasPendingSpeechBubblesForPawn(Pawn pawn)
+        {
+            lock (queueLock)
+            {
+                // Check if there are bubbles in the queue for the specified pawn
+                foreach (SpeechBubble bubble in speechBubbleQueue)
+                {
+                    if (bubble.speaker == pawn)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+        
+        public static bool HasActiveConversations()
+        {
+            return activeConversations.Count > 0;
+        }
 
         public static string FormatLlmText(string text)
         {
