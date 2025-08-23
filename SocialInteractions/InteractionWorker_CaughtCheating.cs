@@ -43,6 +43,15 @@ namespace SocialInteractions
                 }
             }
 
+            // --- End the date immediately when cheating is discovered ---
+            Date date = DatingManager.GetDateWith(recipient);
+            if (date != null)
+            {
+                SLog.Message("[SocialInteractions] InteractionWorker_CaughtCheating: Ending date immediately when cheating is discovered.");
+                DatingManager.EndDate(date);
+            }
+            // --- End End the date ---
+
             // Create a job to handle the interaction once the initiator arrives
             // The Goto job is already created by Pawn_Tick_Patch
             Job followUpJob = JobMaker.MakeJob(SI_JobDefOf.CaughtCheatingInteraction, recipient);

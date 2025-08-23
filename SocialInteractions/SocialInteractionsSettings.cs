@@ -173,6 +173,8 @@ It's currently [time], on [date] and the weather is [weather].
             listingStandard.CheckboxLabeled("Enable Dating Feature", ref SocialInteractions.Settings.enableDatingFeature, "If enabled, pawns will be able to go on dates.");
             listingStandard.Label(string.Format("Joy threshold for date (0.0 - 1.0): {0}", SocialInteractions.Settings.joyThresholdForDate.ToString("F2")));
             SocialInteractions.Settings.joyThresholdForDate = listingStandard.Slider(SocialInteractions.Settings.joyThresholdForDate, 0f, 1f);
+            listingStandard.Label(string.Format("Base lovin' chance after a date (0.0 - 1.0): {0}", SocialInteractions.Settings.baseLovinChance.ToString("F2")));
+            SocialInteractions.Settings.baseLovinChance = listingStandard.Slider(SocialInteractions.Settings.baseLovinChance, 0f, 1f);
 
 
             listingStandard.Gap();

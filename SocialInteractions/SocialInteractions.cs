@@ -21,6 +21,10 @@ namespace SocialInteractions
         
         // Static dictionary to store date partners for cheaters
         public static Dictionary<string, Pawn> CheaterPartners = new Dictionary<string, Pawn>();
+        
+        // --- For LLM Efficiency ---
+        private static float lastResponseTimeSeconds = 1.0f; // Initial estimate
+        // --- End For LLM Efficiency ---
 
         static SocialInteractions()
         {
@@ -603,11 +607,20 @@ namespace SocialInteractions
                 return;
             }
 
+            // --- Explicitly set LLM busy flag when starting a new interaction ---
+            // This must happen after the spam check and before the async task starts.
+            SpeechBubbleManager.isLlmBusy = true;
+            SLog.Message(string.Format("[SocialInteractions] Set isLlmBusy = true for interaction {0}", interactionDef.defName));
+            // --- End Explicitly set LLM busy flag ---
+
             string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
 
             Task.Run(async () => {
                 KoboldApiClient client = null;
                 int conversationId = -1; // Initialize conversation ID
+                // --- For LLM Efficiency Timing ---
+                DateTime startTime = DateTime.UtcNow;
+                // --- End For LLM Efficiency Timing ---
                 try
                 {
                     if (!string.IsNullOrEmpty(prompt))
@@ -619,6 +632,17 @@ namespace SocialInteractions
                         
                         client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
                         string llmResponse = await client.GenerateText(prompt);
+                        
+                        // --- For LLM Efficiency Timing ---
+                        DateTime endTime = DateTime.UtcNow;
+                        TimeSpan responseTime = endTime - startTime;
+                        float responseSeconds = (float)responseTime.TotalSeconds;
+                        lastResponseTimeSeconds = responseSeconds;
+                        // Log on main thread
+                        SpeechBubbleManager.EnqueueJob(() => {
+                            SLog.Message(string.Format("[SocialInteractions] LLM Response time for interaction {0}: {1:F2}s", interactionDef.defName, responseSeconds));
+                        });
+                        // --- End For LLM Efficiency Timing ---
                         
                         if (llmResponse == null)
                         {
@@ -635,6 +659,10 @@ namespace SocialInteractions
                             string[] messages = llmResponse.Split(new string[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
                             if (messages.Any())
                             {
+                                // --- For LLM Efficiency Timing ---
+                                float totalDisplaySeconds = 0f;
+                                // --- End For LLM Efficiency Timing ---
+                                
                                 for (int i = 0; i < messages.Length; i++)
                                 {
                                     string rawMessage = messages[i].Trim();
@@ -660,16 +688,39 @@ namespace SocialInteractions
                                     if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
                                     {
                                         // Format the message to include the speaker's name with color
-                                        string speakerNameWithColor = string.Format("<color=#E37910>{0}</color>", speaker.Name.ToStringShort); // orange
+                                        string speakerNameWithColor = string.Format("<color=#ED7913>{0}</color>", speaker.Name.ToStringShort);
                                         string messageWithSpeaker = string.Format("{0}: {1}", speakerNameWithColor, rawMessage);
                                         string formattedMessage = FormatLlmText(messageWithSpeaker);
                                         string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
                                         float duration = EstimateReadingTime(rawMessage);
+                                        // --- For LLM Efficiency Timing ---
+                                        totalDisplaySeconds += duration;
+                                        // --- End For LLM Efficiency Timing ---
                                         // --- Pass conversationId ---
                                         SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, conversationId, null));
                                         // --- End Pass conversationId ---
                                     }
                                 }
+                                
+                                // --- For LLM Efficiency Unlock ---
+                                // Calculate unlock delay based on last response time estimate and current display time
+                                float unlockDelaySeconds = totalDisplaySeconds - lastResponseTimeSeconds;
+                                // Log on main thread
+                                SpeechBubbleManager.EnqueueJob(() => {
+                                    SLog.Message(string.Format("[SocialInteractions] Efficiency - Total Display Time: {0:F2}s, Estimated Next Response Time: {1:F2}s, Unlock Delay: {2:F2}s", totalDisplaySeconds, lastResponseTimeSeconds, unlockDelaySeconds));
+                                });
+                                
+                                if (unlockDelaySeconds > 0)
+                                {
+                                    // Schedule unlock after the delay
+                                    SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
+                                }
+                                else
+                                {
+                                    // Unlock immediately (next tick) if LLM was slower than display or no delay needed
+                                    SpeechBubbleManager.ScheduleUnlock(0.01f); // A tiny delay to ensure it happens on the next possible tick
+                                }
+                                // --- End For LLM Efficiency Unlock ---
                             }
                             else
                             {
@@ -677,6 +728,15 @@ namespace SocialInteractions
                                 // Fallback to default interaction text
                                 string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
                                 SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null));
+                                
+                                // --- For LLM Efficiency Unlock (Fallback) ---
+                                // Even on fallback, schedule an unlock based on a default display time
+                                float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
+                                if (unlockDelaySeconds > 0)
+                                    SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
+                                else
+                                    SpeechBubbleManager.ScheduleUnlock(0.01f);
+                                // --- End For LLM Efficiency Unlock (Fallback) ---
                             }
                         }
                     }
@@ -686,6 +746,14 @@ namespace SocialInteractions
                         // Fallback to default interaction text
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
                         SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null));
+                        
+                        // --- For LLM Efficiency Unlock (Prompt Fail) ---
+                        float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
+                        if (unlockDelaySeconds > 0)
+                            SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
+                        else
+                            SpeechBubbleManager.ScheduleUnlock(0.01f);
+                        // --- End For LLM Efficiency Unlock (Prompt Fail) ---
                     }
                 }
                 catch (Exception ex)
@@ -696,6 +764,14 @@ namespace SocialInteractions
                     {
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
                         SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null));
+                        
+                        // --- For LLM Efficiency Unlock (Exception) ---
+                        float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
+                        if (unlockDelaySeconds > 0)
+                            SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
+                        else
+                            SpeechBubbleManager.ScheduleUnlock(0.01f);
+                        // --- End For LLM Efficiency Unlock (Exception) ---
                     }
                     catch (Exception fallbackEx)
                     {
@@ -707,8 +783,10 @@ namespace SocialInteractions
                     // --- End Conversation ---
                     if (conversationId != -1)
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Ending conversation ID: {0} for interaction {1}", conversationId, interactionDef.defName));
+                        string interactionDefName = (interactionDef != null) ? interactionDef.defName : "Unknown";
+                        SLog.Message(string.Format("[SocialInteractions] Ending conversation ID: {0} for interaction {1}", conversationId, interactionDefName));
                         SpeechBubbleManager.EndConversation(conversationId);
+                        // Note: isLlmBusy will be handled by the scheduled unlock or immediately if delay <= 0
                     }
                     // --- End End Conversation ---
                     if (client != null)

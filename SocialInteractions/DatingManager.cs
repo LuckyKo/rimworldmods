@@ -226,6 +226,48 @@ namespace SocialInteractions
                     }
                 }
                 
+                // --- Also remove SI_Naked hediffs to ensure clean state ---
+                HediffDef siNakedDef = HediffDef.Named("SI_Naked");
+                if (siNakedDef != null)
+                {
+                    // Remove from initiator
+                    if (date.Initiator != null && date.Initiator.health != null && date.Initiator.health.hediffSet != null)
+                    {
+                        try
+                        {
+                            Hediff nakedHediffInitiator = date.Initiator.health.hediffSet.GetFirstHediffOfDef(siNakedDef);
+                            if (nakedHediffInitiator != null) 
+                            {
+                                SLog.Message(string.Format("[SocialInteractions] Removing SI_Naked hediff from initiator {0} in EndDate.", initiatorLabel));
+                                date.Initiator.health.RemoveHediff(nakedHediffInitiator);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            SLog.Warning(string.Format("[SocialInteractions] Exception removing SI_Naked hediff from initiator {0} in EndDate: {1}", initiatorLabel, ex.Message));
+                        }
+                    }
+
+                    // Remove from partner
+                    if (date.Partner != null && date.Partner.health != null && date.Partner.health.hediffSet != null)
+                    {
+                        try
+                        {
+                            Hediff nakedHediffPartner = date.Partner.health.hediffSet.GetFirstHediffOfDef(siNakedDef);
+                            if (nakedHediffPartner != null) 
+                            {
+                                SLog.Message(string.Format("[SocialInteractions] Removing SI_Naked hediff from partner {0} in EndDate.", partnerLabel));
+                                date.Partner.health.RemoveHediff(nakedHediffPartner);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            SLog.Warning(string.Format("[SocialInteractions] Exception removing SI_Naked hediff from partner {0} in EndDate: {1}", partnerLabel, ex.Message));
+                        }
+                    }
+                }
+                // --- End Also remove SI_Naked hediffs ---
+                
                 // Also end any FollowAndWatch jobs
                 JobDef followAndWatchJobDef = SI_JobDefOf.FollowAndWatchInitiator;
                 if (date.Initiator != null && date.Initiator.jobs != null && date.Initiator.CurJobDef == followAndWatchJobDef)
@@ -678,19 +720,19 @@ namespace SocialInteractions
                     if (pawn1HasHighLibido && pawn2HasHighLibido)
                     {
                         // Both have high libido - bonus
-                        compatibility *= 1.2f; // 20% bonus
+                        compatibility *= 1.5f; // 50% bonus
                         SLog.Message(string.Format("[SocialInteractions] CalculateDateCompatibility: {0} and {1} both have high libido, applying bonus", pawn1.LabelShort, pawn2.LabelShort));
                     }
                     else if (pawn1HasLowLibido && pawn2HasLowLibido)
                     {
-                        // Both have low libido - small penalty
-                        compatibility *= 0.9f; // 10% penalty
+                        // Both have low libido - high penalty
+                        compatibility *= 0.7f; // 30% penalty
                         SLog.Message(string.Format("[SocialInteractions] CalculateDateCompatibility: {0} and {1} both have low libido, applying small penalty", pawn1.LabelShort, pawn2.LabelShort));
                     }
                     else if ((pawn1HasHighLibido && pawn2HasLowLibido) || (pawn1HasLowLibido && pawn2HasHighLibido))
                     {
                         // Mismatched libido - penalty
-                        compatibility *= 0.7f; // 30% penalty
+                        compatibility *= 0.9f; // 10% penalty
                         SLog.Message(string.Format("[SocialInteractions] CalculateDateCompatibility: {0} and {1} have mismatched libido, applying penalty", pawn1.LabelShort, pawn2.LabelShort));
                     }
                 }
