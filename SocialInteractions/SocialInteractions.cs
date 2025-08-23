@@ -22,6 +22,9 @@ namespace SocialInteractions
         // Static dictionary to store date partners for cheaters
         public static Dictionary<string, Pawn> CheaterPartners = new Dictionary<string, Pawn>();
         
+        // Static field to store the conversation ID for the last cheating interaction
+        public static int lastCheatingInteractionConversationId = -1;
+        
         // --- For LLM Efficiency ---
         private static float lastResponseTimeSeconds = 1.0f; // Initial estimate
         // --- End For LLM Efficiency ---
@@ -536,6 +539,22 @@ namespace SocialInteractions
 
         public static void HandleInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string defaultText)
         {
+            // If pawns stop on interaction, let the job-based system handle it
+            if (Settings.pawnsStopOnInteraction && 
+                (interactionDef == InteractionDefOf.Chitchat || 
+                 interactionDef == InteractionDefOf.DeepTalk || 
+                 interactionDef == InteractionDefOf.Insult || 
+                 interactionDef == InteractionDefOf.RomanceAttempt || 
+                 interactionDef == InteractionDefOf.MarriageProposal || 
+                 interactionDef == InteractionDefOf.Reassure || 
+                 interactionDef == InteractionDefOf.DisturbingChat))
+            {
+                // For these interactions, when pawnsStopOnInteraction is true, 
+                // the InteractionWorker_Interacted_Patch will create jobs to keep pawns in place.
+                // We don't need to do anything here.
+                return;
+            }
+            
             if (IsLlmInteractionEnabled(interactionDef))
             {
                 HandleNonStoppingInteraction(initiator, recipient, interactionDef, defaultText);
@@ -554,11 +573,12 @@ namespace SocialInteractions
             HandleNonStoppingInteraction(initiator, recipient, interactionDef, subject, false);
         }
 
-        public static void HandleCaughtCheatingInteraction(Pawn initiator, Pawn recipient, Pawn partner = null)
+        public static int HandleCaughtCheatingInteraction(Pawn initiator, Pawn recipient, Pawn partner = null)
         {
             // Create a temporary job to hold only the cheater (recipient) in place during the interaction
+            // Using the same setting as JobDriver_CaughtCheating for consistency
             Job holdJob = JobMaker.MakeJob(JobDefOf.Wait);
-            holdJob.expiryInterval = 1800; // 30 seconds should be enough for the interaction
+            holdJob.expiryInterval = Settings.cheatingConfrontationTicks; // Use the configured setting
             holdJob.canBashDoors = false;
             holdJob.canBashFences = false;
             holdJob.checkOverrideOnExpire = false;
@@ -590,13 +610,18 @@ namespace SocialInteractions
                 }
             }
                 
-            // Trigger the LLM interaction
-            HandleNonStoppingInteraction(initiator, recipient, SI_InteractionDefOf.CaughtCheating, subject, true);
+            // Trigger the LLM interaction and return the conversation ID
+            int conversationId = HandleNonStoppingInteraction(initiator, recipient, SI_InteractionDefOf.CaughtCheating, subject, true, true);
+            
+            // Store the conversation ID for this cheating interaction
+            lastCheatingInteractionConversationId = conversationId;
+            
+            return conversationId;
         }
 
-        public static void HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject, bool skipSpamProtection)
+        public static int HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject, bool skipSpamProtection = false, bool clearQueueOnResponse = false)
         {
-            SLog.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}, skipSpamProtection: {3}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy, skipSpamProtection));
+            SLog.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}, skipSpamProtection: {3}, clearQueueOnResponse: {4}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy, skipSpamProtection, clearQueueOnResponse));
             if (!skipSpamProtection && Settings.preventSpam && SpeechBubbleManager.isLlmBusy) 
             {
                 // Show default bubble when LLM is busy and we're preventing spam
@@ -604,7 +629,7 @@ namespace SocialInteractions
                 {
                     SpeechBubbleManager.ShowDefaultBubble(initiator, subject);
                 }
-                return;
+                return -1; // Return -1 to indicate no conversation was started
             }
 
             // --- Explicitly set LLM busy flag when starting a new interaction ---
@@ -614,10 +639,26 @@ namespace SocialInteractions
             // --- End Explicitly set LLM busy flag ---
 
             string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
+            
+            // If we can't generate a prompt, show a default bubble and return
+            if (string.IsNullOrEmpty(prompt))
+            {
+                SLog.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction: No prompt generated for interaction {0}, showing default bubble", interactionDef.defName));
+                if (!string.IsNullOrEmpty(subject))
+                {
+                    SpeechBubbleManager.ShowDefaultBubble(initiator, subject);
+                }
+                return -1; // Return -1 to indicate no conversation was started
+            }
+            
+            SLog.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction: Prompt generated for interaction {0}", interactionDef.defName));
+
+            // Start the conversation immediately to get the ID
+            int conversationId = SpeechBubbleManager.StartConversation();
+            SLog.Message(string.Format("[SocialInteractions] Started conversation ID: {0} for interaction {1}", conversationId, interactionDef.defName));
 
             Task.Run(async () => {
                 KoboldApiClient client = null;
-                int conversationId = -1; // Initialize conversation ID
                 // --- For LLM Efficiency Timing ---
                 DateTime startTime = DateTime.UtcNow;
                 // --- End For LLM Efficiency Timing ---
@@ -625,11 +666,6 @@ namespace SocialInteractions
                 {
                     if (!string.IsNullOrEmpty(prompt))
                     {
-                        // --- Start Conversation ---
-                        conversationId = SpeechBubbleManager.StartConversation();
-                        SLog.Message(string.Format("[SocialInteractions] Started conversation ID: {0} for interaction {1}", conversationId, interactionDef.defName));
-                        // --- End Start Conversation ---
-                        
                         client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
                         string llmResponse = await client.GenerateText(prompt);
                         
@@ -649,9 +685,22 @@ namespace SocialInteractions
                             Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: LLM API returned null response for interaction {0}", interactionDef.defName));
                             // Fallback to default interaction text
                             string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                            SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null));
+                            SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId));
                             return;
                         }
+                        
+                        // --- Clear queue for high-priority response ---
+                        // If this interaction requested to clear the queue upon receiving a response,
+                        // and the response is valid, do so before processing the messages.
+                        // This ensures the interruption happens precisely when the high-impact content is ready.
+                        if (clearQueueOnResponse)
+                        {
+                            SpeechBubbleManager.EnqueueJob(() => {
+                                SLog.Message(string.Format("[SocialInteractions] Clearing speech queue for high-priority response from interaction: {0}", (interactionDef != null) ? interactionDef.defName : "Unknown"));
+                                SpeechBubbleManager.ClearQueues();
+                            });
+                        }
+                        // --- End Clear queue for high-priority response ---
                         
                         if (!string.IsNullOrEmpty(llmResponse))
                         {
@@ -687,17 +736,14 @@ namespace SocialInteractions
 
                                     if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
                                     {
-                                        // Format the message to include the speaker's name with color
-                                        string speakerNameWithColor = string.Format("<color=#ED7913>{0}</color>", speaker.Name.ToStringShort);
-                                        string messageWithSpeaker = string.Format("{0}: {1}", speakerNameWithColor, rawMessage);
-                                        string formattedMessage = FormatLlmText(messageWithSpeaker);
-                                        string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
                                         float duration = EstimateReadingTime(rawMessage);
                                         // --- For LLM Efficiency Timing ---
                                         totalDisplaySeconds += duration;
                                         // --- End For LLM Efficiency Timing ---
                                         // --- Pass conversationId ---
-                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(speaker, wrappedMessage, duration, i == 0, conversationId, null));
+                                        // Capture the loop variable to avoid closure issues
+                                        int currentIndex = i;
+                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(speaker, rawMessage, recipient, currentIndex == 0, conversationId, true)); // Orange for high priority
                                         // --- End Pass conversationId ---
                                     }
                                 }
@@ -727,7 +773,7 @@ namespace SocialInteractions
                                 Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: LLM API returned empty messages for interaction {0}", interactionDef.defName));
                                 // Fallback to default interaction text
                                 string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                                SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null));
+                                SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId));
                                 
                                 // --- For LLM Efficiency Unlock (Fallback) ---
                                 // Even on fallback, schedule an unlock based on a default display time
@@ -745,7 +791,7 @@ namespace SocialInteractions
                         Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: Failed to generate prompt for interaction {0}", interactionDef.defName));
                         // Fallback to default interaction text
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null));
+                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId));
                         
                         // --- For LLM Efficiency Unlock (Prompt Fail) ---
                         float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
@@ -763,7 +809,7 @@ namespace SocialInteractions
                     try
                     {
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null));
+                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId));
                         
                         // --- For LLM Efficiency Unlock (Exception) ---
                         float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
@@ -786,6 +832,7 @@ namespace SocialInteractions
                         string interactionDefName = (interactionDef != null) ? interactionDef.defName : "Unknown";
                         SLog.Message(string.Format("[SocialInteractions] Ending conversation ID: {0} for interaction {1}", conversationId, interactionDefName));
                         SpeechBubbleManager.EndConversation(conversationId);
+                        
                         // Note: isLlmBusy will be handled by the scheduled unlock or immediately if delay <= 0
                     }
                     // --- End End Conversation ---
@@ -795,6 +842,9 @@ namespace SocialInteractions
                     }
                 }
             });
+            
+            // Return the conversation ID
+            return conversationId;
         }
 
         public static void HandleJobGiverInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
@@ -853,13 +903,7 @@ namespace SocialInteractions
 
                                 if (!string.IsNullOrWhiteSpace(rawMessage) && speaker != null)
                                 {
-                                    // Format the message to include the speaker's name with color
-                                    string speakerNameWithColor = string.Format("<color=#87CEEB>{0}</color>", speaker.Name.ToStringShort); // Light sky blue
-                                    string messageWithSpeaker = string.Format("{0}: {1}", speakerNameWithColor, rawMessage);
-                                    string formattedMessage = FormatLlmText(messageWithSpeaker);
-                                    string wrappedMessage = WrapText(formattedMessage, Settings.wordsPerLineLimit);
-                                    float duration = EstimateReadingTime(rawMessage);
-                                    SpeechBubbleManager.EnqueueInstant(speaker, wrappedMessage, duration);
+                                    SpeechBubbleManager.EnqueueInstant(speaker, messages[0].Trim(), recipient, true); // Light sky blue for job giver interactions
                                 }
                             }
                             else
@@ -906,15 +950,6 @@ namespace SocialInteractions
         public static string RemoveRichTextTags(string text)
         {
             return Regex.Replace(text, "<color=#.{8}>|</color>", "");
-        }
-
-        public static string FormatLlmText(string text)
-        {
-            // Use a regular expression to find text enclosed in asterisks, parentheses, or square brackets.
-            text = Regex.Replace(text, @"\*(.*?)\*", "<color=#A9F0F0>$1</color>"); // light cyan for emphasis
-            text = Regex.Replace(text, @"\((.*?)\)", "<color=#F0E68C>$1</color>"); // khaki for actions/emotes
-            text = Regex.Replace(text, @"\\[(.*?)\\]", "<color=#DDA0DD>$1</color>"); // plum for thoughts/internal
-            return text;
         }
     }
 

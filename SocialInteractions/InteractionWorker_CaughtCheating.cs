@@ -43,15 +43,6 @@ namespace SocialInteractions
                 }
             }
 
-            // --- End the date immediately when cheating is discovered ---
-            Date date = DatingManager.GetDateWith(recipient);
-            if (date != null)
-            {
-                SLog.Message("[SocialInteractions] InteractionWorker_CaughtCheating: Ending date immediately when cheating is discovered.");
-                DatingManager.EndDate(date);
-            }
-            // --- End End the date ---
-
             // Create a job to handle the interaction once the initiator arrives
             // The Goto job is already created by Pawn_Tick_Patch
             Job followUpJob = JobMaker.MakeJob(SI_JobDefOf.CaughtCheatingInteraction, recipient);
@@ -129,11 +120,42 @@ namespace SocialInteractions
             }
         }
         
+        public void MakePartnerFleeImmediately(Pawn partner, Pawn initiator)
+        {
+            if (partner == null || initiator == null)
+            {
+                SLog.Warning("[SocialInteractions] MakePartnerFleeImmediately: Partner or initiator is null, skipping.");
+                return;
+            }
+            
+            SLog.Message(string.Format("[SocialInteractions] MakePartnerFleeImmediately: Making partner {0} flee from initiator {1}.", partner.LabelShort, initiator.LabelShort));
+            TryMakePartnerFlee(partner, initiator);
+        }
+        
         private void TryMakePartnerFlee(Pawn partner, Pawn initiator)
         {
             if (partner == null || initiator == null || partner.Map == null)
             {
                 return;
+            }
+            
+            // Remove the SI_OnDate hediff as the partner is no longer on the date
+            HediffDef onDateDef = HediffDef.Named("OnDate");
+            if (onDateDef != null)
+            {
+                try
+                {
+                    Hediff onDateHediff = partner.health.hediffSet.GetFirstHediffOfDef(onDateDef);
+                    if (onDateHediff != null)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] TryMakePartnerFlee: Removing OnDate hediff from partner {0}.", partner.LabelShort));
+                        partner.health.RemoveHediff(onDateHediff);
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    SLog.Warning(string.Format("[SocialInteractions] TryMakePartnerFlee: Exception removing OnDate hediff from partner {0}: {1}", partner.LabelShort, ex.Message));
+                }
             }
             
             // Create a list of threats (in this case, just the initiator)

@@ -3,6 +3,7 @@ using Verse;
 using Verse.AI;
 using System.Collections.Generic;
 using UnityEngine; // Added for Texture2D
+using System; // Added for Exception
 
 namespace SocialInteractions
 {
@@ -20,7 +21,10 @@ namespace SocialInteractions
         }
 
         private new int startTick = -1;
-        private const int WaitDuration = 1800; // 30 seconds
+        private int conversationId = -1; // Store the conversation ID for this interaction
+        
+        // Use the settings value as minimum duration
+        private int MinWaitDuration { get { return SocialInteractions.Settings.cheatingConfrontationTicks; } }
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
@@ -71,8 +75,15 @@ namespace SocialInteractions
                 SLog.Warning(string.Format("[SocialInteractions] JobDriver_CaughtCheating: No partner found for cheater {0}", Cheater.LabelShort));
             }
 
-            // Trigger the LLM interaction with the partner
-            SocialInteractions.HandleCaughtCheatingInteraction(pawn, Cheater, partner);
+            // Trigger the LLM interaction with the partner and store the conversation ID
+            conversationId = SocialInteractions.HandleCaughtCheatingInteraction(pawn, Cheater, partner);
+            
+            // Make the partner flee immediately upon the spouse's arrival
+            if (partner != null)
+            {
+                InteractionWorker_CaughtCheating interactionWorker = new InteractionWorker_CaughtCheating();
+                interactionWorker.MakePartnerFleeImmediately(partner, pawn); // pawn is the angry spouse
+            }
             
             // Remove the partner from the dictionary
             if (SocialInteractions.CheaterPartners.ContainsKey(Cheater.ThingID))
@@ -106,10 +117,37 @@ namespace SocialInteractions
             
             waitToil.tickAction = () => 
             {
-                // Check if the wait duration has elapsed
-                if (Find.TickManager.TicksGame >= startTick + WaitDuration)
+                // Check if the minimum wait duration has elapsed
+                int elapsedTicks = Find.TickManager.TicksGame - startTick;
+                bool minDurationElapsed = elapsedTicks >= MinWaitDuration;
+                
+                // Check if the specific conversation for this cheating interaction is still active or has pending speech bubbles
+                bool isConversationFinished = true;
+                try
+                {
+                    // Check if this conversation is still active or has pending speech bubbles
+                    if (conversationId != -1)
+                    {
+                        isConversationFinished = !SpeechBubbleManager.IsConversationActive(conversationId) && !SpeechBubbleManager.HasPendingSpeechBubbles(conversationId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    SLog.Warning(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Exception while checking conversation status: {0}", ex.Message));
+                }
+                
+                // If minimum duration has elapsed and the conversation is finished, end the confrontation
+                if (minDurationElapsed && isConversationFinished)
                 {
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Wait duration elapsed for pawn {0}.", pawn.LabelShort));
+                    
+                    // End the date when the angry spouse arrives and the waiting period is over
+                    Date date = DatingManager.GetDateWith(Cheater);
+                    if (date != null)
+                    {
+                        SLog.Message("[SocialInteractions] JobDriver_CaughtCheating: Ending date as angry spouse has arrived.");
+                        DatingManager.EndDate(date);
+                    }
                     
                     // Get the partner (the one being cheated on)
                     // Pawn currentPartner = DatingManager.GetPartnerOfDateWith(Cheater); // This will be null since the date was ended

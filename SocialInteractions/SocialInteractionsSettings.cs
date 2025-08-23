@@ -68,6 +68,7 @@ It's currently [time], on [date] and the weather is [weather].
         public int jobCheckIntervalTicks = 60;
         public int initialToleranceTicks = 60;
         public int goOnDateCooldownTicks = 600;
+        public int cheatingConfrontationTicks = 300;
         
         // Dating partner selection weights/penalties
         public float spouseDateWeight = 100f;
@@ -120,6 +121,7 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref baseLovinChance, "baseLovinChance", 0.75f);
             Scribe_Values.Look(ref dateCooldownTicks, "dateCooldownTicks", 3000);
             Scribe_Values.Look(ref dateLovinTicks, "dateLovinTicks", 2000);
+            Scribe_Values.Look(ref cheatingConfrontationTicks, "cheatingConfrontationTicks", 300);
             Scribe_Values.Look(ref maxDistanceForDate, "maxDistanceForDate", 50);
             Scribe_Values.Look(ref jobCheckIntervalTicks, "jobCheckIntervalTicks", 60);
             Scribe_Values.Look(ref initialToleranceTicks, "initialToleranceTicks", 60);

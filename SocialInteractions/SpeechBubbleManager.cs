@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Linq;
+using System.Text.RegularExpressions; // Add this using directive
 
 namespace SocialInteractions
 {
@@ -76,8 +77,18 @@ namespace SocialInteractions
                         }
                     }
 
-                    // Use a copy of the queue for safe iteration
-                    if (!new Queue<SpeechBubble>(speechBubbleQueue).Any(b => b.conversationId == bubble.conversationId))
+                    // Check if there are more bubbles in the queue with the same conversation ID
+                    bool hasMoreBubblesInConversation = false;
+                    foreach (SpeechBubble queuedBubble in speechBubbleQueue)
+                    {
+                        if (queuedBubble.conversationId == bubble.conversationId)
+                        {
+                            hasMoreBubblesInConversation = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!hasMoreBubblesInConversation)
                     {
                         EndConversation(bubble.conversationId);
                     }
@@ -127,9 +138,14 @@ namespace SocialInteractions
             // Process pending jobs
             lock (queueLock)
             {
+                // Process all pending jobs safely
                 while (pendingJobs.Count > 0)
                 {
-                    pendingJobs.Dequeue()();
+                    Action jobAction = pendingJobs.Dequeue();
+                    if (jobAction != null)
+                    {
+                        jobAction();
+                    }
                 }
             }
         }
@@ -203,12 +219,75 @@ namespace SocialInteractions
             return activeConversations.Contains(conversationId);
         }
 
+        // --- For Queue Management ---
+        /// <summary>
+        /// Clears the speech bubble display queue. This is useful for high-priority interactions
+        /// that should interrupt any queued messages. The currently displaying message will
+        /// continue to its natural end; new messages will be displayed after it finishes.
+        /// This method should be called from the main thread, e.g., via EnqueueJob.
+        /// </summary>
+        public static void ClearQueues()
+        {
+            lock (queueLock)
+            {
+                // Clear all pending speech bubbles
+                speechBubbleQueue.Clear();
+                
+                // Do NOT reset nextQueuedBubbleDisplayTime. This ensures that
+                // the next message (from the high-priority interaction) will
+                // wait for the current message's display time to finish naturally
+                // before appearing, preventing visual overlap.
+                // nextQueuedBubbleDisplayTime = Time.time; 
+                
+                SLog.Message("[SocialInteractions] Speech bubble queue cleared. Timer unchanged to respect current display.");
+            }
+        }
+        // --- End For Queue Management ---
+
+        // Original enqueue method for simple messages (e.g., fallback messages)
         public static void Enqueue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId, Color? color = null)
         {
             lock (queueLock)
             {
                 speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color));
             }
+        }
+
+        // New overload for LLM messages that handles all formatting internally
+        public static void Enqueue(Verse.Pawn speaker, string rawMessage, Pawn recipient, float duration, bool isFirstMessage, int conversationId, bool isHighPriority = false)
+        {
+            // Format the message with speaker name and rich text
+            string formattedMessage = FormatLlmMessage(rawMessage, speaker, recipient, isHighPriority);
+            string wrappedMessage = SocialInteractions.WrapText(formattedMessage, SocialInteractions.Settings.wordsPerLineLimit);
+            
+            lock (queueLock)
+            {
+                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, wrappedMessage, duration, conversationId, false, null));
+            }
+        }
+
+        // New overload that automatically calculates duration
+        public static void Enqueue(Verse.Pawn speaker, string rawMessage, Pawn recipient, bool isFirstMessage, int conversationId, bool isHighPriority = false)
+        {
+            float duration = EstimateReadingTime(rawMessage);
+            Enqueue(speaker, rawMessage, recipient, duration, isFirstMessage, conversationId, isHighPriority);
+        }
+
+        // Overload for fallback messages that applies basic formatting
+        public static void Enqueue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId)
+        {
+            string wrappedMessage = SocialInteractions.WrapText(text, SocialInteractions.Settings.wordsPerLineLimit);
+            lock (queueLock)
+            {
+                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, wrappedMessage, duration, conversationId, false, null));
+            }
+        }
+
+        // Overload for fallback messages that automatically calculates duration
+        public static void Enqueue(Verse.Pawn speaker, string text, bool isFirstMessage, int conversationId)
+        {
+            float duration = EstimateReadingTime(text);
+            Enqueue(speaker, text, duration, isFirstMessage, conversationId);
         }
 
         // For instant messages (combat taunts)
@@ -233,6 +312,34 @@ namespace SocialInteractions
                     MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, text, duration);
                 }
             }
+        }
+
+        // New overload for LLM instant messages that handles all formatting internally
+        public static void EnqueueInstant(Verse.Pawn speaker, string rawMessage, Pawn recipient, float duration, bool isHighPriority = false)
+        {
+            // Format the message with speaker name and rich text
+            string formattedMessage = FormatLlmMessage(rawMessage, speaker, recipient, isHighPriority);
+            string wrappedMessage = SocialInteractions.WrapText(formattedMessage, SocialInteractions.Settings.wordsPerLineLimit);
+            
+            float endTime;
+            if (pawnBubbleEndTimes.TryGetValue(speaker, out endTime) && Time.time < endTime)
+            {
+                return; // Don't enqueue if this pawn already has an active instant bubble
+            }
+            duration = Math.Max(1f, duration);
+            pawnBubbleEndTimes[speaker] = Time.time + duration; // Set bubbleEndTime for instant bubbles
+            // No clearing of speechBubbleQueue here, as it's for instant display only
+            if (speaker != null && speaker.Map != null)
+            {
+                MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, wrappedMessage, duration);
+            }
+        }
+
+        // New overload that automatically calculates duration
+        public static void EnqueueInstant(Verse.Pawn speaker, string rawMessage, Pawn recipient, bool isHighPriority = false)
+        {
+            float duration = EstimateReadingTime(rawMessage);
+            EnqueueInstant(speaker, rawMessage, recipient, duration, isHighPriority);
         }
 
         // --- For LLM Efficiency Unlock Scheduling ---
@@ -268,6 +375,95 @@ namespace SocialInteractions
             {
                 MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, text, new Color(0.75f, 0.75f, 0.75f), duration);
             }
+        }
+        
+        public static bool HasPendingSpeechBubbles(int conversationId)
+        {
+            lock (queueLock)
+            {
+                // Check if there are bubbles in the queue with the specified conversation ID
+                foreach (SpeechBubble bubble in speechBubbleQueue)
+                {
+                    if (bubble.conversationId == conversationId)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        public static string FormatLlmText(string text)
+        {
+            // Use a regular expression to find text enclosed in asterisks, parentheses, or square brackets.
+            text = Regex.Replace(text, @"\*(.*?)\*", "<color=#A9F0F0>$1</color>"); // light cyan for emphasis
+            text = Regex.Replace(text, @"\((.*?)\)", "<color=#F0E68C>$1</color>"); // khaki for actions/emotes
+            text = Regex.Replace(text, @"\[(.*?)\]", "<color=#DDA0DD>$1</color>"); // plum for thoughts/internal
+            return text;
+        }
+
+        public static float EstimateReadingTime(string text)
+        {
+            // Simple estimate: words per second from settings.
+            int wordCount = text.Split(new string[] { " ", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Length;
+            float estimatedTime = 0f;
+            if (SocialInteractions.Settings.wordsPerSecond <= 0)
+            {
+                estimatedTime = wordCount * 0.3f; // Fallback if setting is zero or negative
+            }
+            else
+            {
+                estimatedTime = wordCount / SocialInteractions.Settings.wordsPerSecond; // Seconds
+            }
+            return estimatedTime;
+        }
+
+        public static string FormatSpeakerName(Pawn speaker, string rawMessage, bool isHighPriority = false)
+        {
+            // Format the message to include the speaker's name with color
+            string colorCode = isHighPriority ? "#ED7913" : "#87CEEB"; // Orange for high priority, light sky blue for normal
+            string speakerNameWithColor = string.Format("<color={0}>{1}</color>", colorCode, speaker.Name.ToStringShort);
+            string messageWithSpeaker = string.Format("{0}: {1}", speakerNameWithColor, rawMessage);
+            return FormatLlmText(messageWithSpeaker);
+        }
+
+        public static string FormatLlmMessage(Pawn speaker, string rawMessage, bool isHighPriority = false)
+        {
+            // Extract the speaker name if it's included in the message
+            string messageText = rawMessage;
+            if (rawMessage.StartsWith(speaker.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
+            {
+                messageText = rawMessage.Substring(speaker.Name.ToStringShort.Length + 1).Trim();
+            }
+            
+            // Format the message with speaker name and rich text
+            return FormatSpeakerName(speaker, messageText, isHighPriority);
+        }
+
+        // Overload for when we don't know the speaker yet
+        public static string FormatLlmMessage(string rawMessage, Pawn pawn, Pawn recipient, bool isHighPriority = false)
+        {
+            Pawn speaker = null;
+            string messageText = rawMessage;
+
+            // Determine speaker and extract dialogue
+            if (rawMessage.StartsWith(pawn.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
+            {
+                speaker = pawn;
+                messageText = rawMessage.Substring(pawn.Name.ToStringShort.Length + 1).Trim();
+            }
+            else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
+            {
+                speaker = recipient;
+                messageText = rawMessage.Substring(recipient.Name.ToStringShort.Length + 1).Trim();
+            }
+            else
+            {
+                speaker = pawn; // Default to initiator if speaker not specified
+            }
+
+            // Format the message with speaker name and rich text
+            return FormatSpeakerName(speaker, messageText, isHighPriority);
         }
     }
 
