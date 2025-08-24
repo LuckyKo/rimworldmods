@@ -169,6 +169,12 @@ namespace SocialInteractions
                     {
                         // A social fight was successfully started
                         SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Pawn {0} is in social fight, ending job to let mental state take over.", pawn.LabelShort));
+                        // End the conversation before ending the job
+                        if (conversationId != -1)
+                        {
+                            SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Ending conversation ID: {0}", conversationId));
+                            SpeechBubbleManager.EndConversation(conversationId);
+                        }
                         // End the job and let the mental state handle the fighting
                         pawn.jobs.EndCurrentJob(JobCondition.Succeeded);
                     }
@@ -176,6 +182,12 @@ namespace SocialInteractions
                     {
                         // If no fight was started, end the job
                         SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: No fight started for pawn {0}, ending job.", pawn.LabelShort));
+                        // End the conversation before ending the job
+                        if (conversationId != -1)
+                        {
+                            SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Ending conversation ID: {0}", conversationId));
+                            SpeechBubbleManager.EndConversation(conversationId);
+                        }
                         pawn.jobs.EndCurrentJob(JobCondition.Succeeded);
                     }
                 }

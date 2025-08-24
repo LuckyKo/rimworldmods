@@ -818,15 +818,21 @@ namespace SocialInteractions
                     if (conversationId != -1)
                     {
                         string interactionDefName = (interactionDef != null) ? interactionDef.defName : "Unknown";
-                        SLog.Message(string.Format("[SocialInteractions] Ending conversation ID: {0} for interaction {1}", conversationId, interactionDefName));
-                        SpeechBubbleManager.EndConversation(conversationId);
+                        
+                        // Special handling for CaughtCheating interaction
+                        // Let the JobDriver_CaughtCheating handle ending the conversation
+                        // since it needs to coordinate with the BeTalkedTo job
+                        if (interactionDef == SI_InteractionDefOf.CaughtCheating)
+                        {
+                            SLog.Message(string.Format("[SocialInteractions] Not ending conversation ID: {0} for interaction {1} - will be handled by JobDriver_CaughtCheating", conversationId, interactionDefName));
+                        }
+                        else
+                        {
+                            SLog.Message(string.Format("[SocialInteractions] Ending conversation ID: {0} for interaction {1}", conversationId, interactionDefName));
+                            SpeechBubbleManager.EndConversation(conversationId);
+                        }
                         
                         // Note: isLlmBusy will be handled by the scheduled unlock or immediately if delay <= 0
-                    }
-                    // --- End End Conversation ---
-                    if (client != null)
-                    {
-                        client.Dispose();
                     }
                 }
             });
