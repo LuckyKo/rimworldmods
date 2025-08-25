@@ -738,7 +738,15 @@ namespace SocialInteractions
                                 
                                 // --- For LLM Efficiency Unlock ---
                                 // Calculate unlock delay based on last response time estimate and current display time
-                                float unlockDelaySeconds = totalDisplaySeconds - lastResponseTimeSeconds;
+								// If early LLM requests are disabled, set the unlock time to totalDisplaySeconds
+								float unlockDelaySeconds = 0f;
+								if (SocialInteractions.Settings.enableEarlyLlmRequests)
+								{
+									unlockDelaySeconds = totalDisplaySeconds - lastResponseTimeSeconds;
+								} else {
+									unlockDelaySeconds = totalDisplaySeconds;
+								}
+            
                                 // Log on main thread
                                 SpeechBubbleManager.EnqueueJob(() => {
                                     SLog.Message(string.Format("[SocialInteractions] Efficiency - Total Display Time: {0:F2}s, Estimated Next Response Time: {1:F2}s, Unlock Delay: {2:F2}s", totalDisplaySeconds, lastResponseTimeSeconds, unlockDelaySeconds));

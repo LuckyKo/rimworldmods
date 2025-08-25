@@ -9,6 +9,31 @@ namespace SocialInteractions
 {
     public class JobDriver_DateLovin : JobDriver
     {
+        /// <summary>
+        /// Checks if a pawn is still valid for dating activities
+        /// </summary>
+        /// <param name="pawn">The pawn to check</param>
+        /// <returns>True if the pawn is valid for dating, false otherwise</returns>
+        private bool IsPawnValidForDating(Pawn pawn)
+        {
+            if (pawn == null || pawn.Destroyed || pawn.Dead || pawn.Downed)
+            {
+                return false;
+            }
+            
+            if (pawn.InMentalState || pawn.health == null || pawn.health.capacities == null)
+            {
+                return false;
+            }
+            
+            // Check if the pawn is capable of being awake (basic health check)
+            if (!pawn.health.capacities.CanBeAwake)
+            {
+                return false;
+            }
+            
+            return true;
+        }
         private int ticksLeft;
 
         private TargetIndex PartnerInd = TargetIndex.A;
@@ -30,25 +55,8 @@ namespace SocialInteractions
                 return false;
             }
 
-            // Add health check - if pawn is downed, dead, or in a mental state, don't start the job
-            if (pawn.Dead || pawn.Downed || pawn.InMentalState)
-            {
-                return false;
-            }
-
-            // Add health check - if partner is downed, dead, or in a mental state, don't start the job
-            if (Partner.Dead || Partner.Downed || Partner.InMentalState)
-            {
-                return false;
-            }
-
-            // Check if both pawns are capable of doing lovin'
-            if (pawn.health == null || pawn.health.capacities == null || !pawn.health.capacities.CanBeAwake)
-            {
-                return false;
-            }
-
-            if (Partner.health == null || Partner.health.capacities == null || !Partner.health.capacities.CanBeAwake)
+            // Use the helper method to check if both pawns are valid for dating
+            if (!IsPawnValidForDating(pawn) || !IsPawnValidForDating(Partner))
             {
                 return false;
             }

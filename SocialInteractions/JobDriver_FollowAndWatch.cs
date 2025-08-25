@@ -9,6 +9,31 @@ namespace SocialInteractions
 {
     public class JobDriver_FollowAndWatch : JobDriver
     {
+        /// <summary>
+        /// Checks if a pawn is still valid for dating activities
+        /// </summary>
+        /// <param name="pawn">The pawn to check</param>
+        /// <returns>True if the pawn is valid for dating, false otherwise</returns>
+        private bool IsPawnValidForDating(Pawn pawn)
+        {
+            if (pawn == null || pawn.Destroyed || pawn.Dead || pawn.Downed)
+            {
+                return false;
+            }
+            
+            if (pawn.InMentalState || pawn.health == null || pawn.health.capacities == null)
+            {
+                return false;
+            }
+            
+            // Check if the pawn is capable of being awake (basic health check)
+            if (!pawn.health.capacities.CanBeAwake)
+            {
+                return false;
+            }
+            
+            return true;
+        }
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             // Add null check to prevent NullReferenceException
@@ -17,6 +42,14 @@ namespace SocialInteractions
                 SLog.Warning("[SocialInteractions] JobDriver_FollowAndWatch: pawn is null in TryMakePreToilReservations.");
                 return false;
             }
+            
+            // Use the helper method to check if the pawn is valid for dating
+            if (!IsPawnValidForDating(this.pawn))
+            {
+                SLog.Warning("[SocialInteractions] JobDriver_FollowAndWatch: pawn is not valid for dating in TryMakePreToilReservations.");
+                return false;
+            }
+            
             return true;
         }
 
@@ -109,6 +142,34 @@ namespace SocialInteractions
                     this.ReadyForNextToil(); // End the FollowAndWatch job
                     return;
                 }
+                
+                // Check if the initiator has moved on to a non-joy job, and if so, advance the date
+                if (initiator.jobs != null && initiator.jobs.curJob != null)
+                {
+                    // Check if the initiator's current job is NOT a joy job
+                    bool isInitiatorDoingJoyJob = false;
+                    foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
+                    {
+                        if (joyGiver.jobDef == initiator.jobs.curJob.def)
+                        {
+                            isInitiatorDoingJoyJob = true;
+                            break;
+                        }
+                    }
+                    
+                    // If the initiator is not doing a joy job, advance the date
+                    if (!isInitiatorDoingJoyJob)
+                    {
+                        string initiatorName = (initiator != null && initiator.Name != null) ? initiator.Name.ToStringShort : "NULL";
+                        string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
+                        SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator ({0}) moved to non-joy job, advancing date for follower ({1}).", initiatorName, pawnName));
+                        
+                        // Advance the date stage
+                        DatingManager.AdvanceDateStage(this.pawn);
+                        this.ReadyForNextToil(); // End the FollowAndWatch job
+                        return;
+                    }
+                }
 
                 // Pathing Logic - Continuously update path to follow the initiator
                 try
@@ -130,6 +191,16 @@ namespace SocialInteractions
                             string initiatorName = (initiator != null && initiator.Label != null) ? initiator.LabelShort : "NULL";
                             string pawnName = (this.pawn != null && this.pawn.Label != null) ? this.pawn.LabelShort : "NULL";
                             SLog.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} is not spawned or on a different map for follower {1}. Ending job.", initiatorName, pawnName));
+                            this.ReadyForNextToil();
+                            return;
+                        }
+
+                        // Additional check to ensure both pawns are still valid for dating
+                        if (!IsPawnValidForDating(this.pawn) || !IsPawnValidForDating(initiator))
+                        {
+                            string initiatorName = (initiator != null && initiator.Label != null) ? initiator.LabelShort : "NULL";
+                            string pawnName = (this.pawn != null && this.pawn.Label != null) ? this.pawn.LabelShort : "NULL";
+                            SLog.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: One or both pawns are no longer valid for dating. Initiator: {0}, Follower: {1}. Ending job.", initiatorName, pawnName));
                             this.ReadyForNextToil();
                             return;
                         }

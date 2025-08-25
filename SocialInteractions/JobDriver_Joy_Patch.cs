@@ -25,34 +25,26 @@ namespace SocialInteractions
                 SLog.Warning(string.Format("[SocialInteractions] Error getting pawn from Pawn_JobTracker: {0}", ex.Message));
             }
             
-            // Only log if the pawn is on a date to reduce log spam
-            /*
-            if (pawn != null)
-            {
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_Joy_Patch: EndCurrentJob called for pawn {0}, job {1}, condition {2}", 
-                    pawn.Name != null ? pawn.Name.ToStringShort : "NULL", 
-                    __instance.curJob != null ? __instance.curJob.def.defName : "NULL", 
-                    condition));
-            }
-            */
+            // Only proceed if we have a valid pawn
+            if (pawn == null) return;
             
-            // Check if the job was completed successfully
-            if (pawn != null && __instance.curJob != null && condition == JobCondition.Succeeded)
+            // Check if the pawn is on a date
+            if (DatingManager.IsOnDate(pawn))
             {
+                // Log that the pawn is on a date
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_Joy_Patch: Pawn {0} is on a date", 
+                    pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
+                
                 // Check if the job is the CaughtCheatingInteraction job, if so, skip the date logic
-                if (__instance.curJob.def == SI_JobDefOf.CaughtCheatingInteraction)
+                if (__instance.curJob != null && __instance.curJob.def == SI_JobDefOf.CaughtCheatingInteraction)
                 {
                     SLog.Message("[SocialInteractions] JobDriver_Joy_Patch: Skipping date logic for CaughtCheatingInteraction job.");
                     return;
                 }
                 
-                // Check if the pawn is on a date
-                if (DatingManager.IsOnDate(pawn))
+                // Check if the job was completed successfully
+                if (__instance.curJob != null && condition == JobCondition.Succeeded)
                 {
-                    // Log that the pawn is on a date
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_Joy_Patch: Pawn {0} is on a date", 
-                        pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
-                    
                     // Check if the job was a joy job
                     bool isJoyJob = false;
                     foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
@@ -91,21 +83,55 @@ namespace SocialInteractions
                             {
                                 // Create and start the FollowAndWatch job for the partner
                                 Job followJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, dateInitiator);
-                                pawn.jobs.StartJob(followJob, JobCondition.InterruptForced);
+                                // Add a small delay before starting the job to prevent race conditions
+                                pawn.jobs.jobQueue.EnqueueFirst(followJob);
+                                pawn.jobs.EndCurrentJob(JobCondition.InterruptForced);
                                 SLog.Message(string.Format("[SocialInteractions] Restarted FollowAndWatch job for partner {0}", 
                                     pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
                             }
                         }
                     }
                 }
-                /*
-                else
+                // If the job was not completed successfully or was interrupted, check if it moved to a non-joy job
+                else if (__instance.curJob != null && condition != JobCondition.Succeeded)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_Joy_Patch: Pawn {0} is NOT on a date", 
-                        pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
+                    // Check if the current job is NOT a joy job (meaning they moved to a non-joy job)
+                    bool isCurrentJobJoy = false;
+                    foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
+                    {
+                        if (joyGiver.jobDef == __instance.curJob.def)
+                        {
+                            isCurrentJobJoy = true;
+                            break;
+                        }
+                    }
+                    
+                    // If the current job is not a joy job, advance the date
+                    if (!isCurrentJobJoy)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Pawn {0} moved to non-joy job {1}, checking if should advance date.", 
+                            pawn.Name != null ? pawn.Name.ToStringShort : "NULL", 
+                            __instance.curJob.def.defName));
+                        
+                        Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
+                        if (initiator == pawn)
+                        {
+                            // This pawn is the initiator, so advance the date stage
+                            SLog.Message(string.Format("[SocialInteractions] Initiator {0} moved to non-joy job, advancing date stage.", 
+                                pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
+                            DatingManager.AdvanceDateStage(pawn);
+                        }
+                        // For partners, we don't need to do anything special as they will be handled by the stuck date detection
+                    }
                 }
-                */
             }
+            /*
+            else
+            {
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_Joy_Patch: Pawn {0} is NOT on a date", 
+                    pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
+            }
+            */
         }
     }
 }

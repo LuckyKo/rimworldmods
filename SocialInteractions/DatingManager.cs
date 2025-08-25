@@ -442,8 +442,8 @@ namespace SocialInteractions
         {
             if (map == null || map.mapPawns == null) return;
             
-            // Only check for stuck dates once per 180 ticks (3 seconds) instead of every tick
-            if (Current.Game.tickManager.TicksGame % 180 != 0) return;
+            // Check for stuck dates more frequently - every 60 ticks (1 second) instead of every 180 ticks
+            if (Current.Game.tickManager.TicksGame % 60 != 0) return;
             
             JobDef dateLovinJobDef = SI_JobDefOf.DateLovin;
             JobDef goOnDateJobDef = SI_JobDefOf.GoOnDate;
@@ -457,6 +457,19 @@ namespace SocialInteractions
                 if (IsOnDate(pawn))
                 {
                     Pawn initiator = GetInitiatorOfDateWith(pawn);
+                    
+                    // If we can't find a valid initiator, end the date
+                    if (initiator == null)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Found date with null initiator for pawn {0}, ending date.", 
+                            pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
+                        Date date = GetDateWith(pawn);
+                        if (date != null)
+                        {
+                            EndDate(date);
+                        }
+                        continue;
+                    }
                     
                     // Check if the initiator is doing a joy job
                     bool isDoingJoyJob = false;

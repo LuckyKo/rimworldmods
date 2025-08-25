@@ -138,6 +138,14 @@ namespace SocialInteractions
                 return;
             }
             
+            // Additional validation to ensure both pawns are still valid for dating
+            if (!IsPawnHealthyForDating(initiator) || !IsPawnHealthyForDating(partner))
+            {
+                SLog.Message(string.Format("[SocialInteractions] DateTracker: One or both pawns are no longer healthy for dating. Initiator: {0}, Partner: {1}", 
+                    initiator.LabelShort, partner.LabelShort));
+                return;
+            }
+            
             // Check if the partner is already doing the same joy job
             if (partner.CurJobDef == joyJobDef)
             {

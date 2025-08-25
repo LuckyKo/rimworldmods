@@ -237,6 +237,13 @@ namespace SocialInteractions
                     continue;
                 }
                 
+                // Don't select pawns in mental states for dating
+                if (p.InMentalState) 
+                {
+                    // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is in mental state.", p.Name != null ? p.Name.ToStringShort : "NULL"));
+                    continue;
+                }
+                
                 if (DatingManager.IsOnDate(p)) 
                 {
                     // SLog.Message(string.Format("[SocialInteractions] JoyGiver_GoOnDate.FindPartnerFor: Pawn {0} is already on a date.", p.Name != null ? p.Name.ToStringShort : "NULL"));

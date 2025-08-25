@@ -17,9 +17,33 @@ namespace SocialInteractions
         
         private JobDef lastKnownInitiatorJobDef = null;
         private const int JoyJobJoinDelay = 180; // 3 seconds delay before trying to join joy job
-        private int? initiatorJoyJobStartTick = null; // Track when the initiator started a joy job
-        private bool partnerHasStartedJoyJob = false; // Track if partner has started a joy job for current joy activity
         private JobDef partnerJoyJobDef = null; // Track the joy job the partner is doing
+
+        /// <summary>
+        /// Checks if a pawn is still valid for dating activities
+        /// </summary>
+        /// <param name="pawn">The pawn to check</param>
+        /// <returns>True if the pawn is valid for dating, false otherwise</returns>
+        private bool IsPawnValidForDating(Pawn pawn)
+        {
+            if (pawn == null || pawn.Destroyed || pawn.Dead || pawn.Downed)
+            {
+                return false;
+            }
+            
+            if (pawn.InMentalState || pawn.health == null || pawn.health.capacities == null)
+            {
+                return false;
+            }
+            
+            // Check if the pawn is capable of being awake (basic health check)
+            if (!pawn.health.capacities.CanBeAwake)
+            {
+                return false;
+            }
+            
+            return true;
+        }
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
@@ -30,6 +54,14 @@ namespace SocialInteractions
                 SLog.Warning("[SocialInteractions] JobDriver_GoOnDate: pawn is null in TryMakePreToilReservations.");
                 return false;
             }
+            
+            // Use the helper method to check if the pawn is valid for dating
+            if (!IsPawnValidForDating(this.pawn))
+            {
+                SLog.Warning("[SocialInteractions] JobDriver_GoOnDate: pawn is not valid for dating in TryMakePreToilReservations.");
+                return false;
+            }
+            
             SLog.Message("[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations returning true.");
             return true;
         }
@@ -96,6 +128,19 @@ namespace SocialInteractions
                 if (recipient == null || this.pawn == null)
                 {
                     SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Pawn or recipient is null in askToil, ending job.");
+                    this.EndJobWith(JobCondition.Incompletable);
+                    return;
+                }
+
+                // Re-validate the recipient before asking for the date
+                // Check if the recipient is still valid for dating
+                if (recipient.Downed || !recipient.Awake() || recipient.InMentalState || recipient.Drafted)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Recipient {0} is no longer valid for dating (Downed: {1}, Awake: {2}, InMentalState: {3}, Drafted: {4}), rejecting date.", 
+                        recipient.Name.ToStringShort, recipient.Downed, recipient.Awake(), recipient.InMentalState, recipient.Drafted));
+                    Find.PlayLog.Add(new PlayLogEntry_Interaction(DefDatabase<InteractionDef>.GetNamed("DateRejected"), this.pawn, this.Partner, null));
+                    DatingManager.RejectDate(this.pawn, this.Partner);
+                    SocialInteractions.HandleNonStoppingInteraction(this.pawn, this.Partner, SI_InteractionDefOf.DateRejected, SpeechBubbleManager.GetDateRejectionSubject(this.pawn, this.Partner));
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
@@ -188,17 +233,40 @@ namespace SocialInteractions
                 SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Starting FollowAndWatch job for partner {0}", 
                     this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
                 this.Partner.jobs.StartJob(partnerJob, JobCondition.InterruptForced);
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: FollowAndWatch job started for partner {0}", 
-                    this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
                 
-                // Store the job def for monitoring
-                lastKnownInitiatorJobDef = joyJob.def;
-                
-                // Replace this job with the actual joy job
-                this.pawn.jobs.StartJob(joyJob, JobCondition.InterruptForced);
-                
-                // End this job successfully since we've set up the date
-                this.EndJobWith(JobCondition.Succeeded);
+                // Wait a short time to ensure the partner job is properly established
+                // This helps prevent race conditions when many mods are active
+                if (this.Partner.jobs.curJob != null && this.Partner.jobs.curJob.def == SI_JobDefOf.FollowAndWatchInitiator)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: FollowAndWatch job started for partner {0}", 
+                        this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
+                    
+                    // Store the job def for monitoring
+                    lastKnownInitiatorJobDef = joyJob.def;
+                    
+                    // Replace this job with the actual joy job
+                    this.pawn.jobs.StartJob(joyJob, JobCondition.InterruptForced);
+                    
+                    // End this job successfully since we've set up the date
+                    this.EndJobWith(JobCondition.Succeeded);
+                }
+                else
+                {
+                    // If the partner job wasn't properly established, try once more after a short delay
+                    SLog.Warning(string.Format("[SocialInteractions] JobDriver_GoOnDate: Failed to establish FollowAndWatch job for partner {0}. Retrying.", 
+                        this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: FollowAndWatch job started for partner {0}", 
+                        this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
+                    
+                    // Enqueue the partner job and try again
+                    this.Partner.jobs.jobQueue.EnqueueFirst(partnerJob);
+                    
+                    // Also enqueue the initiator's joy job
+                    this.pawn.jobs.jobQueue.EnqueueFirst(joyJob);
+                    
+                    // End this job with a soft interrupt to allow the queued jobs to start
+                    this.EndJobWith(JobCondition.InterruptForced);
+                }
             };
             findJoyJobAndAssign.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return findJoyJobAndAssign;
