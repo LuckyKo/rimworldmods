@@ -32,6 +32,12 @@ namespace SocialInteractions
                 return false;
             }
             
+            // Check if the pawn is drafted
+            if (pawn.Drafted)
+            {
+                return false;
+            }
+            
             return true;
         }
         public override bool TryMakePreToilReservations(bool errorOnFailed)
@@ -157,12 +163,15 @@ namespace SocialInteractions
                         }
                     }
                     
-                    // If the initiator is not doing a joy job, advance the date
-                    if (!isInitiatorDoingJoyJob)
+                    // Special case: If the initiator is doing a DateLovin job, we should also advance the date
+                    bool isInitiatorDoingDateLovin = (initiator.jobs.curJob != null && initiator.jobs.curJob.def == SI_JobDefOf.DateLovin);
+                    
+                    // If the initiator is not doing a joy job or is doing the DateLovin job, advance the date
+                    if (!isInitiatorDoingJoyJob || isInitiatorDoingDateLovin)
                     {
                         string initiatorName = (initiator != null && initiator.Name != null) ? initiator.Name.ToStringShort : "NULL";
                         string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
-                        SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator ({0}) moved to non-joy job, advancing date for follower ({1}).", initiatorName, pawnName));
+                        SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator ({0}) moved to non-joy job or DateLovin job, advancing date for follower ({1}).", initiatorName, pawnName));
                         
                         // Advance the date stage
                         DatingManager.AdvanceDateStage(this.pawn);

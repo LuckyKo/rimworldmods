@@ -92,7 +92,8 @@ namespace SocialInteractions
                         }
                     }
                 }
-                // If the job was not completed successfully or was interrupted, check if it moved to a non-joy job
+                // If the job was not completed successfully, check if it moved to a non-joy job
+                // But only if the pawn is the initiator of the date and the date is in the joy stage
                 else if (__instance.curJob != null && condition != JobCondition.Succeeded)
                 {
                     // Check if the current job is NOT a joy job (meaning they moved to a non-joy job)
@@ -106,16 +107,21 @@ namespace SocialInteractions
                         }
                     }
                     
-                    // If the current job is not a joy job, advance the date
-                    if (!isCurrentJobJoy)
+                    // Special case: If the current job is a DateLovin job, we should not treat it as a non-joy job
+                    bool isCurrentJobDateLovin = (__instance.curJob.def == SI_JobDefOf.DateLovin);
+                    
+                    // If the current job is not a joy job and not a DateLovin job, advance the date
+                    // But only if the pawn is the initiator of the date and the date is in the joy stage
+                    if (!isCurrentJobJoy && !isCurrentJobDateLovin)
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Pawn {0} moved to non-joy job {1}, checking if should advance date.", 
-                            pawn.Name != null ? pawn.Name.ToStringShort : "NULL", 
-                            __instance.curJob.def.defName));
-                        
                         Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
-                        if (initiator == pawn)
+                        Date date = DatingManager.GetDateWith(pawn);
+                        if (initiator == pawn && date != null && date.Stage == DateStage.Joy)
                         {
+                            SLog.Message(string.Format("[SocialInteractions] Pawn {0} moved to non-joy job {1}, checking if should advance date.", 
+                                pawn.Name != null ? pawn.Name.ToStringShort : "NULL", 
+                                __instance.curJob.def.defName));
+                            
                             // This pawn is the initiator, so advance the date stage
                             SLog.Message(string.Format("[SocialInteractions] Initiator {0} moved to non-joy job, advancing date stage.", 
                                 pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));

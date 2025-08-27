@@ -42,6 +42,12 @@ namespace SocialInteractions
                 return false;
             }
             
+            // Check if the pawn is drafted
+            if (pawn.Drafted)
+            {
+                return false;
+            }
+            
             return true;
         }
 
@@ -232,41 +238,18 @@ namespace SocialInteractions
                 Job partnerJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn);
                 SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Starting FollowAndWatch job for partner {0}", 
                     this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
+                
+                // Start the partner's job
                 this.Partner.jobs.StartJob(partnerJob, JobCondition.InterruptForced);
                 
-                // Wait a short time to ensure the partner job is properly established
-                // This helps prevent race conditions when many mods are active
-                if (this.Partner.jobs.curJob != null && this.Partner.jobs.curJob.def == SI_JobDefOf.FollowAndWatchInitiator)
-                {
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: FollowAndWatch job started for partner {0}", 
-                        this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
-                    
-                    // Store the job def for monitoring
-                    lastKnownInitiatorJobDef = joyJob.def;
-                    
-                    // Replace this job with the actual joy job
-                    this.pawn.jobs.StartJob(joyJob, JobCondition.InterruptForced);
-                    
-                    // End this job successfully since we've set up the date
-                    this.EndJobWith(JobCondition.Succeeded);
-                }
-                else
-                {
-                    // If the partner job wasn't properly established, try once more after a short delay
-                    SLog.Warning(string.Format("[SocialInteractions] JobDriver_GoOnDate: Failed to establish FollowAndWatch job for partner {0}. Retrying.", 
-                        this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: FollowAndWatch job started for partner {0}", 
-                        this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
-                    
-                    // Enqueue the partner job and try again
-                    this.Partner.jobs.jobQueue.EnqueueFirst(partnerJob);
-                    
-                    // Also enqueue the initiator's joy job
-                    this.pawn.jobs.jobQueue.EnqueueFirst(joyJob);
-                    
-                    // End this job with a soft interrupt to allow the queued jobs to start
-                    this.EndJobWith(JobCondition.InterruptForced);
-                }
+                // Store the job def for monitoring
+                lastKnownInitiatorJobDef = joyJob.def;
+                
+                // Start the initiator's joy job
+                this.pawn.jobs.StartJob(joyJob, JobCondition.InterruptForced);
+                
+                // End this job successfully since we've set up the date
+                this.EndJobWith(JobCondition.Succeeded);
             };
             findJoyJobAndAssign.defaultCompleteMode = ToilCompleteMode.Instant;
             yield return findJoyJobAndAssign;

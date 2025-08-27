@@ -32,6 +32,12 @@ namespace SocialInteractions
                 return false;
             }
             
+            // Check if the pawn is drafted
+            if (pawn.Drafted)
+            {
+                return false;
+            }
+            
             return true;
         }
         private int ticksLeft;
@@ -48,19 +54,44 @@ namespace SocialInteractions
             Scribe_Values.Look(ref ticksLeft, "ticksLeft", 0);
         }
 
+        public override void Notify_Starting()
+        {
+            SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: Notify_Starting called for pawn {0}. Job target: {1}", 
+                pawn != null ? pawn.LabelShort : "NULL",
+                Partner != null ? Partner.LabelShort : "NULL"));
+            base.Notify_Starting();
+        }
+
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
+            SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: TryMakePreToilReservations called for pawn {0}. Job target: {1}", 
+                pawn != null ? pawn.LabelShort : "NULL",
+                Partner != null ? Partner.LabelShort : "NULL"));
+                
             if (pawn == null || Partner == null)
             {
+                SLog.Warning("[SocialInteractions] JobDriver_DateLovin: pawn or Partner is null in TryMakePreToilReservations.");
                 return false;
             }
 
             // Use the helper method to check if both pawns are valid for dating
             if (!IsPawnValidForDating(pawn) || !IsPawnValidForDating(Partner))
             {
+                SLog.Warning(string.Format("[SocialInteractions] JobDriver_DateLovin: pawn {0} or Partner {1} is not valid for dating in TryMakePreToilReservations.", 
+                    pawn.LabelShort, Partner.LabelShort));
                 return false;
             }
 
+            // Reserve the partner to prevent interruptions
+            if (!pawn.Reserve(Partner, job, 1, -1, null, errorOnFailed))
+            {
+                SLog.Warning(string.Format("[SocialInteractions] JobDriver_DateLovin: Failed to reserve partner {0} for pawn {1}.", 
+                    Partner.LabelShort, pawn.LabelShort));
+                return false;
+            }
+
+            SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: TryMakePreToilReservations returning true for pawn {0}.", 
+                pawn.LabelShort));
             return true;
         }
 

@@ -598,12 +598,41 @@ namespace SocialInteractions
                 return;
             }
 
-            if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == SI_JobDefOf.FollowAndWatchInitiator)
+            // Ensure the partner's FollowAndWatch job is properly ended before starting the lovin job
+            if (date.Partner != null && date.Partner.jobs != null)
             {
-                // Reduce log spam by commenting out this message
-                // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Ending partner's ({0}) FollowAndWatch job.", 
-                //     date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
-                date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
+                // End any existing FollowAndWatch job
+                if (date.Partner.CurJobDef == SI_JobDefOf.FollowAndWatchInitiator)
+                {
+                    // Reduce log spam by commenting out this message
+                    // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Ending partner's ({0}) FollowAndWatch job.", 
+                    //     date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
+                    date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
+                }
+                // Also check the job queue for any pending FollowAndWatch jobs
+                else if (date.Partner.jobs.jobQueue != null)
+                {
+                    // Look for any queued FollowAndWatch jobs and clear them by ending the current job
+                    // This is a simpler approach that should work with the available methods
+                    bool hasQueuedFollowJob = false;
+                    foreach (QueuedJob queuedJob in date.Partner.jobs.jobQueue)
+                    {
+                        if (queuedJob.job != null && queuedJob.job.def == SI_JobDefOf.FollowAndWatchInitiator)
+                        {
+                            hasQueuedFollowJob = true;
+                            break;
+                        }
+                    }
+                    
+                    if (hasQueuedFollowJob)
+                    {
+                        // End the current job to clear the queue
+                        date.Partner.jobs.EndCurrentJob(JobCondition.InterruptForced);
+                        // Reduce log spam by commenting out this message
+                        // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Cleared job queue for partner {0} to remove queued FollowAndWatch jobs.", 
+                        //     date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
+                    }
+                }
             }
 
             Building_Bed bed = FindSuitableBedForLovin(date.Initiator, date.Partner);
@@ -626,10 +655,41 @@ namespace SocialInteractions
                 //     date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL"));
 
                 Job lovinJobPartner = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Initiator, bed.Position);
+                // For the partner, we want to make sure the job isn't interrupted by other jobs
+                // We'll use a different approach to start the job that gives it higher priority
+                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Creating DateLovin job for partner {0}. Target: {1}, Position: {2}", 
+                    date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL", 
+                    date.Initiator != null ? date.Initiator.LabelShort : "NULL",
+                    bed.Position));
+                
+                // End any existing jobs that might interfere with the partner
+                if (date.Partner.jobs.curJob != null)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Ending current job for partner {0} before starting DateLovin. Current job: {1}", 
+                        date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL",
+                        date.Partner.jobs.curJob.def.defName));
+                    date.Partner.jobs.EndCurrentJob(JobCondition.InterruptForced, false);
+                }
+                
+                // Start the DateLovin job for the partner
+                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Starting DateLovin job for partner {0}.", 
+                    date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
                 date.Partner.jobs.StartJob(lovinJobPartner, JobCondition.InterruptForced);
-                // Reduce log spam by commenting out this message
-                // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for partner {0}.", 
-                //     date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
+                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: DateLovin job started for partner {0}. Checking if job was actually started.", 
+                    date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
+                
+                // Check if the job was actually started
+                if (date.Partner.jobs.curJob != null && date.Partner.jobs.curJob.def == SI_JobDefOf.DateLovin)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: DateLovin job successfully started for partner {0}.", 
+                        date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
+                }
+                else
+                {
+                    SLog.Warning(string.Format("[SocialInteractions] TransitionToLovin: DateLovin job was not started for partner {0}. Current job: {1}", 
+                        date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL",
+                        date.Partner.jobs.curJob != null ? date.Partner.jobs.curJob.def.defName : "NULL"));
+                }
 
                 SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, SpeechBubbleManager.GetDateLovinSubject(date.Initiator, date.Partner));
             }
