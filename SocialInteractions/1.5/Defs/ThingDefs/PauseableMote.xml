@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <ThingDef ParentName="MoteBase">
+    <defName>PauseableMote</defName>
+    <label>pauseable mote</label>
+    <thingClass>SocialInteractions.PauseableMote</thingClass>
+    <drawGUIOverlay>true</drawGUIOverlay>
+    <altitudeLayer>MetaOverlays</altitudeLayer>
+    <graphicData>
+      <texPath>Things/Mote/Transparent</texPath>
+      <graphicClass>Graphic_Mote</graphicClass>
+    </graphicData>
+    <mote>
+      <solidTime>9999</solidTime> <!-- This will be overridden by our custom mote -->
+    </mote>
+  </ThingDef>
+</Defs>

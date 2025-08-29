@@ -14,6 +14,7 @@ namespace SocialInteractions
         private static Queue<SpeechBubble> speechBubbleQueue = new Queue<SpeechBubble>();
         private static Dictionary<Pawn, float> pawnBubbleEndTimes = new Dictionary<Pawn, float>();
         private static float nextQueuedBubbleDisplayTime = 0f;
+        private static float pauseStartTime = -1f; // Tracks when the game was paused
         private static int currentConversationId = 0;
         private static HashSet<int> activeConversations = new HashSet<int>();
         public static bool isLlmBusy = false;
@@ -35,6 +36,7 @@ namespace SocialInteractions
             }
             pawnBubbleEndTimes.Clear();
             nextQueuedBubbleDisplayTime = 0f;
+            pauseStartTime = -1f; // Initialize pause tracking
             currentConversationId = 0;
             activeConversations.Clear();
             isLlmBusy = false;
@@ -43,6 +45,38 @@ namespace SocialInteractions
         public override void GameComponentTick()
         {
             base.GameComponentTick();
+
+            // Check for game pause state and handle bubble display timing accordingly
+            if (Find.TickManager.Paused)
+            {
+                // If we just entered pause state, record the time
+                if (pauseStartTime < 0)
+                {
+                    pauseStartTime = Time.time;
+                    SLog.Message("[SocialInteractions] Game paused. Pausing speech bubble timers.");
+                }
+                // If already paused, do nothing - bubbles will remain displayed
+                return;
+            }
+            else
+            {
+                // If we're unpausing, adjust timers to account for paused duration
+                if (pauseStartTime >= 0)
+                {
+                    float pauseDuration = Time.time - pauseStartTime;
+                    nextQueuedBubbleDisplayTime += pauseDuration;
+                    
+                    // Also adjust pawn bubble end times
+                    List<Pawn> pawnsToUpdate = new List<Pawn>(pawnBubbleEndTimes.Keys);
+                    foreach (Pawn pawn in pawnsToUpdate)
+                    {
+                        pawnBubbleEndTimes[pawn] += pauseDuration;
+                    }
+                    
+                    pauseStartTime = -1f; // Reset pause tracking
+                    SLog.Message("[SocialInteractions] Game unpaused. Resuming speech bubble timers.");
+                }
+            }
 
             // Clean up expired instant bubbles
             List<Pawn> pawnsToRemove = new List<Pawn>();
@@ -67,13 +101,29 @@ namespace SocialInteractions
                     nextQueuedBubbleDisplayTime = Time.time + bubble.duration;
                     if (bubble.speaker != null && bubble.speaker.Map != null)
                     {
-                        if (bubble.color.HasValue)
+                        if (bubble.useCustomMote)
                         {
-                            MoteMaker.ThrowText(bubble.speaker.DrawPos, bubble.speaker.Map, bubble.text, bubble.color.Value, bubble.duration);
+                            // Use custom mote for LLM-generated text
+                            if (bubble.color.HasValue)
+                            {
+                                MakeCustomMote(bubble.speaker, bubble.text, bubble.color.Value, bubble.duration);
+                            }
+                            else
+                            {
+                                MakeCustomMote(bubble.speaker, bubble.text, Color.white, bubble.duration);
+                            }
                         }
                         else
                         {
-                            MoteMaker.ThrowText(bubble.speaker.DrawPos, bubble.speaker.Map, bubble.text, bubble.duration);
+                            // Use standard mote for fallback text and combat dialogue
+                            if (bubble.color.HasValue)
+                            {
+                                MakeStandardMote(bubble.speaker, bubble.text, bubble.color.Value, bubble.duration);
+                            }
+                            else
+                            {
+                                MakeStandardMote(bubble.speaker, bubble.text, Color.white, bubble.duration);
+                            }
                         }
                     }
 
@@ -245,16 +295,16 @@ namespace SocialInteractions
         // --- End For Queue Management ---
 
         // Original enqueue method for simple messages (e.g., fallback messages)
-        public static void Enqueue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId, Color? color = null)
+        public static void Enqueue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId, Color? color = null, bool useCustomMote = false)
         {
             lock (queueLock)
             {
-                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color));
+                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color, useCustomMote));
             }
         }
 
         // New overload for LLM messages that handles all formatting internally
-        public static void Enqueue(Verse.Pawn speaker, string rawMessage, Pawn recipient, float duration, bool isFirstMessage, int conversationId, bool isHighPriority = false)
+        public static void Enqueue(Verse.Pawn speaker, string rawMessage, Pawn recipient, float duration, bool isFirstMessage, int conversationId, bool isHighPriority = false, bool useCustomMote = true)
         {
             // Format the message with speaker name and rich text
             string formattedMessage = FormatLlmMessage(rawMessage, speaker, recipient, isHighPriority);
@@ -262,7 +312,7 @@ namespace SocialInteractions
             
             lock (queueLock)
             {
-                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, wrappedMessage, duration, conversationId, false, null));
+                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, wrappedMessage, duration, conversationId, false, null, useCustomMote));
             }
         }
 
@@ -291,7 +341,7 @@ namespace SocialInteractions
         }
 
         // For instant messages (combat taunts)
-        public static void EnqueueInstant(Verse.Pawn speaker, string text, float duration, Color? color = null)
+        public static void EnqueueInstant(Verse.Pawn speaker, string text, float duration, Color? color = null, bool useCustomMote = false)
         {
             float endTime;
             if (pawnBubbleEndTimes.TryGetValue(speaker, out endTime) && Time.time < endTime)
@@ -303,19 +353,35 @@ namespace SocialInteractions
             // No clearing of speechBubbleQueue here, as it's for instant display only
             if (speaker != null && speaker.Map != null)
             {
-                if (color.HasValue)
+                if (useCustomMote)
                 {
-                    MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, text, color.Value, duration);
+                    // Use custom mote for LLM-generated text
+                    if (color.HasValue)
+                    {
+                        MakeCustomMote(speaker, text, color.Value, duration);
+                    }
+                    else
+                    {
+                        MakeCustomMote(speaker, text, Color.white, duration);
+                    }
                 }
                 else
                 {
-                    MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, text, duration);
+                    // Use standard mote for fallback text and combat dialogue
+                    if (color.HasValue)
+                    {
+                        MakeStandardMote(speaker, text, color.Value, duration);
+                    }
+                    else
+                    {
+                        MakeStandardMote(speaker, text, Color.white, duration);
+                    }
                 }
             }
         }
 
         // New overload for LLM instant messages that handles all formatting internally
-        public static void EnqueueInstant(Verse.Pawn speaker, string rawMessage, Pawn recipient, float duration, bool isHighPriority = false)
+        public static void EnqueueInstant(Verse.Pawn speaker, string rawMessage, Pawn recipient, float duration, bool isHighPriority = false, bool useCustomMote = true)
         {
             // Format the message with speaker name and rich text
             string formattedMessage = FormatLlmMessage(rawMessage, speaker, recipient, isHighPriority);
@@ -331,7 +397,16 @@ namespace SocialInteractions
             // No clearing of speechBubbleQueue here, as it's for instant display only
             if (speaker != null && speaker.Map != null)
             {
-                MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, wrappedMessage, duration);
+                if (useCustomMote)
+                {
+                    // Use custom mote for LLM-generated text
+                    MakeCustomMote(speaker, wrappedMessage, Color.white, duration);
+                }
+                else
+                {
+                    // Use standard mote for fallback text and combat dialogue
+                    MakeStandardMote(speaker, wrappedMessage, Color.white, duration);
+                }
             }
         }
 
@@ -373,8 +448,52 @@ namespace SocialInteractions
             pawnBubbleEndTimes[speaker] = Time.time + duration;
             if (speaker != null && speaker.Map != null)
             {
-                MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, text, new Color(0.75f, 0.75f, 0.75f), duration);
+                // Use standard mote for default bubbles
+                MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, text, new Color(0.75f, 0.75f, 0.75f));
             }
+        }
+        
+        // Method to create a custom pauseable mote for LLM-generated text
+        private static void MakeCustomMote(Pawn speaker, string text, Color color, float duration)
+        {
+            if (speaker == null || speaker.Map == null) 
+            {
+                SLog.Warning("[SocialInteractions] MakeCustomMote: speaker or speaker.Map is null");
+                return;
+            }
+            
+            // Create the custom mote
+            PauseableMote mote = (PauseableMote)ThingMaker.MakeThing(SI_ThingDefOf.PauseableMote);
+            if (mote == null)
+            {
+                SLog.Warning("[SocialInteractions] MakeCustomMote: Failed to create PauseableMote");
+                return;
+            }
+            
+            mote.exactPosition = speaker.DrawPos;
+            mote.exactPosition.y = AltitudeLayer.MoteOverhead.AltitudeFor() + 1f; // Add a small offset
+            mote.Scale = 1.0f;
+            mote.originalDuration = duration;
+            
+            // Set the text and color
+            mote.text = text;
+            mote.textColor = color;
+            
+            // Spawn the mote
+            GenSpawn.Spawn(mote, speaker.Position, speaker.Map, WipeMode.Vanish);
+        }
+        
+        // Method to create a standard mote for fallback text and combat dialogue
+        private static void MakeStandardMote(Pawn speaker, string text, Color color, float duration)
+        {
+            if (speaker == null || speaker.Map == null) 
+            {
+                SLog.Warning("[SocialInteractions] MakeStandardMote: speaker or speaker.Map is null");
+                return;
+            }
+            
+            // Use standard mote for fallback text and combat dialogue
+            MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, text, color, duration);
         }
         
         public static bool HasPendingSpeechBubbles(int conversationId)
@@ -496,8 +615,9 @@ namespace SocialInteractions
         public int conversationId;
         public bool isInstant;
         public Color? color;
+        public bool useCustomMote; // Flag to indicate whether to use custom mote or standard mote
 
-        public SpeechBubble(Pawn speaker, string text, float duration, int conversationId, bool isInstant = false, Color? color = null)
+        public SpeechBubble(Pawn speaker, string text, float duration, int conversationId, bool isInstant = false, Color? color = null, bool useCustomMote = true)
         {
             this.speaker = speaker;
             this.text = text;
@@ -505,6 +625,7 @@ namespace SocialInteractions
             this.conversationId = conversationId;
             this.isInstant = isInstant;
             this.color = color;
+            this.useCustomMote = useCustomMote;
         }
     }
 }

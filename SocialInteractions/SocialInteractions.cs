@@ -673,7 +673,7 @@ namespace SocialInteractions
                             Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: LLM API returned null response for interaction {0}", interactionDef.defName));
                             // Fallback to default interaction text
                             string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                            SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId));
+                            SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
                             return;
                         }
                         
@@ -769,7 +769,7 @@ namespace SocialInteractions
                                 Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: LLM API returned empty messages for interaction {0}", interactionDef.defName));
                                 // Fallback to default interaction text
                                 string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                                SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId));
+                                SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
                                 
                                 // --- For LLM Efficiency Unlock (Fallback) ---
                                 // Even on fallback, schedule an unlock based on a default display time
@@ -787,7 +787,7 @@ namespace SocialInteractions
                         Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: Failed to generate prompt for interaction {0}", interactionDef.defName));
                         // Fallback to default interaction text
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId));
+                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
                         
                         // --- For LLM Efficiency Unlock (Prompt Fail) ---
                         float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
@@ -873,7 +873,7 @@ namespace SocialInteractions
                             Log.Warning(string.Format("[SocialInteractions] HandleJobGiverInteraction: LLM API returned null response for interaction {0}", interactionDef.defName));
                             // Fallback to default interaction text
                             string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                            SpeechBubbleManager.EnqueueInstant(initiator, fallbackText, 2f);
+                            SpeechBubbleManager.EnqueueInstant(initiator, fallbackText, 2f, Color.grey); // Use standard mote for fallback
                             return;
                         }
                         
@@ -913,7 +913,7 @@ namespace SocialInteractions
                                 Log.Warning(string.Format("[SocialInteractions] HandleJobGiverInteraction: LLM API returned empty messages for interaction {0}", interactionDef.defName));
                                 // Fallback to default interaction text
                                 string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                                SpeechBubbleManager.EnqueueInstant(initiator, fallbackText, 2f);
+                                SpeechBubbleManager.EnqueueInstant(initiator, fallbackText, 2f, Color.grey); // Use standard mote for fallback
                             }
                         }
                     }
@@ -922,7 +922,7 @@ namespace SocialInteractions
                         Log.Warning(string.Format("[SocialInteractions] HandleJobGiverInteraction: Failed to generate prompt for interaction {0}", interactionDef.defName));
                         // Fallback to default interaction text
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                        SpeechBubbleManager.EnqueueInstant(initiator, fallbackText, 2f);
+                        SpeechBubbleManager.EnqueueInstant(initiator, fallbackText, 2f, Color.grey); // Use standard mote for fallback
                     }
                 }
                 catch (Exception ex)
@@ -932,7 +932,7 @@ namespace SocialInteractions
                     try
                     {
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
-                        SpeechBubbleManager.EnqueueInstant(initiator, fallbackText, 2f);
+                        SpeechBubbleManager.EnqueueInstant(initiator, fallbackText, 2f, Color.grey); // Use standard mote for fallback
                     }
                     catch (Exception fallbackEx)
                     {

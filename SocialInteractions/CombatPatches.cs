@@ -125,12 +125,10 @@ namespace SocialInteractions
             {
                 string taunt = CombatTaunts.AttackingTaunts.RandomElement();
                 float duration = SocialInteractions.EstimateReadingTime(taunt);
-                SpeechBubbleManager.EnqueueInstant(__instance.CasterPawn, taunt, duration);
+                SpeechBubbleManager.EnqueueInstant(__instance.CasterPawn, taunt, duration, null, false); // Use standard mote for combat taunts
             }
         }
     }
-
-    
 
     [HarmonyPatch(typeof(Verb_Shoot), "TryCastShot")]
     public static class Verb_Shoot_TryCastShot_Patch
@@ -142,7 +140,7 @@ namespace SocialInteractions
                 Pawn casterPawn = __instance.CasterPawn;
                 string taunt = CombatTaunts.AttackingTaunts.RandomElement();
                 float duration = SocialInteractions.EstimateReadingTime(taunt);
-                SpeechBubbleManager.EnqueueInstant(casterPawn, taunt, duration);
+                SpeechBubbleManager.EnqueueInstant(casterPawn, taunt, duration, null, false); // Use standard mote for combat taunts
             }
         }
     }
@@ -165,7 +163,7 @@ namespace SocialInteractions
                 {
                     string complaint = CombatTaunts.GettingHitComplaints.RandomElement();
                     float duration = SocialInteractions.EstimateReadingTime(complaint);
-                    SpeechBubbleManager.EnqueueInstant(pawn, complaint, duration, Color.yellow);
+                    SpeechBubbleManager.EnqueueInstant(pawn, complaint, duration, Color.yellow, false); // Use standard mote for combat taunts
                 }
             }
         }
@@ -182,7 +180,7 @@ namespace SocialInteractions
             {
                 string callForHelp = CombatTaunts.DownedCallsForHelp.RandomElement();
                 float duration = SocialInteractions.EstimateReadingTime(callForHelp);
-                SpeechBubbleManager.EnqueueInstant(pawn, callForHelp, duration, Color.red);
+                SpeechBubbleManager.EnqueueInstant(pawn, callForHelp, duration, Color.red, false); // Use standard mote for combat taunts
             }
         }
     }

@@ -47,3 +47,5 @@ Thought_GotCaughtCheating.cs
 Thought_WasCheatedOn.cs
 CustomTraitDefOf.cs
 JobDriver_CaughtCheating.cs
+PauseableMote.cs
+SI_ThingDefOf.cs
