@@ -43,10 +43,9 @@ namespace SocialInteractions
                 }
             }
 
-            // Create a job to handle the interaction once the initiator arrives
+            // Don't start the job immediately - let the initiator move to the recipient first
             // The Goto job is already created by Pawn_Tick_Patch
-            Job followUpJob = JobMaker.MakeJob(SI_JobDefOf.CaughtCheatingInteraction, recipient);
-            initiator.jobs.jobQueue.EnqueueFirst(followUpJob);
+            // When the initiator arrives, the JobDriver_CaughtCheating will be started automatically
 
             // Call base method for any additional logic
             base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
@@ -139,24 +138,8 @@ namespace SocialInteractions
                 return;
             }
             
-            // Remove the SI_OnDate hediff as the partner is no longer on the date
-            HediffDef onDateDef = HediffDef.Named("OnDate");
-            if (onDateDef != null)
-            {
-                try
-                {
-                    Hediff onDateHediff = partner.health.hediffSet.GetFirstHediffOfDef(onDateDef);
-                    if (onDateHediff != null)
-                    {
-                        SLog.Message(string.Format("[SocialInteractions] TryMakePartnerFlee: Removing OnDate hediff from partner {0}.", partner.LabelShort));
-                        partner.health.RemoveHediff(onDateHediff);
-                    }
-                }
-                catch (System.Exception ex)
-                {
-                    SLog.Warning(string.Format("[SocialInteractions] TryMakePartnerFlee: Exception removing OnDate hediff from partner {0}: {1}", partner.LabelShort, ex.Message));
-                }
-            }
+            // Don't remove the SI_OnDate hediff here - let the JobDriver_CaughtCheating handle it
+            // when the confrontation is finished
             
             // Create a list of threats (in this case, just the initiator)
             List<Thing> threats = new List<Thing> { initiator };

@@ -107,27 +107,30 @@ namespace SocialInteractions
                         }
                     }
                     
-                    // Special case: If the current job is a DateLovin job, we should not treat it as a non-joy job
+                    // Special cases: If the current job is a DateLovin job or Wait_MaintainPosture job, we should not treat it as a non-joy job
                     bool isCurrentJobDateLovin = (__instance.curJob.def == SI_JobDefOf.DateLovin);
+                    bool isCurrentJobWaitMaintainPosture = (__instance.curJob.def == JobDefOf.Wait_MaintainPosture);
                     
-                    // If the current job is not a joy job and not a DateLovin job, advance the date
+                    // If the current job is not a joy job and not a DateLovin job and not a Wait_MaintainPosture job, advance the date
                     // But only if the pawn is the initiator of the date and the date is in the joy stage
-                    if (!isCurrentJobJoy && !isCurrentJobDateLovin)
+                    if (!isCurrentJobJoy && !isCurrentJobDateLovin && !isCurrentJobWaitMaintainPosture)
                     {
                         Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
                         Date date = DatingManager.GetDateWith(pawn);
                         if (initiator == pawn && date != null && date.Stage == DateStage.Joy)
                         {
-                            SLog.Message(string.Format("[SocialInteractions] Pawn {0} moved to non-joy job {1}, checking if should advance date.", 
+                            SLog.Message(string.Format("[SocialInteractions] Pawn {0} moved to non-joy job {1}, checking if should advance date.",
                                 pawn.Name != null ? pawn.Name.ToStringShort : "NULL", 
                                 __instance.curJob.def.defName));
                             
                             // This pawn is the initiator, so advance the date stage
-                            SLog.Message(string.Format("[SocialInteractions] Initiator {0} moved to non-joy job, advancing date stage.", 
+                            SLog.Message(string.Format("[SocialInteractions] Initiator {0} moved to non-joy job, advancing date stage.",
                                 pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
                             DatingManager.AdvanceDateStage(pawn);
                         }
                         // For partners, we don't need to do anything special as they will be handled by the stuck date detection
+                        // However, if the partner's DateLovin job was interrupted by a temporary need (like rest)
+                        // we'll rely on the stuck date detection to handle restarting the job
                     }
                 }
             }

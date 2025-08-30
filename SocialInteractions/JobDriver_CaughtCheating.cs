@@ -65,6 +65,9 @@ namespace SocialInteractions
             SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Pawn {0} is near cheater {1}, proceeding with job.", 
                 pawn.LabelShort, cheater.LabelShort));
 
+            // Hold the cheater in place during the dialogue
+            Pawn_Tick_Patch.HoldPawnInPlace(cheater, cheater.Position);
+
             // Retrieve the date partner for the cheater
             Pawn partner = null;
             if (SocialInteractions.CheaterPartners.ContainsKey(cheater.ThingID))
@@ -89,12 +92,6 @@ namespace SocialInteractions
             {
                 InteractionWorker_CaughtCheating interactionWorker = new InteractionWorker_CaughtCheating();
                 interactionWorker.MakePartnerFleeImmediately(partner, pawn); // pawn is the angry spouse
-            }
-            
-            // Remove the partner from the dictionary
-            if (SocialInteractions.CheaterPartners.ContainsKey(cheater.ThingID))
-            {
-                SocialInteractions.CheaterPartners.Remove(cheater.ThingID);
             }
             
             // Custom wait toil to wait for the conversation to finish
@@ -147,17 +144,59 @@ namespace SocialInteractions
                 {
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Wait duration elapsed for pawn {0}.", pawn.LabelShort));
                     
+                    // Remove the partner from the CheaterPartners dictionary
+                    Pawn cheaterPawn = (Pawn)job.targetA.Thing;
+                    if (cheaterPawn != null && SocialInteractions.CheaterPartners.ContainsKey(cheaterPawn.ThingID))
+                    {
+                        SocialInteractions.CheaterPartners.Remove(cheaterPawn.ThingID);
+                    }
+                    
                     // End the date when the angry spouse arrives and the waiting period is over
-                    Date date = DatingManager.GetDateWith(cheater);
+                    Date date = DatingManager.GetDateWith(cheaterPawn);
                     if (date != null)
                     {
                         SLog.Message("[SocialInteractions] JobDriver_CaughtCheating: Ending date as angry spouse has arrived.");
                         DatingManager.EndDate(date);
                     }
+                    else
+                    {
+                        // If we can't get the date from the cheater, try to get it from the partner
+                        if (partner != null)
+                        {
+                            date = DatingManager.GetDateWith(partner);
+                            if (date != null)
+                            {
+                                SLog.Message("[SocialInteractions] JobDriver_CaughtCheating: Ending date as angry spouse has arrived (from partner).");
+                                DatingManager.EndDate(date);
+                            }
+                        }
+                    }
+                    
+                    // Remove the OnDate hediff from the partner if they still have it
+                    if (partner != null)
+                    {
+                        HediffDef onDateDef = HediffDef.Named("OnDate");
+                        if (onDateDef != null)
+                        {
+                            try
+                            {
+                                Hediff onDateHediff = partner.health.hediffSet.GetFirstHediffOfDef(onDateDef);
+                                if (onDateHediff != null)
+                                {
+                                    SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Removing OnDate hediff from partner {0}.", partner.LabelShort));
+                                    partner.health.RemoveHediff(onDateHediff);
+                                }
+                            }
+                            catch (System.Exception ex)
+                            {
+                                SLog.Warning(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Exception removing OnDate hediff from partner {0}: {1}", partner.LabelShort, ex.Message));
+                            }
+                        }
+                    }
                     
                     // Trigger fight logic
                     InteractionWorker_CaughtCheating interactionWorker = new InteractionWorker_CaughtCheating();
-                    interactionWorker.TriggerFightLogic(pawn, cheater, partner); // Pass the partner we retrieved earlier
+                    interactionWorker.TriggerFightLogic(pawn, cheaterPawn, partner); // Pass the partner we retrieved earlier
                     
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Fight logic triggered for pawn {0}.", pawn.LabelShort));
                     

@@ -19,7 +19,20 @@ namespace SocialInteractions
             {
                 if (pawn.health.hediffSet.HasHediff(HediffDef.Named("SI_Naked")))
                 {
-                    if (pawn.jobs.curDriver == null || !(pawn.jobs.curDriver is JobDriver_DateLovin))
+                    // Check if the pawn is on a date and in the Lovin stage
+                    bool shouldKeepHediff = false;
+                    if (DatingManager.IsOnDate(pawn))
+                    {
+                        Date date = DatingManager.GetDateWith(pawn);
+                        if (date != null && date.Stage == DateStage.Lovin)
+                        {
+                            shouldKeepHediff = true;
+                        }
+                    }
+                    
+                    // Only remove the hediff if the pawn is not on a date in the Lovin stage
+                    // and is not currently in the DateLovin job
+                    if (!shouldKeepHediff && (pawn.jobs.curDriver == null || !(pawn.jobs.curDriver is JobDriver_DateLovin)))
                     {
                         SLog.Message(string.Format("[SocialInteractions] Found pawn {0} with SI_Naked hediff but not in lovin' job. Removing hediff.", pawn.LabelShort));
                         Hediff hediff = pawn.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));

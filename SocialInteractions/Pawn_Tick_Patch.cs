@@ -118,15 +118,10 @@ namespace SocialInteractions
                 // Start the job with InterruptForced to ensure it interrupts current activities
                 angryPartner.jobs.StartJob(gotoJob, JobCondition.InterruptForced);
             }
-            
-            // Instead of directly calling HandleNonStoppingInteraction, let's trigger the interaction worker
-            // This will handle the thoughts and social fights, and then we can add our LLM interaction
-            // The date will be ended by the InteractionWorker_CaughtCheating after the LLM interaction is triggered
-            InteractionWorker_CaughtCheating interactionWorker = new InteractionWorker_CaughtCheating();
-            string letterText, letterLabel;
-            LetterDef letterDef;
-            LookTargets lookTargets;
-            interactionWorker.Interacted(angryPartner, cheater, new List<RulePackDef>(), out letterText, out letterLabel, out letterDef, out lookTargets);
+
+            // Create a job to handle the interaction once the angry partner arrives
+            Job followUpJob = JobMaker.MakeJob(SI_JobDefOf.CaughtCheatingInteraction, cheater);
+            angryPartner.jobs.jobQueue.EnqueueFirst(followUpJob);
         }
         
         private static string GetRelationshipLabel(Pawn pawn, Pawn partner)

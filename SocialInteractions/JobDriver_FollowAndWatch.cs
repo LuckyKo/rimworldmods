@@ -38,6 +38,23 @@ namespace SocialInteractions
                 return false;
             }
             
+            // Check if the pawn is on a date in the Lovin stage
+            // If so, they should not be doing other jobs
+            if (DatingManager.IsOnDate(pawn))
+            {
+                Date date = DatingManager.GetDateWith(pawn);
+                if (date != null && date.Stage == DateStage.Lovin)
+                {
+                    // Allow the DateLovin job to start
+                    // If the pawn is in any other job, they should not be doing it
+                    if (pawn.jobs != null && pawn.jobs.curJob != null && pawn.jobs.curJob.def != SI_JobDefOf.DateLovin)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] IsPawnValidForDating: Pawn {0} is on a date in Lovin stage but not in DateLovin job.", pawn.LabelShort));
+                        return false;
+                    }
+                }
+            }
+            
             return true;
         }
         public override bool TryMakePreToilReservations(bool errorOnFailed)

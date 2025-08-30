@@ -20,6 +20,7 @@ namespace SocialInteractions
         public Pawn Initiator;
         public Pawn Partner;
         public DateStage Stage;
+        public int StageTransitionTick; // Track when the stage transition happened
 
         public Date()
         {
@@ -31,6 +32,7 @@ namespace SocialInteractions
             this.Initiator = initiator;
             this.Partner = partner;
             this.Stage = DateStage.Joy;
+            this.StageTransitionTick = 0;
         }
 
         public void ExposeData()
@@ -38,6 +40,7 @@ namespace SocialInteractions
             Scribe_References.Look(ref Initiator, "initiator");
             Scribe_References.Look(ref Partner, "partner");
             Scribe_Values.Look(ref Stage, "stage", DateStage.Joy);
+            Scribe_Values.Look(ref StageTransitionTick, "stageTransitionTick", 0);
         }
     }
 
@@ -457,13 +460,13 @@ namespace SocialInteractions
                 if (IsOnDate(pawn))
                 {
                     Pawn initiator = GetInitiatorOfDateWith(pawn);
+                    Date date = GetDateWith(pawn);
                     
-                    // If we can't find a valid initiator, end the date
-                    if (initiator == null)
+                    // If we can't find a valid initiator or date, end the date
+                    if (initiator == null || date == null)
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Found date with null initiator for pawn {0}, ending date.", 
+                        SLog.Message(string.Format("[SocialInteractions] Found date with null initiator or date object for pawn {0}, ending date.", 
                             pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
-                        Date date = GetDateWith(pawn);
                         if (date != null)
                         {
                             EndDate(date);
@@ -471,50 +474,87 @@ namespace SocialInteractions
                         continue;
                     }
                     
-                    // Check if the initiator is doing a joy job
-                    bool isDoingJoyJob = false;
-                    if (initiator != null && initiator.CurJob != null)
+                    // Check for critical interruptions that should end the date immediately
+                    bool initiatorCritical = (initiator == null || initiator.Dead || initiator.Downed || initiator.Drafted || 
+                                              initiator.InMentalState || !initiator.Spawned || initiator.Destroyed);
+                    bool partnerCritical = (date.Partner == null || date.Partner.Dead || date.Partner.Downed || date.Partner.Drafted || 
+                                            date.Partner.InMentalState || !date.Partner.Spawned || date.Partner.Destroyed);
+                    
+                    if (initiatorCritical || partnerCritical)
                     {
-                        // Check if the job is a joy job
-                        foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
+                        SLog.Message(string.Format("[SocialInteractions] Found critical interruption for date between {0} and {1}, ending date.", 
+                            initiator != null ? initiator.LabelShort : "NULL",
+                            date.Partner != null ? date.Partner.LabelShort : "NULL"));
+                        EndDate(date);
+                        continue;
+                    }
+                    
+                    // Handle different date stages differently
+                    if (date.Stage == DateStage.Joy)
+                    {
+                        // For Joy stage, check if the initiator is doing a joy job
+                        bool isDoingJoyJob = false;
+                        if (initiator != null && initiator.CurJob != null)
                         {
-                            if (joyGiver.jobDef == initiator.CurJob.def)
+                            // Check if the job is a joy job
+                            foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
                             {
-                                isDoingJoyJob = true;
-                                break;
+                                if (joyGiver.jobDef == initiator.CurJob.def)
+                                {
+                                    isDoingJoyJob = true;
+                                    break;
+                                }
                             }
                         }
-                    }
-                    
-                    // If the initiator is doing a joy job, DateLovin job, GoOnDate job, or Wait_MaintainPosture job, the date is not stuck
-                    // Also, if the initiator is on a path to a joy job or DateLovin job, the date is not stuck
-                    if (initiator != null && initiator.jobs != null && initiator.CurJob != null)
-                    {
-                        if (isDoingJoyJob || initiator.CurJobDef == dateLovinJobDef || initiator.CurJobDef == goOnDateJobDef || 
-                            initiator.CurJobDef == waitMaintainPostureJobDef) // Add Wait_MaintainPosture as valid job
+                        
+                        // If the initiator is doing a joy job, DateLovin job, GoOnDate job, or Wait_MaintainPosture job, the date is not stuck
+                        // Also, if the initiator is on a path to a joy job or DateLovin job, the date is not stuck
+                        if (initiator != null && initiator.jobs != null && initiator.CurJob != null)
                         {
-                            // Date is not stuck
-                            continue;
+                            if (isDoingJoyJob || initiator.CurJobDef == dateLovinJobDef || initiator.CurJobDef == goOnDateJobDef || 
+                                initiator.CurJobDef == waitMaintainPostureJobDef) // Add Wait_MaintainPosture as valid job
+                            {
+                                // Date is not stuck
+                                continue;
+                            }
+                            
+                            // Check if the initiator is pathing to a joy job or DateLovin job
+                            if (initiator.pather != null && initiator.pather.curPath != null && !initiator.pather.curPath.NodesLeftCount.Equals(0))
+                            {
+                                // Initiator is still pathing, so the date is not stuck
+                                continue;
+                            }
                         }
                         
-                        // Check if the initiator is pathing to a joy job or DateLovin job
-                        if (initiator.pather != null && initiator.pather.curPath != null && !initiator.pather.curPath.NodesLeftCount.Equals(0))
+                        // If we can't find a valid initiator or the initiator is not doing a joy job, DateLovin job, GoOnDate job, or Wait_MaintainPosture job, 
+                        // and they're not pathing to one, advance the date
+                        if (initiator == null || initiator.jobs == null || initiator.CurJob == null || 
+                            (!isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef && initiator.CurJobDef != goOnDateJobDef && 
+                             initiator.CurJobDef != waitMaintainPostureJobDef)) // Add Wait_MaintainPosture as valid job
                         {
-                            // Initiator is still pathing, so the date is not stuck
-                            continue;
+                            // Only log when we actually find a stuck date to reduce log spam
+                            SLog.Message(string.Format("[SocialInteractions] Found stuck date for pawn {0}, advancing stage.", 
+                                pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
+                            AdvanceDateStage(pawn);
                         }
                     }
-                    
-                    // If we can't find a valid initiator or the initiator is not doing a joy job, DateLovin job, GoOnDate job, or Wait_MaintainPosture job, 
-                    // and they're not pathing to one, advance the date
-                    if (initiator == null || initiator.jobs == null || initiator.CurJob == null || 
-                        (!isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef && initiator.CurJobDef != goOnDateJobDef && 
-                         initiator.CurJobDef != waitMaintainPostureJobDef)) // Add Wait_MaintainPosture as valid job
+                    else if (date.Stage == DateStage.Lovin)
                     {
-                        // Only log when we actually find a stuck date to reduce log spam
-                        SLog.Message(string.Format("[SocialInteractions] Found stuck date for pawn {0}, advancing stage.", 
-                            pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
-                        AdvanceDateStage(pawn);
+                        // For Lovin stage, check if both pawns are doing DateLovin jobs or temporary jobs like LayDown
+                        bool initiatorInValidJob = (initiator != null && initiator.jobs != null && initiator.CurJob != null) && 
+                            (initiator.CurJobDef == dateLovinJobDef || initiator.CurJobDef == waitMaintainPostureJobDef || 
+                             initiator.CurJobDef == JobDefOf.LayDown);
+                        bool partnerInValidJob = (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJob != null) && 
+                            (date.Partner.CurJobDef == dateLovinJobDef || date.Partner.CurJobDef == waitMaintainPostureJobDef || 
+                             date.Partner.CurJobDef == JobDefOf.LayDown);
+                        
+                        // If either pawn is not in a valid job for the Lovin stage, end the date immediately
+                        if (!initiatorInValidJob || !partnerInValidJob)
+                        {
+                            SLog.Message(string.Format("[SocialInteractions] Found pawn not in valid job during Lovin stage. Initiator valid: {0}, Partner valid: {1}. Ending date.", 
+                                initiatorInValidJob, partnerInValidJob));
+                            EndDate(date);
+                        }
                     }
                 }
             }
@@ -548,6 +588,8 @@ namespace SocialInteractions
                     }
 
                     date.Stage++;
+                    // Reset the stage transition tick when advancing the stage
+                    date.StageTransitionTick = 0;
                     // Reduce log spam by commenting out this message
                     // SLog.Message(string.Format("[SocialInteractions] AdvanceDateStage: Advancing date stage for {0} and {1}. New stage: {2}", 
                     //     date.Initiator != null ? (date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL") : "NULL", 
@@ -574,6 +616,8 @@ namespace SocialInteractions
             switch (date.Stage)
             {
                 case DateStage.Lovin:
+                    // Set the stage transition tick when transitioning to Lovin stage
+                    date.StageTransitionTick = Current.Game.tickManager.TicksGame;
                     TransitionToLovin(date);
                     break;
                 case DateStage.Finished:
@@ -656,13 +700,15 @@ namespace SocialInteractions
 
                 Job lovinJobPartner = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Initiator, bed.Position);
                 // For the partner, we want to make sure the job isn't interrupted by other jobs
-                // We'll use a different approach to start the job that gives it higher priority
                 SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Creating DateLovin job for partner {0}. Target: {1}, Position: {2}", 
                     date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL", 
                     date.Initiator != null ? date.Initiator.LabelShort : "NULL",
                     bed.Position));
                 
-                // End any existing jobs that might interfere with the partner
+                // Clear any queued jobs to prevent conflicts
+                date.Partner.jobs.ClearQueuedJobs();
+                
+                // End any current job to ensure a clean start
                 if (date.Partner.jobs.curJob != null)
                 {
                     SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Ending current job for partner {0} before starting DateLovin. Current job: {1}", 
@@ -671,7 +717,7 @@ namespace SocialInteractions
                     date.Partner.jobs.EndCurrentJob(JobCondition.InterruptForced, false);
                 }
                 
-                // Start the DateLovin job for the partner
+                // Start the DateLovin job for the partner with InterruptForced condition to ensure it's not interrupted by other jobs
                 SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Starting DateLovin job for partner {0}.", 
                     date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
                 date.Partner.jobs.StartJob(lovinJobPartner, JobCondition.InterruptForced);
@@ -691,7 +737,8 @@ namespace SocialInteractions
                         date.Partner.jobs.curJob != null ? date.Partner.jobs.curJob.def.defName : "NULL"));
                 }
 
-                SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, SpeechBubbleManager.GetDateLovinSubject(date.Initiator, date.Partner));
+                // Don't start the LLM interaction here - wait until both pawns are in position
+                // SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, SpeechBubbleManager.GetDateLovinSubject(date.Initiator, date.Partner));
             }
             else
             {
