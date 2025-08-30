@@ -68,7 +68,12 @@ namespace SocialInteractions
                 {
                     Pawn doctor = __instance.pawn;
                     Pawn patient = (Pawn)__instance.job.targetA.Thing;
-                    SocialInteractions.HandleNonStoppingInteraction(doctor, patient, SI_InteractionDefOf.TendPatient, "Tending to patient");
+                    
+                    // Don't trigger LLM interaction when pawn is tending to themselves
+                    if (doctor != patient)
+                    {
+                        SocialInteractions.HandleNonStoppingInteraction(doctor, patient, SI_InteractionDefOf.TendPatient, "Tending to patient");
+                    }
                 });
             }
             else

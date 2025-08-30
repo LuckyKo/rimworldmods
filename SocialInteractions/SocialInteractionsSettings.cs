@@ -11,13 +11,13 @@ namespace SocialInteractions
         public bool enableDatingFeature = true;
         public string llmApiUrl = "http://localhost:5001";
         public string llmApiKey = "1234";
-        public string llmPromptTemplate = @"The following is a [topic] interraction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
+        public string llmPromptTemplate = @"The following is an interraction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
 
 [pawn1] is a [pawn1_age] yo [pawn1_sex], has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1] is currently [pawn1_action]
 
 [pawn2] is a [pawn2_age] yo [pawn2_sex], has the following traits: [pawn2_traits]; Xenotype: [pawn2_genes]; [pawn2] is proficient in: [pawn2_proficiencies]; [pawn2]'s mood is [pawn2_mood], positives: [pawn2_likes] / negatives: [pawn2_dislikes]; Medical status: [pawn2_afflictions]. [pawn2] is currently [pawn2_action]
 
-[pawn2] is a [relation] to [pawn1].
+[pawn2] is [pawn1]'s [relation].
 
 It's currently [time], on [date] and the weather is [weather].
 
@@ -62,15 +62,19 @@ It's currently [time], on [date] and the weather is [weather].
         public float shootTauntProbability = 0.15f;
         public float gettingHitComplaintProbability = 0.3f;
         public float downedCallForHelpProbability = 0.85f;
-        public float baseLovinChance = 0.75f;
         public int dateCooldownTicks = 5000;
-        public int dateLovinTicks = 2500;
         public int maxDistanceForDate = 50;
         public float joyThresholdForDate = 0.5f;
         public int jobCheckIntervalTicks = 60;
         public int initialToleranceTicks = 60;
         public int goOnDateCooldownTicks = 600;
         public int cheatingConfrontationTicks = 300;
+        
+        // Dating lovin' settings
+        public float baseLovinChance = 0.75f;
+        public int dateLovinTicks = 2500;
+        public int dateLovinTimeoutTicks = 600; // 10 seconds
+        public float maxDistanceToLovinSpot = 25f; // Maximum distance to accept a bed for lovin'
         
         // Dating partner selection weights/penalties
         public float spouseDateWeight = 100f;
@@ -129,6 +133,10 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref jobCheckIntervalTicks, "jobCheckIntervalTicks", 60);
             Scribe_Values.Look(ref initialToleranceTicks, "initialToleranceTicks", 60);
             Scribe_Values.Look(ref goOnDateCooldownTicks, "goOnDateCooldownTicks", 600);
+            
+            // Dating lovin' settings
+            Scribe_Values.Look(ref dateLovinTimeoutTicks, "dateLovinTimeoutTicks", 300);
+            Scribe_Values.Look(ref maxDistanceToLovinSpot, "maxDistanceToLovinSpot", 15f);
             
             // Dating partner selection weights/penalties
             Scribe_Values.Look(ref spouseDateWeight, "spouseDateWeight", 100f);

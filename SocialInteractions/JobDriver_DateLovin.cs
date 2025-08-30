@@ -16,13 +16,33 @@ namespace SocialInteractions
         /// <returns>True if the pawn is valid for dating, false otherwise</returns>
         private bool IsPawnValidForDating(Pawn pawn)
         {
-            if (pawn == null || pawn.Destroyed || pawn.Dead || pawn.Downed)
+            // Add comprehensive null checks
+            if (pawn == null)
+            {
+                SLog.Warning("[SocialInteractions] IsPawnValidForDating: pawn is null.");
+                return false;
+            }
+            
+            if (pawn.Destroyed || pawn.Dead || pawn.Downed)
             {
                 return false;
             }
             
-            if (pawn.InMentalState || pawn.health == null || pawn.health.capacities == null)
+            if (pawn.InMentalState)
             {
+                return false;
+            }
+            
+            // Add null checks for health properties
+            if (pawn.health == null)
+            {
+                SLog.Warning(string.Format("[SocialInteractions] IsPawnValidForDating: pawn {0} has null health.", pawn.LabelShort));
+                return false;
+            }
+            
+            if (pawn.health.capacities == null)
+            {
+                SLog.Warning(string.Format("[SocialInteractions] IsPawnValidForDating: pawn {0} has null health.capacities.", pawn.LabelShort));
                 return false;
             }
             
@@ -38,22 +58,7 @@ namespace SocialInteractions
                 return false;
             }
             
-            // Check if the pawn is on a date in the Lovin stage
-            // If so, they should not be doing other jobs
-            if (DatingManager.IsOnDate(pawn))
-            {
-                Date date = DatingManager.GetDateWith(pawn);
-                if (date != null && date.Stage == DateStage.Lovin)
-                {
-                    // If the pawn is not in the DateLovin job, they should not be doing other jobs
-                    // But allow the job to start if there's no current job
-                    if (pawn.jobs != null && pawn.jobs.curJob != null && pawn.jobs.curJob.def != SI_JobDefOf.DateLovin)
-                    {
-                        SLog.Message(string.Format("[SocialInteractions] IsPawnValidForDating: Pawn {0} is on a date in Lovin stage but not in DateLovin job.", pawn.LabelShort));
-                        return false;
-                    }
-                }
-            }
+            
             
             return true;
         }
@@ -69,6 +74,16 @@ namespace SocialInteractions
         {
             base.ExposeData();
             Scribe_Values.Look(ref ticksLeft, "ticksLeft", 0);
+            
+            // Add null checks for debugging
+            if (Scribe.mode == LoadSaveMode.LoadingVars)
+            {
+                SLog.Message("[SocialInteractions] JobDriver_DateLovin: ExposeData loading vars");
+            }
+            else if (Scribe.mode == LoadSaveMode.Saving)
+            {
+                SLog.Message("[SocialInteractions] JobDriver_DateLovin: ExposeData saving vars");
+            }
         }
 
         public override void Notify_Starting()
@@ -78,103 +93,133 @@ namespace SocialInteractions
                 Partner != null ? Partner.LabelShort : "NULL"));
             base.Notify_Starting();
             
+            // Add comprehensive null checks
+            if (pawn == null)
+            {
+                SLog.Warning("[SocialInteractions] JobDriver_DateLovin: pawn is null in Notify_Starting.");
+                return;
+            }
+            
             // When starting a DateLovin job, we want to make sure the pawn doesn't get interrupted by non-critical jobs
-            // We'll clear any queued jobs
-            if (pawn != null && pawn.jobs != null)
+            // We'll clear any queued jobs and set the job as player-forced to increase its priority
+            if (pawn.jobs != null)
             {
                 pawn.jobs.ClearQueuedJobs();
+                // Set the current job as player-forced to increase its priority
+                if (pawn.jobs.curJob != null)
+                {
+                    pawn.jobs.curJob.playerForced = true;
+                }
             }
         }
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: TryMakePreToilReservations called for pawn {0}. Job target: {1}", 
+            SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: TryMakePreToilReservations called for pawn {0}. Job target: {1}",
                 pawn != null ? pawn.LabelShort : "NULL",
                 Partner != null ? Partner.LabelShort : "NULL"));
-                
-            if (pawn == null || Partner == null)
+
+            // Add comprehensive null checks at the beginning
+            if (pawn == null || Partner == null) 
             {
                 SLog.Warning("[SocialInteractions] JobDriver_DateLovin: pawn or Partner is null in TryMakePreToilReservations.");
+                return false;
+            }
+
+            // Check if both pawns are still on a date
+            if (!DatingManager.IsOnDate(pawn) || !DatingManager.IsOnDate(Partner))
+            {
+                SLog.Warning(string.Format("[SocialInteractions] JobDriver_DateLovin: pawn {0} or Partner {1} is no longer on a date in TryMakePreToilReservations.",
+                    pawn.LabelShort, Partner.LabelShort));
                 return false;
             }
 
             // Use the helper method to check if both pawns are valid for dating
             if (!IsPawnValidForDating(pawn) || !IsPawnValidForDating(Partner))
             {
-                SLog.Warning(string.Format("[SocialInteractions] JobDriver_DateLovin: pawn {0} or Partner {1} is not valid for dating in TryMakePreToilReservations.", 
+                SLog.Warning(string.Format("[SocialInteractions] JobDriver_DateLovin: pawn {0} or Partner {1} is not valid for dating in TryMakePreToilReservations.",
                     pawn.LabelShort, Partner.LabelShort));
                 return false;
             }
 
-            // Reserve the partner to prevent interruptions
-            if (!pawn.Reserve(Partner, job, 1, -1, null, errorOnFailed))
+            // Only the initiator makes reservations. The partner does nothing.
+            Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
+            if (pawn == initiator)
             {
-                SLog.Warning(string.Format("[SocialInteractions] JobDriver_DateLovin: Failed to reserve partner {0} for pawn {1}.", 
-                    Partner.LabelShort, pawn.LabelShort));
-                return false;
+                // Initiator reserves both the spot and the partner
+                if (!pawn.Reserve(job.GetTarget(BedPosInd), job, 1, -1, null, errorOnFailed))
+                {
+                    SLog.Warning(string.Format("[SocialInteractions] JobDriver_DateLovin: Initiator {0} failed to reserve lovin spot.", pawn.LabelShort));
+                    return false;
+                }
+                if (!pawn.Reserve(Partner, job, 1, -1, null, errorOnFailed))
+                {
+                    SLog.Warning(string.Format("[SocialInteractions] JobDriver_DateLovin: Initiator {0} failed to reserve partner {1}.", pawn.LabelShort, Partner.LabelShort));
+                    return false;
+                }
             }
 
-            // When starting a DateLovin job, we want to make sure the pawn doesn't get interrupted by non-critical jobs
-            // Clear any queued jobs
-            if (pawn.jobs != null)
-            {
-                pawn.jobs.ClearQueuedJobs();
-            }
-
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: TryMakePreToilReservations returning true for pawn {0}.", 
-                pawn.LabelShort));
+            SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: TryMakePreToilReservations returning true for pawn {0}.",
+                pawn.LabelShort != null ? pawn.LabelShort : "NULL"));
             return true;
         }
 
         protected override IEnumerable<Toil> MakeNewToils()
         {
             this.FailOnDespawnedOrNull(PartnerInd);
-            this.FailOn(() => !Partner.health.capacities.CanBeAwake);
+            this.FailOn(() => Partner == null || !Partner.health.capacities.CanBeAwake);
 
-            yield return Toils_Goto.GotoCell(BedPosInd, PathEndMode.OnCell);
+            // Conditional Goto to handle both bed (Thing) and random spot (Cell) targets
+            if (job.GetTarget(BedPosInd).HasThing)
+            {
+                // Target is a bed, go to its interaction cell to avoid lying down
+                yield return Toils_Goto.GotoThing(BedPosInd, PathEndMode.InteractionCell);
+            }
+            else
+            {
+                // Target is just a cell, go onto it
+                yield return Toils_Goto.GotoCell(BedPosInd, PathEndMode.OnCell);
+            }
 
             // Add a toil to wait for the partner to get into position
             Toil waitForPartnerToil = ToilMaker.MakeToil("WaitForPartner");
-            waitForPartnerToil.initAction = delegate
-            {
-                // Set a reasonable timeout (300 ticks = 5 seconds)
-                waitForPartnerToil.defaultDuration = 300;
-            };
             waitForPartnerToil.tickAction = delegate
             {
-                // Check if both pawns are within 1.5 cells of each other
-                if (pawn.Position.DistanceTo(Partner.Position) <= 1.5f)
+                // Add comprehensive null checks to prevent NullReferenceException
+                if (pawn == null || Partner == null)
                 {
-                    // If they're close enough, proceed to the next toil
-                    waitForPartnerToil.actor.jobs.curDriver.ReadyForNextToil();
+                    SLog.Warning("[SocialInteractions] JobDriver_DateLovin: pawn or Partner is null in waitForPartnerToil tickAction.");
+                    // End the job instead of calling ReadyForNextToil to avoid state conflicts
+                    this.EndJobWith(JobCondition.Incompletable);
+                    return;
                 }
-                // If not close enough, continue waiting until timeout
+                
+                // Log tick for debugging
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: waitForPartnerToil tick. Pawn: {0}, Partner: {1}, Distance: {2}", 
+                    pawn.LabelShort, Partner.LabelShort, pawn.Position.DistanceTo(Partner.Position)));
+                
+                // Check if both pawns are within a generous distance of each other
+                try
+                {
+                    if (pawn.Position.DistanceTo(Partner.Position) <= 3.5f)
+                    {
+                        // If they're close enough, we can proceed to the next toil
+                        SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: Pawns {0} and {1} are close enough, proceeding to lovin", 
+                            pawn.LabelShort, Partner.LabelShort));
+                        this.ReadyForNextToil();
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    SLog.Warning(string.Format("[SocialInteractions] Exception in waitForPartnerToil tickAction distance check: {0}", ex.Message));
+                    // End the job on exception
+                    this.EndJobWith(JobCondition.Incompletable);
+                    return;
+                }
+                // If not close enough, continue waiting
             };
-            waitForPartnerToil.AddFinishAction(() => {
-                // Check if we're moving to the next toil because we're close enough
-                // or because of a timeout
-                if (pawn.Position.DistanceTo(Partner.Position) <= 1.5f)
-                {
-                    // Both pawns are in position, start the LLM interaction
-                    Date date = DatingManager.GetDateWith(pawn);
-                    if (date != null)
-                    {
-                        SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, SpeechBubbleManager.GetDateLovinSubject(date.Initiator, date.Partner));
-                    }
-                }
-                else
-                {
-                    // Timeout - end the date
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: Timeout waiting for partner {0} to get in position for pawn {1}. Ending date.", 
-                        Partner.LabelShort, pawn.LabelShort));
-                    Date date = DatingManager.GetDateWith(pawn);
-                    if (date != null)
-                    {
-                        DatingManager.EndDate(date);
-                    }
-                }
-            });
-            waitForPartnerToil.defaultCompleteMode = ToilCompleteMode.Delay;
+            waitForPartnerToil.defaultCompleteMode = ToilCompleteMode.Never;
             yield return waitForPartnerToil;
 
             // Store references to both pawns to ensure we can access them later
@@ -184,12 +229,20 @@ namespace SocialInteractions
             Toil lovinToil = ToilMaker.MakeToil("LovinToil");
             lovinToil.initAction = delegate
             {
+                // Add comprehensive null checks
+                if (pawn == null)
+                {
+                    SLog.Warning("[SocialInteractions] JobDriver_DateLovin: pawn is null in lovinToil.initAction, ending job.");
+                    this.EndJobWith(JobCondition.Incompletable);
+                    return;
+                }
+                
                 // Check if the pawn is still on a date in the Lovin stage
                 if (!DatingManager.IsOnDate(pawn))
                 {
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: Pawn {0} is no longer on a date, ending job.", 
                         pawn != null ? pawn.LabelShort : "NULL"));
-                    ReadyForNextToil();
+                    this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
                 
@@ -198,7 +251,7 @@ namespace SocialInteractions
                 {
                     SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: Date stage is not Lovin for pawn {0}, ending job.", 
                         pawn != null ? pawn.LabelShort : "NULL"));
-                    ReadyForNextToil();
+                    this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
                 
@@ -207,9 +260,11 @@ namespace SocialInteractions
             };
             lovinToil.tickAction = delegate
             {
-                // Add null checks to prevent NullReferenceException
+                // Add comprehensive null checks to prevent NullReferenceException
                 if (initiator == null || initiator.jobs == null)
                 {
+                    SLog.Warning("[SocialInteractions] JobDriver_DateLovin: initiator or initiator.jobs is null in lovinToil.tickAction, ending job.");
+                    ReadyForNextToil();
                     return;
                 }
 
@@ -230,6 +285,9 @@ namespace SocialInteractions
                     {
                         // The pawn is no longer on a date in the Lovin stage
                         // End the toil
+                        SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: Initiator {0} is no longer on a date in Lovin stage, ending job.", 
+                            initiator.LabelShort != null ? initiator.LabelShort : "NULL"));
+                        ReadyForNextToil();
                         return;
                     }
                 }
@@ -351,7 +409,12 @@ namespace SocialInteractions
                 {
                     try
                     {
-                        FleckMaker.ThrowMetaIcon(initiator.Position, initiator.Map, FleckDefOf.Heart);
+                        // Add null checks before creating fleck
+                        if (initiator != null && initiator.Position != null && initiator.Map != null)
+                        {
+                            FleckMaker.ThrowMetaIcon(initiator.Position, initiator.Map, FleckDefOf.Heart);
+                        }
+                        
                         if (initiator.needs != null && initiator.needs.joy != null)
                         {
                             initiator.needs.joy.GainJoy(0.05f, JoyKindDefOf.Social);
@@ -371,36 +434,75 @@ namespace SocialInteractions
             {
                 try
                 {
+                    // Add comprehensive null checks to prevent NullReferenceException
+                    if (initiator == null)
+                    {
+                        SLog.Warning("[SocialInteractions] JobDriver_DateLovin: initiator is null in cleanupToil.initAction.");
+                        return;
+                    }
+                    
                     // Re-validate partner reference
                     Pawn currentPartner = Partner;
+                    if (currentPartner == null)
+                    {
+                        SLog.Warning("[SocialInteractions] JobDriver_DateLovin: Partner is null in cleanupToil.initAction.");
+                        return;
+                    }
+                    
+                    // Additional checks to ensure pawns are still valid
+                    if (initiator.Destroyed || currentPartner.Destroyed)
+                    {
+                        SLog.Warning("[SocialInteractions] JobDriver_DateLovin: One or both pawns are destroyed in cleanupToil.initAction.");
+                        return;
+                    }
                     
                     SLog.Message(string.Format("[SocialInteractions] Removing SI_Naked hediff from {0} and {1}",
-                        initiator != null ? initiator.LabelShort : "NULL",
-                        currentPartner != null ? currentPartner.LabelShort : "NULL"));
+                        initiator.LabelShort != null ? initiator.LabelShort : "NULL",
+                        currentPartner.LabelShort != null ? currentPartner.LabelShort : "NULL"));
 
-                    if (initiator != null && initiator.health != null && initiator.health.hediffSet != null)
+                    // Try to remove SI_Naked hediff from initiator
+                    if (initiator.health != null && initiator.health.hediffSet != null)
                     {
-                        Hediff hediff = initiator.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
-                        if (hediff != null)
+                        try
                         {
-                            initiator.health.RemoveHediff(hediff);
-                            SLog.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", initiator.LabelShort));
+                            Hediff hediff = initiator.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
+                            if (hediff != null)
+                            {
+                                initiator.health.RemoveHediff(hediff);
+                                SLog.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", 
+                                    initiator.LabelShort != null ? initiator.LabelShort : "NULL"));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            SLog.Warning(string.Format("[SocialInteractions] Exception removing SI_Naked hediff from initiator {0}: {1}", 
+                                initiator.LabelShort != null ? initiator.LabelShort : "NULL", ex.Message));
                         }
                     }
 
-                    if (currentPartner != null && currentPartner.health != null && currentPartner.health.hediffSet != null)
+                    // Try to remove SI_Naked hediff from partner
+                    if (currentPartner.health != null && currentPartner.health.hediffSet != null)
                     {
-                        Hediff hediff = currentPartner.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
-                        if (hediff != null)
+                        try
                         {
-                            currentPartner.health.RemoveHediff(hediff);
-                            SLog.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", currentPartner.LabelShort));
+                            Hediff hediff = currentPartner.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
+                            if (hediff != null)
+                            {
+                                currentPartner.health.RemoveHediff(hediff);
+                                SLog.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", 
+                                    currentPartner.LabelShort != null ? currentPartner.LabelShort : "NULL"));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            SLog.Warning(string.Format("[SocialInteractions] Exception removing SI_Naked hediff from partner {0}: {1}", 
+                                currentPartner.LabelShort != null ? currentPartner.LabelShort : "NULL", ex.Message));
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    SLog.Warning(string.Format("[SocialInteractions] Exception removing SI_Naked hediff: {0}", ex.Message));
+                    SLog.Warning(string.Format("[SocialInteractions] Exception in cleanupToil.initAction: {0}", ex.Message));
                 }
             };
             yield return cleanupToil;
@@ -410,7 +512,7 @@ namespace SocialInteractions
         {
             get
             {
-                // Add safety checks to prevent NullReferenceException
+                // Add comprehensive safety checks to prevent NullReferenceException
                 if (pawn == null)
                 {
                     return Vector3.zero;
@@ -433,19 +535,33 @@ namespace SocialInteractions
                 }
 
                 // Male pawns bounce on X axis, female pawns bounce on Z axis
-                if (pawn == initiator ^ initiator.gender == Gender.Female)
+                try
                 {
-                    // Initiator bounces on X
-                    float num2 = Mathf.Sign(num);
-                    return new Vector3(EaseInOutQuad(Mathf.Abs(num) * 0.6f) * 0.09f * num2, 0f, 0f);
+                    if (pawn == initiator ^ initiator.gender == Gender.Female)
+                    {
+                        // Initiator bounces on X
+                        float num2 = Mathf.Sign(num);
+                        return new Vector3(EaseInOutQuad(Mathf.Abs(num) * 0.6f) * 0.09f * num2, 0f, 0f);
+                    }
+                    else
+                    {
+                        // Partner bounces on Z
+                        float z = Mathf.Max(Mathf.Pow((num + 1f) * 0.5f, 2f) * 0.2f - 0.06f, 0f);
+                        return new Vector3(0f, 0f, z);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    // Partner bounces on Z
-                    float z = Mathf.Max(Mathf.Pow((num + 1f) * 0.5f, 2f) * 0.2f - 0.06f, 0f);
-                    return new Vector3(0f, 0f, z);
+                    SLog.Warning(string.Format("[SocialInteractions] Exception in ForcedBodyOffset calculation: {0}", ex.Message));
+                    return Vector3.zero;
                 }
             }
+        }
+
+        public override bool CanBeginNowWhileLyingDown()
+        {
+            // Allow the job to begin while lying down
+            return true;
         }
 
         private float EaseInOutQuad(float v)

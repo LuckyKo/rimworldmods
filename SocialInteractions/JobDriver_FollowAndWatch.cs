@@ -190,9 +190,9 @@ namespace SocialInteractions
                         string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
                         SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator ({0}) moved to non-joy job or DateLovin job, advancing date for follower ({1}).", initiatorName, pawnName));
                         
-                        // Advance the date stage
+                        // Advance the date stage. The DatingManager will handle ending this job.
                         DatingManager.AdvanceDateStage(this.pawn);
-                        this.ReadyForNextToil(); // End the FollowAndWatch job
+                        // We must not call ReadyForNextToil() here, as it will interfere with the job transition.
                         return;
                     }
                 }

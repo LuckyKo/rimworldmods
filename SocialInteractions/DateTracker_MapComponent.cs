@@ -180,8 +180,8 @@ namespace SocialInteractions
                 if (partner.needs != null && partner.needs.joy != null && 
                     partner.needs.joy.CurLevelPercentage >= 0.95f)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0}'s joy level is too high to join activity", 
-                        partner.LabelShort));
+                    //SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0}'s joy level is too high to join activity", 
+                    //    partner.LabelShort));
                     return;
                 }
                 
@@ -230,8 +230,8 @@ namespace SocialInteractions
             Job partnerJoyJob = initiatorJoyGiver.Worker.TryGiveJob(partner);
             if (partnerJoyJob == null)
             {
-                SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0} cannot do the same joy activity as initiator {1}", 
-                    partner.LabelShort, initiator.LabelShort));
+                //SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0} cannot do the same joy activity as initiator {1}", 
+                //    partner.LabelShort, initiator.LabelShort));
                 return;
             }
             
@@ -266,8 +266,8 @@ namespace SocialInteractions
             }
             else
             {
-                SLog.Message(string.Format("[SocialInteractions] DateTracker: Target locations don't match for partner {0} and initiator {1}, partner will continue following.", 
-                    partner.LabelShort, initiator.LabelShort));
+                //SLog.Message(string.Format("[SocialInteractions] DateTracker: Target locations don't match for partner {0} and initiator {1}, partner will continue following.", 
+                //    partner.LabelShort, initiator.LabelShort));
             }
         }
     }

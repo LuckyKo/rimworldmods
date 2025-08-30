@@ -172,17 +172,29 @@ namespace SocialInteractions
                     dateCooldowns[date.Partner.thingIDNumber] = expiryTick;
 
                 // Explicitly end both pawns' jobs if they're still on DateLovin jobs
+                // But only if they're not already being ended by the waitForPartnerToil timeout
                 JobDef dateLovinJobDef = SI_JobDefOf.DateLovin;
                 if (date.Initiator != null && date.Initiator.jobs != null && date.Initiator.CurJobDef == dateLovinJobDef)
                 {
                     SLog.Message(string.Format("[SocialInteractions] Ending DateLovin job for initiator {0}.", initiatorLabel));
                     try
                     {
-                        date.Initiator.jobs.EndCurrentJob(JobCondition.Succeeded);
+                        // Check if the job driver is still the DateLovin driver
+                        if (date.Initiator.jobs.curDriver is JobDriver_DateLovin)
+                        {
+                            // Don't end the job immediately, let it finish naturally
+                            // Instead, we'll mark that the date has ended and let the job handle it
+                            SLog.Message(string.Format("[SocialInteractions] Initiator {0} is still running DateLovin job driver, will let it finish naturally.", initiatorLabel));
+                        }
+                        else
+                        {
+                            // If the job driver has changed, just log it
+                            SLog.Message(string.Format("[SocialInteractions] Initiator {0} is no longer running DateLovin job driver.", initiatorLabel));
+                        }
                     }
                     catch (Exception ex)
                     {
-                        SLog.Warning(string.Format("[SocialInteractions] Exception ending DateLovin job for initiator {0}: {1}", initiatorLabel, ex.Message));
+                        SLog.Warning(string.Format("[SocialInteractions] Exception checking DateLovin job for initiator {0}: {1}", initiatorLabel, ex.Message));
                     }
                 }
                 if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == dateLovinJobDef)
@@ -190,11 +202,22 @@ namespace SocialInteractions
                     SLog.Message(string.Format("[SocialInteractions] Ending DateLovin job for partner {0}.", partnerLabel));
                     try
                     {
-                        date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
+                        // Check if the job driver is still the DateLovin driver
+                        if (date.Partner.jobs.curDriver is JobDriver_DateLovin)
+                        {
+                            // Don't end the job immediately, let it finish naturally
+                            // Instead, we'll mark that the date has ended and let the job handle it
+                            SLog.Message(string.Format("[SocialInteractions] Partner {0} is still running DateLovin job driver, will let it finish naturally.", partnerLabel));
+                        }
+                        else
+                        {
+                            // If the job driver has changed, just log it
+                            SLog.Message(string.Format("[SocialInteractions] Partner {0} is no longer running DateLovin job driver.", partnerLabel));
+                        }
                     }
                     catch (Exception ex)
                     {
-                        SLog.Warning(string.Format("[SocialInteractions] Exception ending DateLovin job for partner {0}: {1}", partnerLabel, ex.Message));
+                        SLog.Warning(string.Format("[SocialInteractions] Exception checking DateLovin job for partner {0}: {1}", partnerLabel, ex.Message));
                     }
                 }
 
@@ -507,6 +530,35 @@ namespace SocialInteractions
                             }
                         }
                         
+                        // Log the current job for debugging
+                        if (initiator != null && initiator.CurJob != null)
+                        {
+                            SLog.Message(string.Format("[SocialInteractions] DateTracker: Initiator {0} is doing job {1}, is joy job: {2}", 
+                                initiator.LabelShort != null ? initiator.LabelShort : "NULL",
+                                initiator.CurJob.def.defName,
+                                isDoingJoyJob));
+                        }
+                        
+                        // Log the partner's current job for debugging
+                        if (date.Partner != null && date.Partner.CurJob != null)
+                        {
+                            // Check if the partner's job is a joy job
+                            bool isPartnerDoingJoyJob = false;
+                            foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
+                            {
+                                if (joyGiver.jobDef == date.Partner.CurJob.def)
+                                {
+                                    isPartnerDoingJoyJob = true;
+                                    break;
+                                }
+                            }
+                            
+                            SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0} is doing job {1}, is joy job: {2}", 
+                                date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL",
+                                date.Partner.CurJob.def.defName,
+                                isPartnerDoingJoyJob));
+                        }
+                        
                         // If the initiator is doing a joy job, DateLovin job, GoOnDate job, or Wait_MaintainPosture job, the date is not stuck
                         // Also, if the initiator is on a path to a joy job or DateLovin job, the date is not stuck
                         if (initiator != null && initiator.jobs != null && initiator.CurJob != null)
@@ -515,6 +567,9 @@ namespace SocialInteractions
                                 initiator.CurJobDef == waitMaintainPostureJobDef) // Add Wait_MaintainPosture as valid job
                             {
                                 // Date is not stuck
+                                SLog.Message(string.Format("[SocialInteractions] DateTracker: Date for {0} and {1} is not stuck (valid job or pathing)", 
+                                    initiator.LabelShort != null ? initiator.LabelShort : "NULL",
+                                    date.Partner != null ? date.Partner.LabelShort : "NULL"));
                                 continue;
                             }
                             
@@ -522,6 +577,9 @@ namespace SocialInteractions
                             if (initiator.pather != null && initiator.pather.curPath != null && !initiator.pather.curPath.NodesLeftCount.Equals(0))
                             {
                                 // Initiator is still pathing, so the date is not stuck
+                                SLog.Message(string.Format("[SocialInteractions] DateTracker: Date for {0} and {1} is not stuck (still pathing)", 
+                                    initiator.LabelShort != null ? initiator.LabelShort : "NULL",
+                                    date.Partner != null ? date.Partner.LabelShort : "NULL"));
                                 continue;
                             }
                         }
@@ -682,8 +740,26 @@ namespace SocialInteractions
             Building_Bed bed = FindSuitableBedForLovin(date.Initiator, date.Partner);
             if (bed != null)
             {
+                // Check if the bed is too far from the initiator
+                IntVec3 finalPosition = bed.Position;
+
+                if (date.Initiator != null && date.Initiator.Spawned && bed.Spawned)
+                {
+                    float distanceToBed = (date.Initiator.Position - bed.Position).LengthHorizontal;
+                    if (distanceToBed > SocialInteractions.Settings.maxDistanceToLovinSpot)
+                    {
+                        // Bed is too far, use a random spot near the initiator instead
+                        SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Found bed at {0} is too far (distance: {1:F2}), using random spot near initiator.", 
+                            bed.Position, distanceToBed));
+                        
+                        // Find a random valid position near the initiator (within 5 cells)
+                        finalPosition = GetRandomValidPositionNear(date.Initiator, 5);
+                        SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Using position {0} near initiator instead of distant bed.", finalPosition));
+                    }
+                }
+
                 // Reduce log spam by commenting out this message
-                // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Found suitable bed {0} at {1}. Assigning lovin' jobs.", 
+                // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Found suitable bed {0} at {1}. Assigning lovin' jobs.",
                 //     bed.LabelShort != null ? bed.LabelShort : "NULL", bed.Position));
 
                 // End any existing jobs that might interfere
@@ -692,38 +768,31 @@ namespace SocialInteractions
 
                 // Create jobs without reserving the bed - just use its position
                 // This allows spouses to potentially catch them in the act
-                Job lovinJobInitiator = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Partner, bed.Position);
+                Job lovinJobInitiator = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Partner, finalPosition);
+                // Set the job as player-forced to give it higher priority
+                lovinJobInitiator.playerForced = true;
+                
                 date.Initiator.jobs.StartJob(lovinJobInitiator, JobCondition.InterruptForced);
                 // Reduce log spam by commenting out this message
-                // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for initiator {0}.", 
+                // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for initiator {0}.",
                 //     date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL"));
 
-                Job lovinJobPartner = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Initiator, bed.Position);
+                Job lovinJobPartner = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Initiator, finalPosition);
+                // Set the job as player-forced to give it higher priority
+                lovinJobPartner.playerForced = true;
+                
                 // For the partner, we want to make sure the job isn't interrupted by other jobs
-                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Creating DateLovin job for partner {0}. Target: {1}, Position: {2}", 
+                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Queueing DateLovin job for partner {0}. Target: {1}, Position: {2}", 
                     date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL", 
                     date.Initiator != null ? date.Initiator.LabelShort : "NULL",
-                    bed.Position));
-                
-                // Clear any queued jobs to prevent conflicts
+                    finalPosition));
+
+                // Enqueue the lovin job and then end the current job.
+                // This makes the game immediately start our queued job without a chance for the pawn to find other work.
                 date.Partner.jobs.ClearQueuedJobs();
-                
-                // End any current job to ensure a clean start
-                if (date.Partner.jobs.curJob != null)
-                {
-                    SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Ending current job for partner {0} before starting DateLovin. Current job: {1}", 
-                        date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL",
-                        date.Partner.jobs.curJob.def.defName));
-                    date.Partner.jobs.EndCurrentJob(JobCondition.InterruptForced, false);
-                }
-                
-                // Start the DateLovin job for the partner with InterruptForced condition to ensure it's not interrupted by other jobs
-                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Starting DateLovin job for partner {0}.", 
-                    date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
-                date.Partner.jobs.StartJob(lovinJobPartner, JobCondition.InterruptForced);
-                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: DateLovin job started for partner {0}. Checking if job was actually started.", 
-                    date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
-                
+                date.Partner.jobs.jobQueue.EnqueueFirst(lovinJobPartner);
+                date.Partner.jobs.EndCurrentJob(JobCondition.InterruptForced);
+
                 // Check if the job was actually started
                 if (date.Partner.jobs.curJob != null && date.Partner.jobs.curJob.def == SI_JobDefOf.DateLovin)
                 {
@@ -953,6 +1022,38 @@ namespace SocialInteractions
 			
 			// beauty can be from -3 to +3 so we keep the factor between 0.5 and 1.5
 			return 1f + (beauty / 6f);
+        }
+
+        // Helper method to find a random valid position near a pawn
+        public static IntVec3 GetRandomValidPositionNear(Pawn pawn, int maxDistance)
+        {
+            if (pawn == null || !pawn.Spawned || pawn.Map == null)
+            {
+                return IntVec3.Invalid;
+            }
+
+            // Try up to 20 times to find a valid position
+            for (int i = 0; i < 20; i++)
+            {
+                // Generate random offset within the max distance
+                int offsetX = Rand.RangeInclusive(-maxDistance, maxDistance);
+                int offsetZ = Rand.RangeInclusive(-maxDistance, maxDistance);
+                
+                // Calculate the potential position
+                IntVec3 potentialPosition = new IntVec3(pawn.Position.x + offsetX, pawn.Position.y, pawn.Position.z + offsetZ);
+                
+                // Check if the position is valid
+                if (potentialPosition.IsValid && potentialPosition.InBounds(pawn.Map) && 
+                    potentialPosition.Walkable(pawn.Map) && 
+                    !potentialPosition.Impassable(pawn.Map) &&
+                    pawn.CanReserveAndReach(potentialPosition, PathEndMode.OnCell, Danger.None))
+                {
+                    return potentialPosition;
+                }
+            }
+            
+            // If we couldn't find a valid position, return the pawn's current position
+            return pawn.Position;
         }
 
         // Helper method to find a suitable bed for lovin'
