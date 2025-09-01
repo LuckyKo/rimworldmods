@@ -592,7 +592,7 @@ namespace SocialInteractions
                 speaker = pawn;
                 messageText = rawMessage.Substring(pawn.Name.ToStringShort.Length + 1).Trim();
             }
-            else if (rawMessage.StartsWith(recipient.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
+            else if (recipient != null && rawMessage.StartsWith(recipient.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
             {
                 speaker = recipient;
                 messageText = rawMessage.Substring(recipient.Name.ToStringShort.Length + 1).Trim();
@@ -604,6 +604,27 @@ namespace SocialInteractions
 
             // Format the message with speaker name and rich text
             return FormatSpeakerName(speaker, messageText, isHighPriority);
+        }
+
+        /// <summary>
+        /// Formats a monologue message for display.
+        /// </summary>
+        /// <param name="rawMessage">The raw message from the LLM.</param>
+        /// <param name="pawn">The pawn who is speaking.</param>
+        /// <param name="isHighPriority">Whether this is a high priority message.</param>
+        /// <returns>The formatted message with speaker name and rich text.</returns>
+        public static string FormatMonologueMessage(string rawMessage, Pawn pawn, bool isHighPriority = false)
+        {
+            string messageText = rawMessage;
+
+            // Check if the message starts with the pawn's name
+            if (rawMessage.StartsWith(pawn.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
+            {
+                messageText = rawMessage.Substring(pawn.Name.ToStringShort.Length + 1).Trim();
+            }
+
+            // Format the message with speaker name and rich text
+            return FormatSpeakerName(pawn, messageText, isHighPriority);
         }
     }
 

@@ -49,3 +49,10 @@ CustomTraitDefOf.cs
 JobDriver_CaughtCheating.cs
 PauseableMote.cs
 SI_ThingDefOf.cs
+MentalState_Patch.cs
+Faction_Patch.cs
+JobDriver_GiveSpeech_Patch.cs
+HistoryEventsManager_Patch.cs
+Precept_RoleSingle_Patch.cs
+Precept_RoleMulti_Patch.cs
+LordJob_PsychicRitual_CreateGraph_Patch.cs

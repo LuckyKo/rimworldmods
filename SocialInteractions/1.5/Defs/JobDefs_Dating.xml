@@ -25,7 +25,7 @@
     <defName>DateLovin</defName>
     <driverClass>SocialInteractions.JobDriver_DateLovin</driverClass>
     <reportString>Doing some Lovin' with TargetA</reportString>
-    <joyKind>Social</joyKind>
+    
     <suspendable>false</suspendable>
     <casualInterruptible>false</casualInterruptible>
   </JobDef>

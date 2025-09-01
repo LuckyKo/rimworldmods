@@ -25,6 +25,16 @@ It's currently [time], on [date] and the weather is [weather].
 
 <start>
 [pawn1]:";
+        public string llmMonologuePromptTemplate = @"The following is a monologue by a RimWorld character, [pawn1]. It's a brutal world out there so use swearing, explicit or rough language freely.
+
+[pawn1] is a [pawn1_age] yo [pawn1_sex], has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1] is currently [pawn1_action]
+
+It's currently [time], on [date] and the weather is [weather].
+
+[pawn1] [subject]
+
+<start>
+[pawn1]:";
         public bool llmInteractionsEnabled = false;
         public int wordsPerLineLimit = 10; // Default to 10 words per line
         public float wordsPerSecond = 4.0f; // Default to 5 words per second
@@ -74,7 +84,7 @@ It's currently [time], on [date] and the weather is [weather].
         public float baseLovinChance = 0.75f;
         public int dateLovinTicks = 2500;
         public int dateLovinTimeoutTicks = 600; // 10 seconds
-        public float maxDistanceToLovinSpot = 25f; // Maximum distance to accept a bed for lovin'
+        public float maxDistanceToLovinSpot = 50f; // Maximum distance to accept a bed for lovin'
         
         // Dating partner selection weights/penalties
         public float spouseDateWeight = 100f;
@@ -95,6 +105,7 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref llmApiUrl, "llmApiUrl", "");
             Scribe_Values.Look(ref llmApiKey, "llmApiKey", "");
             Scribe_Values.Look(ref llmPromptTemplate, "llmPromptTemplate", "");
+            Scribe_Values.Look(ref llmMonologuePromptTemplate, "llmMonologuePromptTemplate", "");
             Scribe_Values.Look(ref wordsPerLineLimit, "wordsPerLineLimit", 10);
             
             Scribe_Values.Look(ref llmTemperature, "llmTemperature", 0.7f);
@@ -136,7 +147,7 @@ It's currently [time], on [date] and the weather is [weather].
             
             // Dating lovin' settings
             Scribe_Values.Look(ref dateLovinTimeoutTicks, "dateLovinTimeoutTicks", 300);
-            Scribe_Values.Look(ref maxDistanceToLovinSpot, "maxDistanceToLovinSpot", 15f);
+            Scribe_Values.Look(ref maxDistanceToLovinSpot, "maxDistanceToLovinSpot", 50f);
             
             // Dating partner selection weights/penalties
             Scribe_Values.Look(ref spouseDateWeight, "spouseDateWeight", 100f);
@@ -226,6 +237,14 @@ It's currently [time], on [date] and the weather is [weather].
             {
                 llmPromptTemplateBuffer = newPromptTemplate;
                 SocialInteractions.Settings.llmPromptTemplate = newPromptTemplate;
+            }
+
+            listingStandard.Gap();
+            listingStandard.Label("Monologue Prompt Template:");
+            string newMonologuePromptTemplate = Widgets.TextArea(listingStandard.GetRect(200f), SocialInteractions.Settings.llmMonologuePromptTemplate);
+            if (newMonologuePromptTemplate != SocialInteractions.Settings.llmMonologuePromptTemplate)
+            {
+                SocialInteractions.Settings.llmMonologuePromptTemplate = newMonologuePromptTemplate;
             }
 
             listingStandard.Gap();

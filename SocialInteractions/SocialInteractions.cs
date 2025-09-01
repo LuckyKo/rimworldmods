@@ -123,120 +123,20 @@ namespace SocialInteractions
             string relation = GetRelationship(initiator, recipient);
             prompt = prompt.Replace("[relation]", relation);
 
-            // Pawn 1 (Initiator) attributes
-            string pawn1Age = initiator.ageTracker.AgeBiologicalYears.ToString();
-            string pawn1Sex = initiator.gender.ToString();
-            string pawn1Traits = "";
-            if (initiator.story != null && initiator.story.traits != null)
+            // Extract pawn data
+            var pawn1Data = ExtractPawnData(initiator, "pawn1");
+            var pawn2Data = ExtractPawnData(recipient, "pawn2");
+
+            // Replace placeholders for pawn1
+            foreach (var kvp in pawn1Data)
             {
-                List<string> traitsList = new List<string>();
-                foreach (Trait trait in initiator.story.traits.allTraits)
-                {
-                    traitsList.Add(trait.Label);
-                }
-                pawn1Traits = string.Join(", ", traitsList.ToArray());
+                prompt = prompt.Replace("[" + kvp.Key + "]", kvp.Value);
             }
 
-            string pawn1Mood = "N/A";
-            if (initiator.needs != null && initiator.needs.mood != null)
+            // Replace placeholders for pawn2
+            foreach (var kvp in pawn2Data)
             {
-                pawn1Mood = (initiator.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%";
-            }
-
-            string pawn1Dislikes = GetDislikes(initiator);
-            string pawn1Afflictions = GetAfflictions(initiator);
-            string pawn1Likes = GetLikes(initiator);
-            string pawn1Tech = GetTech(initiator);
-
-            string pawn1Action = "None";
-            if (initiator.jobs != null && initiator.jobs.curJob != null)
-            {
-                try
-                {
-                    pawn1Action = initiator.GetJobReport().CapitalizeFirst();
-                }
-                catch (Exception)
-                {
-                    pawn1Action = "None";
-                }
-            }
-
-            string pawn1Proficiencies = GetProficiencies(initiator);
-
-            string pawn1Genes = "";
-            if (initiator.genes != null)
-            {
-                pawn1Genes = initiator.genes.XenotypeLabel;
-                List<string> geneList = new List<string>();
-                foreach (Gene gene in initiator.genes.GenesListForReading)
-                {
-                    if (gene.def != null && !gene.def.skinColorBase.HasValue && !gene.Overridden)
-                    {
-                        geneList.Add(gene.def.label);
-                    }
-                }
-                if (geneList.Count > 0)
-                {
-                    pawn1Genes += " (" + string.Join(", ", geneList.ToArray()) + ")";
-                }
-            }
-
-            // Pawn 2 (Recipient) attributes
-            string pawn2Age = recipient.ageTracker.AgeBiologicalYears.ToString();
-            string pawn2Sex = recipient.gender.ToString();
-            string pawn2Traits = "";
-            if (recipient.story != null && recipient.story.traits != null)
-            {
-                List<string> traitsList = new List<string>();
-                foreach (Trait trait in recipient.story.traits.allTraits)
-                {
-                    traitsList.Add(trait.Label);
-                }
-                pawn2Traits = string.Join(", ", traitsList.ToArray());
-            }
-
-            string pawn2Mood = "N/A";
-            if (recipient.needs != null && recipient.needs.mood != null)
-            {
-                pawn2Mood = (recipient.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%";
-            }
-
-            string pawn2Dislikes = GetDislikes(recipient);
-            string pawn2Afflictions = GetAfflictions(recipient);
-            string pawn2Likes = GetLikes(recipient);
-            string pawn2Tech = GetTech(recipient);
-
-            string pawn2Action = "None";
-            if (recipient.jobs != null && recipient.jobs.curJob != null)
-            {
-                try
-                {
-                    pawn2Action = recipient.GetJobReport().CapitalizeFirst();
-                }
-                catch (Exception)
-                {
-                    pawn2Action = "None";
-                }
-            }
-
-            string pawn2Proficiencies = GetProficiencies(recipient);
-
-            string pawn2Genes = "";
-            if (recipient.genes != null)
-            {
-                pawn2Genes = recipient.genes.XenotypeLabel;
-                List<string> geneList = new List<string>();
-                foreach (Gene gene in recipient.genes.GenesListForReading)
-                {
-                    if (gene.def != null && !gene.def.skinColorBase.HasValue && !gene.Overridden)
-                    {
-                        geneList.Add(gene.def.label);
-                    }
-                }
-                if (geneList.Count > 0)
-                {
-                    pawn2Genes += " (" + string.Join(", ", geneList.ToArray()) + ")";
-                }
+                prompt = prompt.Replace("[" + kvp.Key + "]", kvp.Value);
             }
 
             // World info attributes
@@ -258,31 +158,68 @@ namespace SocialInteractions
                 currentWeather = string.Format("{0} ({1}°C)", initiator.Map.weatherManager.curWeather.label, temperature.ToString("F0"));
             }
 
-            // Replace placeholders
-            prompt = prompt.Replace("[pawn1]", initiator.Name.ToStringShort);
-            prompt = prompt.Replace("[pawn2]", recipient.Name.ToStringShort);
-            prompt = prompt.Replace("[pawn1_age]", pawn1Age);
-            prompt = prompt.Replace("[pawn1_sex]", pawn1Sex);
-            prompt = prompt.Replace("[pawn1_traits]", pawn1Traits);
-            prompt = prompt.Replace("[pawn1_mood]", pawn1Mood);
-            prompt = prompt.Replace("[pawn1_dislikes]", pawn1Dislikes);
-            prompt = prompt.Replace("[pawn1_afflictions]", pawn1Afflictions);
-            prompt = prompt.Replace("[pawn1_likes]", pawn1Likes);
-            prompt = prompt.Replace("[pawn1_tech]", pawn1Tech);
-            prompt = prompt.Replace("[pawn1_action]", pawn1Action);
-            prompt = prompt.Replace("[pawn1_proficiencies]", pawn1Proficiencies);
-            prompt = prompt.Replace("[pawn1_genes]", pawn1Genes);
-            prompt = prompt.Replace("[pawn2_age]", pawn2Age);
-            prompt = prompt.Replace("[pawn2_sex]", pawn2Sex);
-            prompt = prompt.Replace("[pawn2_traits]", pawn2Traits);
-            prompt = prompt.Replace("[pawn2_mood]", pawn2Mood);
-            prompt = prompt.Replace("[pawn2_dislikes]", pawn2Dislikes);
-            prompt = prompt.Replace("[pawn2_afflictions]", pawn2Afflictions);
-            prompt = prompt.Replace("[pawn2_likes]", pawn2Likes);
-            prompt = prompt.Replace("[pawn2_tech]", pawn2Tech);
-            prompt = prompt.Replace("[pawn2_action]", pawn2Action);
-            prompt = prompt.Replace("[pawn2_proficiencies]", pawn2Proficiencies);
-            prompt = prompt.Replace("[pawn2_genes]", pawn2Genes);
+            // Replace world placeholders
+            prompt = prompt.Replace("[date]", currentDate);
+            prompt = prompt.Replace("[time]", currentTime);
+            prompt = prompt.Replace("[weather]", currentWeather);
+
+            return prompt;
+        }
+
+        public static string GenerateMonologuePrompt(Pawn pawn, string subject)
+        {
+            if (pawn == null)
+            {
+                return null;
+            }
+            if (subject == null)
+            {
+                subject = "Thinking to themselves";
+            }
+
+            if (!Settings.llmInteractionsEnabled)
+            {
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(Settings.llmApiUrl) || string.IsNullOrEmpty(Settings.llmMonologuePromptTemplate))
+            {
+                return null;
+            }
+
+            // Placeholder replacement (initial version, will expand later)
+            string prompt = Settings.llmMonologuePromptTemplate;
+            prompt = prompt.Replace("[subject]", subject ?? "");
+
+            // Extract pawn data
+            var pawn1Data = ExtractPawnData(pawn, "pawn1");
+
+            // Replace placeholders for pawn1
+            foreach (var kvp in pawn1Data)
+            {
+                prompt = prompt.Replace("[" + kvp.Key + "]", kvp.Value);
+            }
+
+            // World info attributes
+            long absTicks = Find.TickManager.TicksAbs;
+            string currentDate = "Unknown";
+            string currentTime = "Unknown";
+            string currentWeather = "Unknown";
+
+            if (pawn.Map != null)
+            {
+                float longitude = Find.WorldGrid.LongLatOf(pawn.Tile).x;
+                int day = GenDate.DayOfQuadrum(absTicks, longitude);
+                Quadrum quadrum = GenDate.Quadrum(absTicks, longitude);
+                int year = GenDate.Year(absTicks, longitude);
+                currentDate = string.Format("{0} of {1}, {2}", day, quadrum.Label(), year);
+                int hour = (int)(GenDate.DayPercent(absTicks, longitude) * 24f);
+                currentTime = hour.ToString("D2") + ":00";
+                float temperature = pawn.Map.mapTemperature.OutdoorTemp;
+                currentWeather = string.Format("{0} ({1}°C)", pawn.Map.weatherManager.curWeather.label, temperature.ToString("F0"));
+            }
+
+            // Replace world placeholders
             prompt = prompt.Replace("[date]", currentDate);
             prompt = prompt.Replace("[time]", currentTime);
             prompt = prompt.Replace("[weather]", currentWeather);
@@ -330,6 +267,107 @@ namespace SocialInteractions
                 estimatedTime = wordCount / SocialInteractions.Settings.wordsPerSecond; // Seconds
             }
             return estimatedTime;
+        }
+
+        /// <summary>
+        /// Extracts pawn data into a dictionary for use in prompt templates.
+        /// </summary>
+        /// <param name="pawn">The pawn to extract data from.</param>
+        /// <param name="prefix">The prefix to use for the dictionary keys (e.g., "pawn1", "pawn2").</param>
+        /// <returns>A dictionary containing the pawn's data.</returns>
+        private static Dictionary<string, string> ExtractPawnData(Pawn pawn, string prefix)
+        {
+            var data = new Dictionary<string, string>();
+
+            if (pawn == null)
+            {
+                // Return empty data if pawn is null
+                data[prefix] = "Unknown";
+                data[prefix + "_age"] = "Unknown";
+                data[prefix + "_sex"] = "Unknown";
+                data[prefix + "_traits"] = "None";
+                data[prefix + "_mood"] = "N/A";
+                data[prefix + "_dislikes"] = "None";
+                data[prefix + "_afflictions"] = "None";
+                data[prefix + "_likes"] = "None";
+                data[prefix + "_tech"] = "None";
+                data[prefix + "_action"] = "None";
+                data[prefix + "_proficiencies"] = "None";
+                data[prefix + "_genes"] = "None";
+                return data;
+            }
+
+            // Basic pawn info
+            data[prefix] = pawn.Name.ToStringShort;
+            data[prefix + "_age"] = pawn.ageTracker.AgeBiologicalYears.ToString();
+            data[prefix + "_sex"] = pawn.gender.ToString();
+
+            // Traits
+            string traits = "None";
+            if (pawn.story != null && pawn.story.traits != null)
+            {
+                List<string> traitsList = new List<string>();
+                foreach (Trait trait in pawn.story.traits.allTraits)
+                {
+                    traitsList.Add(trait.Label);
+                }
+                traits = string.Join(", ", traitsList.ToArray());
+            }
+            data[prefix + "_traits"] = traits;
+
+            // Mood
+            string mood = "N/A";
+            if (pawn.needs != null && pawn.needs.mood != null)
+            {
+                mood = (pawn.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%";
+            }
+            data[prefix + "_mood"] = mood;
+
+            // Dislikes, Afflictions, Likes, Tech
+            data[prefix + "_dislikes"] = GetDislikes(pawn);
+            data[prefix + "_afflictions"] = GetAfflictions(pawn);
+            data[prefix + "_likes"] = GetLikes(pawn);
+            data[prefix + "_tech"] = GetTech(pawn);
+
+            // Current action/job
+            string action = "None";
+            if (pawn.jobs != null && pawn.jobs.curJob != null)
+            {
+                try
+                {
+                    action = pawn.GetJobReport().CapitalizeFirst();
+                }
+                catch (Exception)
+                {
+                    action = "None";
+                }
+            }
+            data[prefix + "_action"] = action;
+
+            // Proficiencies (top skills)
+            data[prefix + "_proficiencies"] = GetProficiencies(pawn);
+
+            // Genes/Xenotype
+            string genes = "None";
+            if (pawn.genes != null)
+            {
+                genes = pawn.genes.XenotypeLabel;
+                List<string> geneList = new List<string>();
+                foreach (Gene gene in pawn.genes.GenesListForReading)
+                {
+                    if (gene.def != null && !gene.def.skinColorBase.HasValue && !gene.Overridden)
+                    {
+                        geneList.Add(gene.def.label);
+                    }
+                }
+                if (geneList.Count > 0)
+                {
+                    genes += " (" + string.Join(", ", geneList.ToArray()) + ")";
+                }
+            }
+            data[prefix + "_genes"] = genes;
+
+            return data;
         }
 
         private static string GetRelationship(Pawn initiator, Pawn recipient)
@@ -607,6 +645,205 @@ namespace SocialInteractions
             return conversationId;
         }
 
+        public static int HandleMonologue(Pawn pawn, string subject, bool skipSpamProtection = false)
+        {
+            SLog.Message(string.Format("[SocialInteractions] HandleMonologue called for: {0}. preventSpam: {1}, isLlmBusy: {2}, skipSpamProtection: {3}", pawn.LabelShort, Settings.preventSpam, SpeechBubbleManager.isLlmBusy, skipSpamProtection));
+            if (!skipSpamProtection && Settings.preventSpam && SpeechBubbleManager.isLlmBusy)
+            {
+                // Show default bubble when LLM is busy and we're preventing spam
+                if (!string.IsNullOrEmpty(subject))
+                {
+                    SpeechBubbleManager.ShowDefaultBubble(pawn, subject);
+                }
+                return -1; // Return -1 to indicate no conversation was started
+            }
+
+            // --- Explicitly set LLM busy flag when starting a new interaction ---
+            // This must happen after the spam check and before the async task starts.
+            SpeechBubbleManager.isLlmBusy = true;
+            SLog.Message(string.Format("[SocialInteractions] Set isLlmBusy = true for monologue by {0}", pawn.LabelShort));
+            // --- End Explicitly set LLM busy flag ---
+
+            string prompt = GenerateMonologuePrompt(pawn, subject);
+
+            // If we can't generate a prompt, show a default bubble and return
+            if (string.IsNullOrEmpty(prompt))
+            {
+                SLog.Message(string.Format("[SocialInteractions] HandleMonologue: No prompt generated for pawn {0}, showing default bubble", pawn.LabelShort));
+                if (!string.IsNullOrEmpty(subject))
+                {
+                    SpeechBubbleManager.ShowDefaultBubble(pawn, subject);
+                }
+                SpeechBubbleManager.isLlmBusy = false; // Unlock LLM
+                return -1; // Return -1 to indicate no conversation was started
+            }
+
+            SLog.Message(string.Format("[SocialInteractions] HandleMonologue: Prompt generated for pawn {0}", pawn.LabelShort));
+
+            // Start the conversation immediately to get the ID
+            int conversationId = SpeechBubbleManager.StartConversation();
+            SLog.Message(string.Format("[SocialInteractions] Started conversation ID: {0} for monologue by {1}", conversationId, pawn.LabelShort));
+
+            Task.Run(async () => {
+                KoboldApiClient client = null;
+                // --- For LLM Efficiency Timing ---
+                DateTime startTime = DateTime.UtcNow;
+                // --- End For LLM Efficiency Timing ---
+                try
+                {
+                    if (!string.IsNullOrEmpty(prompt))
+                    {
+                        client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
+                        string llmResponse = await client.GenerateText(prompt);
+
+                        // --- For LLM Efficiency Timing ---
+                        DateTime endTime = DateTime.UtcNow;
+                        TimeSpan responseTime = endTime - startTime;
+                        float responseSeconds = (float)responseTime.TotalSeconds;
+                        lastResponseTimeSeconds = responseSeconds;
+                        // Log on main thread
+                        SpeechBubbleManager.EnqueueJob(() => {
+                            SLog.Message(string.Format("[SocialInteractions] LLM Response time for monologue by {0}: {1:F2}s", pawn.LabelShort, responseSeconds));
+                        });
+                        // --- End For LLM Efficiency Timing ---
+
+                        if (llmResponse == null)
+                        {
+                            Log.Warning(string.Format("[SocialInteractions] HandleMonologue: LLM API returned null response for pawn {0}", pawn.LabelShort));
+                            // Fallback to default monologue text
+                            string fallbackText = string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort);
+                            SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(pawn, fallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
+                            return;
+                        }
+
+                        if (!string.IsNullOrEmpty(llmResponse))
+                        {
+                            // Split the response using multiple possible line break characters
+                            string[] messages = llmResponse.Split(new string[] { "\n", "\r\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                            if (messages.Any())
+                            {
+                                // --- For LLM Efficiency Timing ---
+                                float totalDisplaySeconds = 0f;
+                                // --- End For LLM Efficiency Timing ---
+
+                                for (int i = 0; i < messages.Length; i++)
+                                {
+                                    string rawMessage = messages[i].Trim();
+
+                                    if (!string.IsNullOrWhiteSpace(rawMessage))
+                                    {
+                                        // Format the message for a monologue
+                                        string formattedMessage = SpeechBubbleManager.FormatMonologueMessage(rawMessage, pawn, true);
+                                        string wrappedMessage = SocialInteractions.WrapText(formattedMessage, SocialInteractions.Settings.wordsPerLineLimit);
+                                        
+                                        float duration = EstimateReadingTime(rawMessage);
+                                        // --- For LLM Efficiency Timing ---
+                                        totalDisplaySeconds += duration;
+                                        // --- End For LLM Efficiency Timing ---
+                                        // --- Pass conversationId ---
+                                        // Capture the loop variable to avoid closure issues
+                                        int currentIndex = i;
+                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(pawn, wrappedMessage, duration, currentIndex == 0, conversationId, null, true)); // Orange for high priority
+                                        // --- End Pass conversationId ---
+                                    }
+                                }
+
+                                // --- For LLM Efficiency Unlock ---
+                                // Calculate unlock delay based on last response time estimate and current display time
+                                // If early LLM requests are disabled, set the unlock time to totalDisplaySeconds
+                                float unlockDelaySeconds = 0f;
+                                if (SocialInteractions.Settings.enableEarlyLlmRequests)
+                                {
+                                    unlockDelaySeconds = totalDisplaySeconds - lastResponseTimeSeconds;
+                                }
+                                else
+                                {
+                                    unlockDelaySeconds = totalDisplaySeconds;
+                                }
+
+                                // Log on main thread
+                                SpeechBubbleManager.EnqueueJob(() => {
+                                    SLog.Message(string.Format("[SocialInteractions] Efficiency - Total Display Time: {0:F2}s, Estimated Next Response Time: {1:F2}s, Unlock Delay: {2:F2}s", totalDisplaySeconds, lastResponseTimeSeconds, unlockDelaySeconds));
+                                });
+
+                                if (unlockDelaySeconds > 0)
+                                {
+                                    // Schedule unlock after the delay
+                                    SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
+                                }
+                                else
+                                {
+                                    // Unlock immediately (next tick) if LLM was slower than display or no delay needed
+                                    SpeechBubbleManager.ScheduleUnlock(0.01f); // A tiny delay to ensure it happens on the next possible tick
+                                }
+                                // --- End For LLM Efficiency Unlock ---
+                            }
+                            else
+                            {
+                                Log.Warning(string.Format("[SocialInteractions] HandleMonologue: LLM API returned empty messages for pawn {0}", pawn.LabelShort));
+                                // Fallback to default monologue text
+                                string fallbackText = string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort);
+                                string wrappedFallbackText = SocialInteractions.WrapText(fallbackText, SocialInteractions.Settings.wordsPerLineLimit);
+                                SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
+
+                                // --- For LLM Efficiency Unlock (Fallback) ---
+                                // Even on fallback, schedule an unlock based on a default display time
+                                float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
+                                if (unlockDelaySeconds > 0)
+                                    SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
+                                else
+                                    SpeechBubbleManager.ScheduleUnlock(0.01f);
+                                // --- End For LLM Efficiency Unlock (Fallback) ---
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Log.Warning(string.Format("[SocialInteractions] HandleMonologue: Failed to generate prompt for pawn {0}", pawn.LabelShort));
+                        // Fallback to default monologue text
+                        string fallbackText = string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort);
+                        string wrappedFallbackText = SocialInteractions.WrapText(fallbackText, SocialInteractions.Settings.wordsPerLineLimit);
+                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
+
+                        // --- For LLM Efficiency Unlock (Prompt Fail) ---
+                        float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
+                        if (unlockDelaySeconds > 0)
+                            SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
+                        else
+                            SpeechBubbleManager.ScheduleUnlock(0.01f);
+                        // --- End For LLM Efficiency Unlock (Prompt Fail) ---
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("Error in HandleMonologue: {0} {1}", ex.Message, ex.StackTrace));
+                    // Fallback to default monologue text
+                    try
+                    {
+                        string fallbackText = string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort);
+                        string wrappedFallbackText = SocialInteractions.WrapText(fallbackText, SocialInteractions.Settings.wordsPerLineLimit);
+                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
+                    }
+                    catch (Exception fallbackEx)
+                    {
+                        Log.Error(string.Format("Error in HandleMonologue fallback: {0} {1}", fallbackEx.Message, fallbackEx.StackTrace));
+                    }
+                }
+                finally
+                {
+                    // --- End Conversation ---
+                    if (conversationId != -1)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Ending conversation ID: {0} for monologue by {1}", conversationId, pawn.LabelShort));
+                        SpeechBubbleManager.EndConversation(conversationId);
+                    }
+                }
+            });
+
+            // Return the conversation ID
+            return conversationId;
+        }
+
         public static int HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject, bool skipSpamProtection = false, bool clearQueueOnResponse = false)
         {
             SLog.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}, skipSpamProtection: {3}, clearQueueOnResponse: {4}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy, skipSpamProtection, clearQueueOnResponse));
@@ -636,6 +873,7 @@ namespace SocialInteractions
                 {
                     SpeechBubbleManager.ShowDefaultBubble(initiator, subject);
                 }
+                SpeechBubbleManager.isLlmBusy = false; // Unlock LLM
                 return -1; // Return -1 to indicate no conversation was started
             }
             
