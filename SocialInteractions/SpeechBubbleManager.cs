@@ -225,12 +225,17 @@ namespace SocialInteractions
         
         public static string GetDateLovinSubject(Pawn initiator, Pawn recipient)
         {
-            return string.Format("{0} and {1} are doing some passioante lovin' after a fun date.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+            return string.Format("{0} and {1} are doing some passionate lovin' after a fun date.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
         }
         
         public static string GetDateRejectionSubject(Pawn initiator, Pawn recipient)
         {
             return string.Format("{0} asks {1} for a date, but {1} declines.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+        }
+        
+        public static string GetPostDateLovinSubject(Pawn initiator, Pawn recipient)
+        {
+            return string.Format("{0} and {1} have finished their intimate moment and are reflecting on the experience.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
         }
 
         public static void EnqueueJob(Action jobAction)

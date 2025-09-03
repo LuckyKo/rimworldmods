@@ -54,7 +54,7 @@ namespace SocialInteractions
             if (interactionDef.defName == "GoOnDate" && Settings.enableDating) return true;
             if (interactionDef == SI_InteractionDefOf.DateRejected && Settings.enableDating) return true;
             if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) return true;
-            if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating) return true;
+            if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating && Settings.enableLovin) return true;
             if (interactionDef == SI_InteractionDefOf.CaughtCheating && Settings.enableDating) return true;
             return false;
         }
@@ -100,7 +100,7 @@ namespace SocialInteractions
             else if (interactionDef.defName == "GoOnDate" && Settings.enableDating) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.DateRejected && Settings.enableDating) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating) isEnabled = true;
+            else if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating && Settings.enableLovin) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.CaughtCheating && Settings.enableDating) isEnabled = true;
 
             SLog.Message(string.Format("[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for {0}: {1}", interactionDef.defName, isEnabled));
@@ -641,6 +641,24 @@ namespace SocialInteractions
             
             // Store the conversation ID for this cheating interaction
             lastCheatingInteractionConversationId = conversationId;
+            
+            return conversationId;
+        }
+
+        public static int HandleThreewayLovinInteraction(Pawn spouse, Pawn cheater, Pawn partner)
+        {
+            // Generate a descriptive subject line for the LLM
+            string subject = string.Format("{0} joins {1} and {2} in a 3p lovin' session", 
+                spouse.LabelShort, cheater.LabelShort, partner.LabelShort);
+                
+            // Trigger the LLM interaction and return the conversation ID
+            // We'll use the DateLovin interaction def for this
+            // Only if lovin interactions are enabled in settings
+            int conversationId = -1;
+            if (Settings.enableLovin)
+            {
+                conversationId = HandleNonStoppingInteraction(spouse, cheater, SI_InteractionDefOf.DateLovin, subject, true, true);
+            }
             
             return conversationId;
         }

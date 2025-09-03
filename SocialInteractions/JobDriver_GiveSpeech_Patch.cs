@@ -3,18 +3,38 @@ using RimWorld;
 using Verse;
 using Verse.AI.Group;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace SocialInteractions
 {
-    [HarmonyPatch(typeof(RimWorld.JobDriver_GiveSpeech), "TryMakePreToilReservations")]
+    [HarmonyPatch(typeof(RimWorld.JobDriver_GiveSpeech), "MakeNewToils")]
     public static class JobDriver_GiveSpeech_Patch
     {
-        public static void Postfix(RimWorld.JobDriver_GiveSpeech __instance, bool __result)
+        // Cooldown to prevent triggering monologue multiple times for the same speech
+        private static Dictionary<Pawn, int> monologueCooldowns = new Dictionary<Pawn, int>();
+        private const int MonologueCooldownTicks = 600; // 10 seconds
+
+        public static void Postfix(RimWorld.JobDriver_GiveSpeech __instance)
         {
-            if (!__result || __instance.pawn == null || !__instance.pawn.IsColonistPlayerControlled)
+            // Cleanup expired cooldowns periodically
+            if (Current.Game.tickManager.TicksGame % 1800 == 0)
+            {
+                CleanupExpiredCooldowns();
+            }
+
+            if (__instance.pawn == null || !__instance.pawn.IsColonistPlayerControlled)
             {
                 return;
             }
+
+            // Check if this pawn is on cooldown
+            if (monologueCooldowns.ContainsKey(__instance.pawn) && Find.TickManager.TicksGame < monologueCooldowns[__instance.pawn])
+            {
+                return; // On cooldown, do nothing
+            }
+
+            // Put the pawn on cooldown
+            monologueCooldowns[__instance.pawn] = Find.TickManager.TicksGame + MonologueCooldownTicks;
 
             string subject = "is about to give a speech";
 
@@ -64,6 +84,23 @@ namespace SocialInteractions
             }
 
             SocialInteractions.HandleMonologue(__instance.pawn, subject, true);
+        }
+
+        private static void CleanupExpiredCooldowns()
+        {
+            List<Pawn> pawnsToRemove = new List<Pawn>();
+            foreach (var entry in monologueCooldowns)
+            {
+                if (Find.TickManager.TicksGame >= entry.Value)
+                {
+                    pawnsToRemove.Add(entry.Key);
+                }
+            }
+
+            foreach (Pawn p in pawnsToRemove)
+            {
+                monologueCooldowns.Remove(p);
+            }
         }
     }
 }

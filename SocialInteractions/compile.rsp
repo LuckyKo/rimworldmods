@@ -56,3 +56,4 @@ HistoryEventsManager_Patch.cs
 Precept_RoleSingle_Patch.cs
 Precept_RoleMulti_Patch.cs
 LordJob_PsychicRitual_CreateGraph_Patch.cs
+LordJob_Joinable_Party_CreateGraph_Patch.cs

@@ -62,7 +62,7 @@ namespace SocialInteractions
             
             return true;
         }
-        private int ticksLeft;
+        public int ticksLeft;
 
         private TargetIndex PartnerInd = TargetIndex.A;
         private TargetIndex BedPosInd = TargetIndex.B;
@@ -454,6 +454,15 @@ namespace SocialInteractions
                     {
                         SLog.Warning("[SocialInteractions] JobDriver_DateLovin: One or both pawns are destroyed in cleanupToil.initAction.");
                         return;
+                    }
+                    
+                    // Add an LLM interaction for post-lovin reactions
+                    // Only if lovin interactions are enabled in settings
+                    // Skip spam protection since we're already in a date
+                    if (SocialInteractions.Settings.enableLovin)
+                    {
+                        SocialInteractions.HandleNonStoppingInteraction(initiator, currentPartner, SI_InteractionDefOf.DateLovin, 
+                            SpeechBubbleManager.GetPostDateLovinSubject(initiator, currentPartner), true);
                     }
                     
                     SLog.Message(string.Format("[SocialInteractions] Removing SI_Naked hediff from {0} and {1}",

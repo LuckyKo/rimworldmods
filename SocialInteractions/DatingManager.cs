@@ -21,6 +21,7 @@ namespace SocialInteractions
         public Pawn Partner;
         public DateStage Stage;
         public int StageTransitionTick; // Track when the stage transition happened
+        public bool IsThreewayAction; // Flag to indicate if this is a 3p action
 
         public Date()
         {
@@ -33,6 +34,7 @@ namespace SocialInteractions
             this.Partner = partner;
             this.Stage = DateStage.Joy;
             this.StageTransitionTick = 0;
+            this.IsThreewayAction = false;
         }
 
         public void ExposeData()
@@ -41,6 +43,7 @@ namespace SocialInteractions
             Scribe_References.Look(ref Partner, "partner");
             Scribe_Values.Look(ref Stage, "stage", DateStage.Joy);
             Scribe_Values.Look(ref StageTransitionTick, "stageTransitionTick", 0);
+            Scribe_Values.Look(ref IsThreewayAction, "isThreewayAction", false);
         }
     }
 
@@ -533,10 +536,10 @@ namespace SocialInteractions
                         // Log the current job for debugging
                         if (initiator != null && initiator.CurJob != null)
                         {
-                            SLog.Message(string.Format("[SocialInteractions] DateTracker: Initiator {0} is doing job {1}, is joy job: {2}", 
-                                initiator.LabelShort != null ? initiator.LabelShort : "NULL",
-                                initiator.CurJob.def.defName,
-                                isDoingJoyJob));
+                            // SLog.Message(string.Format("[SocialInteractions] DateTracker: Initiator {0} is doing job {1}, is joy job: {2}", 
+                                // initiator.LabelShort != null ? initiator.LabelShort : "NULL",
+                                // initiator.CurJob.def.defName,
+                                // isDoingJoyJob));
                         }
                         
                         // Log the partner's current job for debugging
@@ -553,10 +556,10 @@ namespace SocialInteractions
                                 }
                             }
                             
-                            SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0} is doing job {1}, is joy job: {2}", 
-                                date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL",
-                                date.Partner.CurJob.def.defName,
-                                isPartnerDoingJoyJob));
+                            // SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0} is doing job {1}, is joy job: {2}", 
+                                // date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL",
+                                // date.Partner.CurJob.def.defName,
+                                // isPartnerDoingJoyJob));
                         }
                         
                         // If the initiator is doing a joy job, DateLovin job, GoOnDate job, or Wait_MaintainPosture job, the date is not stuck
@@ -567,9 +570,9 @@ namespace SocialInteractions
                                 initiator.CurJobDef == waitMaintainPostureJobDef) // Add Wait_MaintainPosture as valid job
                             {
                                 // Date is not stuck
-                                SLog.Message(string.Format("[SocialInteractions] DateTracker: Date for {0} and {1} is not stuck (valid job or pathing)", 
-                                    initiator.LabelShort != null ? initiator.LabelShort : "NULL",
-                                    date.Partner != null ? date.Partner.LabelShort : "NULL"));
+                                // SLog.Message(string.Format("[SocialInteractions] DateTracker: Date for {0} and {1} is not stuck (valid job or pathing)", 
+                                    // initiator.LabelShort != null ? initiator.LabelShort : "NULL",
+                                    // date.Partner != null ? date.Partner.LabelShort : "NULL"));
                                 continue;
                             }
                             
@@ -599,6 +602,17 @@ namespace SocialInteractions
                     else if (date.Stage == DateStage.Lovin)
                     {
                         // For Lovin stage, check if both pawns are doing DateLovin jobs or temporary jobs like LayDown
+                        // If this is a 3p action, don't end the date
+                        if (date.IsThreewayAction)
+                        {
+                            // For 3p actions, we don't want to end the date automatically
+                            // The 3p action will handle ending the date when appropriate
+                            SLog.Message(string.Format("[SocialInteractions] DateTracker: Date for {0} and {1} is a 3p action, not ending automatically", 
+                                initiator != null ? initiator.LabelShort : "NULL",
+                                date.Partner != null ? date.Partner.LabelShort : "NULL"));
+                            continue;
+                        }
+                        
                         bool initiatorInValidJob = (initiator != null && initiator.jobs != null && initiator.CurJob != null) && 
                             (initiator.CurJobDef == dateLovinJobDef || initiator.CurJobDef == waitMaintainPostureJobDef || 
                              initiator.CurJobDef == JobDefOf.LayDown);
@@ -806,8 +820,12 @@ namespace SocialInteractions
                         date.Partner.jobs.curJob != null ? date.Partner.jobs.curJob.def.defName : "NULL"));
                 }
 
-                // Don't start the LLM interaction here - wait until both pawns are in position
-                // SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, SpeechBubbleManager.GetDateLovinSubject(date.Initiator, date.Partner));
+                // Start the LLM interaction for date lovin, skipping spam protection since we're already in a date
+                // Only if lovin interactions are enabled in settings
+                if (SocialInteractions.Settings.enableLovin)
+                {
+                    SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, SpeechBubbleManager.GetDateLovinSubject(date.Initiator, date.Partner), true);
+                }
             }
             else
             {
@@ -1074,8 +1092,9 @@ namespace SocialInteractions
             float baseChance = SocialInteractions.Settings.baseLovinChance;
             float moodFactor = (initiator.needs.mood.CurLevel + partner.needs.mood.CurLevel) / 2f;
             float dateCompatibility = CalculateDateCompatibility(initiator, partner);
-            float finalChance = baseChance * moodFactor * dateCompatibility;
-            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance calculation: base({0}) * mood({1}) * compatibility({2}) = {3}", baseChance, moodFactor, dateCompatibility, finalChance));
+            float rawChance = baseChance * moodFactor * dateCompatibility;
+            float finalChance = Sigmoid(rawChance);
+            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance calculation: base({0}) * mood({1}) * compatibility({2}) = raw({3}) -> final({4})", baseChance, moodFactor, dateCompatibility, rawChance, finalChance));
 
             if (!Rand.Chance(finalChance))
             {
@@ -1118,6 +1137,11 @@ namespace SocialInteractions
 
             SLog.Warning("[SocialInteractions] FindSuitableBedForLovin: No suitable bed found after all checks.");
             return null;
+        }
+
+        private static float Sigmoid(float x)
+        {
+            return x / (1f + Mathf.Abs(x));
         }
     }
 }

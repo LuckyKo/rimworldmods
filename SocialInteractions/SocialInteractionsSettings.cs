@@ -81,7 +81,7 @@ It's currently [time], on [date] and the weather is [weather].
         public int cheatingConfrontationTicks = 300;
         
         // Dating lovin' settings
-        public float baseLovinChance = 0.75f;
+        public float baseLovinChance = 0.95f;
         public int dateLovinTicks = 2500;
         public int dateLovinTimeoutTicks = 600; // 10 seconds
         public float maxDistanceToLovinSpot = 50f; // Maximum distance to accept a bed for lovin'

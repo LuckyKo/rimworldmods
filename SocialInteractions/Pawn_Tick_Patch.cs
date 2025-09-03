@@ -9,8 +9,8 @@ namespace SocialInteractions
     [HarmonyPatch(typeof(Pawn), "Tick")]
     public static class Pawn_Tick_Patch
     {
-        // Keep track of pawns we've already caught cheating to prevent repeated detections
-        private static HashSet<string> caughtCheaters = new HashSet<string>();
+        // Dictionary to track cooldowns for caught cheaters to prevent repeated detections
+        private static Dictionary<Pawn, int> caughtCheatersCooldowns = new Dictionary<Pawn, int>();
         
         public static void Postfix(Pawn __instance)
         {
@@ -35,11 +35,8 @@ namespace SocialInteractions
                         // The lovin toil is the second toil in the JobDriver_DateLovin
                         if (pawn.jobs.curDriver.CurToilIndex >= 2) // Index 0 is Goto, Index 1 is WaitForPartner, Index 2+ is Lovin
                         {
-                            // Create a unique identifier for this pawn to prevent repeated detections
-                            string pawnId = pawn.ThingID;
-                            
-                            // Only proceed if we haven't already caught this pawn cheating
-                            if (!caughtCheaters.Contains(pawnId))
+                            // Only proceed if the pawn is not on cooldown
+                            if (!caughtCheatersCooldowns.ContainsKey(pawn) || Find.TickManager.TicksGame > caughtCheatersCooldowns[pawn])
                             {
                                 // Get the partner this pawn is on a date with
                                 Pawn datePartner = DatingManager.GetPartnerOfDateWith(pawn);
@@ -64,8 +61,8 @@ namespace SocialInteractions
                                         // Check if the official partner is nearby (within 5 tiles)
                                         if (officialPartner.Position.InHorDistOf(pawn.Position, 5f))
                                         {
-                                            // Add this pawn to the caught cheaters list to prevent repeated detections
-                                            caughtCheaters.Add(pawnId);
+                                            // Put the cheater on cooldown for 2 minutes (12000 ticks)
+                                            caughtCheatersCooldowns[pawn] = Find.TickManager.TicksGame + 12000;
                                             
                                             // We found a cheater! The pawn is on a date with someone other than their official partner
                                             // and their official partner is nearby to witness it
@@ -88,11 +85,25 @@ namespace SocialInteractions
                 }
             }
             
-            // Periodically clean up the caught cheaters list to prevent memory leaks
-            // Clean up every 1800 ticks (30 seconds)
-            if (Current.Game.tickManager.TicksGame % 1800 == 0)
+            // Periodically clean up the cooldown dictionary to prevent it from growing indefinitely
+            if (pawn.IsHashIntervalTick(1800)) // Check every 30 seconds
             {
-                caughtCheaters.Clear();
+                // Create a list of pawns to remove
+                List<Pawn> pawnsToRemove = new List<Pawn>();
+                foreach (var entry in caughtCheatersCooldowns)
+                {
+                    // If the cooldown has expired, mark for removal
+                    if (Find.TickManager.TicksGame > entry.Value)
+                    {
+                        pawnsToRemove.Add(entry.Key);
+                    }
+                }
+
+                // Remove the expired entries
+                foreach (Pawn p in pawnsToRemove)
+                {
+                    caughtCheatersCooldowns.Remove(p);
+                }
             }
         }
         
