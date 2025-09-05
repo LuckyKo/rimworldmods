@@ -1,6 +1,7 @@
 using Verse;
 using UnityEngine;
 using System.Text.RegularExpressions;
+using RimWorld;
 
 namespace SocialInteractions
 {
@@ -63,20 +64,71 @@ namespace SocialInteractions
             Color color = textColor;
             color.a *= alpha;
             
-            // Draw the text with a drop shadow for better readability
+            // Draw the text with the selected rendering style
             if (!string.IsNullOrEmpty(text))
             {
-                // Get stripped text (cached for performance)
-                string strippedText = GetStrippedText(text);
-                
-                // Draw drop shadow (1px offset and in black) with higher opacity
-                Color shadowColor = new Color(0f, 0f, 0f, color.a * 0.8f);
-                Vector2 shadowOffset = new Vector2(0.03f, -0.03f);
-                GenMapUI.DrawText(new Vector2(exactPosition.x + shadowOffset.x, exactPosition.z + shadowOffset.y), strippedText, shadowColor);
-                
-                // Draw the main text with rich text formatting
-                GenMapUI.DrawText(new Vector2(exactPosition.x, exactPosition.z), text, color);
+                if (SocialInteractions.Settings.useBackgroundTextRendering)
+                {
+                    DrawTextWithBackground(color);
+                }
+                else
+                {
+                    // Draw the text with a drop shadow for better readability (original method)
+                    DrawTextWithDropShadow(color);
+                }
             }
+        }
+        
+        // Method to draw text with drop shadow (original method)
+        private void DrawTextWithDropShadow(Color color)
+        {
+            // Get stripped text (cached for performance)
+            string strippedText = GetStrippedText(text);
+            
+            // Draw drop shadow (1px offset and in black) with higher opacity
+            Color shadowColor = new Color(0f, 0f, 0f, color.a * 0.8f);
+            Vector2 shadowOffset = new Vector2(0.03f, -0.03f);
+            GenMapUI.DrawText(new Vector2(exactPosition.x + shadowOffset.x, exactPosition.z + shadowOffset.y), strippedText, shadowColor);
+            
+            // Draw the main text with rich text formatting
+            GenMapUI.DrawText(new Vector2(exactPosition.x, exactPosition.z), text, color);
+        }
+        
+        // Method to draw text with background (new method)
+        private void DrawTextWithBackground(Color color)
+        {
+            // Convert world position to screen position
+            Vector3 worldPos = new Vector3(exactPosition.x, 0f, exactPosition.z);
+            Vector2 screenPos = Find.Camera.WorldToScreenPoint(worldPos) / Prefs.UIScale;
+            screenPos.y = UI.screenHeight - screenPos.y;
+            
+            // Set font
+            GameFont oldFont = Text.Font;
+            Text.Font = GameFont.Tiny;
+            
+            // Get stripped text for size calculation
+            string strippedText = GetStrippedText(text);
+            Vector2 textSize = Text.CalcSize(strippedText);
+            
+            // Calculate background rectangle with proper height for multiline text
+            float extraWidth = (Prefs.DisableTinyText ? 6f : 4f);
+            float extraHeight = (Prefs.DisableTinyText ? 4f : 2f); // Extra padding for top/bottom
+            float bgHeight = textSize.y + extraHeight * 2f;
+            Rect bgRect = new Rect(screenPos.x - textSize.x / 2f - extraWidth, screenPos.y - bgHeight / 2f, textSize.x + extraWidth * 2f, bgHeight);
+            
+            // Draw background using the same texture as the base game
+            GUI.color = new Color(1f, 1f, 1f, color.a);
+            GUI.DrawTexture(bgRect, TexUI.GrayTextBG);
+            
+            // Draw the main text with rich text formatting
+            GUI.color = color;
+            Text.Anchor = TextAnchor.MiddleCenter;
+            Widgets.Label(bgRect, text);
+            
+            // Reset GUI settings
+            GUI.color = Color.white;
+            Text.Anchor = TextAnchor.UpperLeft;
+            Text.Font = oldFont;
         }
         
         // Method to get stripped text with caching for performance

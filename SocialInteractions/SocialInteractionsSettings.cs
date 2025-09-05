@@ -67,6 +67,9 @@ It's currently [time], on [date] and the weather is [weather].
 
         public bool verboseLogging = false;
         
+        // Text rendering style setting
+        public bool useBackgroundTextRendering = false; // False = drop shadow (current), True = background style
+        
         // Magic number settings (not exposed in UI)
         public float meleeTauntProbability = 0.35f;
         public float shootTauntProbability = 0.15f;
@@ -130,6 +133,7 @@ It's currently [time], on [date] and the weather is [weather].
             Scribe_Values.Look(ref joyThresholdForDate, "joyThresholdForDate", 0.8f);
             Scribe_Values.Look(ref verboseLogging, "verboseLogging", false);
             Scribe_Values.Look(ref enableEarlyLlmRequests, "enableEarlyLlmRequests", true);
+            Scribe_Values.Look(ref useBackgroundTextRendering, "useBackgroundTextRendering", false);
             
             // Magic number settings (not exposed in UI)
             Scribe_Values.Look(ref meleeTauntProbability, "meleeTauntProbability", 0.35f);
@@ -210,6 +214,9 @@ It's currently [time], on [date] and the weather is [weather].
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable Early LLM Requests", ref SocialInteractions.Settings.enableEarlyLlmRequests, "If enabled, LLM requests will be sent early before the current speech bubbles finish displaying. If disabled, LLM requests will only be sent after the current speech bubbles finish.");
+
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("Use Text Background", ref SocialInteractions.Settings.useBackgroundTextRendering, "If enabled, LLM-generated text will be displayed with a background instead of a drop shadow.");
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable Verbose Logging", ref SocialInteractions.Settings.verboseLogging, "If enabled, detailed logs will be written to the Player.log file for debugging purposes.");

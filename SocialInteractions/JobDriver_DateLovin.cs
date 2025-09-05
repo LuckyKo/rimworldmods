@@ -555,7 +555,7 @@ namespace SocialInteractions
                 else
                 {
                     // Drop to 20% speed for the remaining time
-                    animationSpeed = 0.2f;
+                    animationSpeed = 0.3f;
                 }
                 
                 // Calculate the base time parameter
