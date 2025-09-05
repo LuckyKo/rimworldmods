@@ -114,6 +114,16 @@ namespace SocialInteractions
                 angryPartner.LabelShort, cheater.LabelShort, datePartner.LabelShort);
             Messages.Message(message, new LookTargets(angryPartner, cheater), MessageTypeDefOf.NegativeEvent);
 
+            // Create the exclamation mote when the pawn catches their partner cheating
+            try
+            {
+                MoteMaker.MakeColonistActionOverlay(angryPartner, ThingDefOf.Mote_ColonistFleeing);
+            }
+            catch (System.Exception ex)
+            {
+                SLog.Warning(string.Format("[SocialInteractions] HandleCheatingEvent: Exception while creating exclamation mote for pawn {0}: {1}", angryPartner.LabelShort, ex.Message));
+            }
+
             // Store the date partner for the cheater so it can be retrieved later
             SocialInteractions.CheaterPartners[cheater.ThingID] = datePartner;
 

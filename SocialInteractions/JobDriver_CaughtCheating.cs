@@ -23,7 +23,7 @@ namespace SocialInteractions
 
         private new int startTick = -1;
         private int conversationId = -1; // Store the conversation ID for this interaction
-        private int ticksLeft; // For bounce animation
+        private int ticksLeft; // For bounce animation, initialize to 0 by default
 
         // Use the settings value as minimum duration
         private int MinWaitDuration { get { return SocialInteractions.Settings.cheatingConfrontationTicks; } }
@@ -37,8 +37,38 @@ namespace SocialInteractions
                     return Vector3.zero;
                 }
 
-                // Give the spouse the "partner" bounce animation
-                float num = Mathf.Sin((float)ticksLeft / 60f * 8f);
+                int totalTicks = SocialInteractions.Settings.dateLovinTicks;
+                
+                // Make sure we don't divide by zero
+                if (totalTicks <= 0)
+                {
+                    return Vector3.zero;
+                }
+
+                // Calculate progress (0.0 to 1.0 as time passes)
+                float progress = 1.0f - ((float)ticksLeft / totalTicks);
+
+                // Calculate animation speed based on progress
+                float animationSpeed = 1.0f;
+                if (progress <= 0.90f)
+                {
+                    // Linear interpolation from 1.0 to 2.0
+                    animationSpeed = 1.0f + (progress / 0.90f) * 1.0f;
+                }
+                else
+                {
+                    // Drop to 20% speed for the remaining time
+                    animationSpeed = 0.2f;
+                }
+                
+                // Calculate the base time parameter
+                float baseTime = progress * 8.0f * (totalTicks / 60.0f);
+                
+                // Apply the animation speed to effectively change the frequency
+                // To double the speed, we double the frequency (multiply time by speed)
+                float adjustedTime = baseTime * animationSpeed;
+                
+                float num = Mathf.Sin(adjustedTime);
                 float z = Mathf.Max(Mathf.Pow((num + 1f) * 0.5f, 2f) * 0.2f - 0.06f, 0f);
                 return new Vector3(0f, 0f, z);
             }
@@ -263,6 +293,16 @@ namespace SocialInteractions
                     catch (System.Exception ex)
                     {
                         SLog.Warning(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Exception while creating speech bubble for pawn {0}: {1}", pawn.LabelShort, ex.Message));
+                    }
+                    
+                    // Create the exclamation mote when the pawn catches their partner cheating
+                    try
+                    {
+                        MoteMaker.MakeColonistActionOverlay(pawn, ThingDefOf.Mote_ColonistFleeing);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        SLog.Warning(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Exception while creating exclamation mote for pawn {0}: {1}", pawn.LabelShort, ex.Message));
                     }
                 };
             

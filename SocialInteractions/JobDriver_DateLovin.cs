@@ -62,7 +62,7 @@ namespace SocialInteractions
             
             return true;
         }
-        public int ticksLeft;
+        public int ticksLeft; // Initialize to 0 by default
 
         private TargetIndex PartnerInd = TargetIndex.A;
         private TargetIndex BedPosInd = TargetIndex.B;
@@ -527,7 +527,45 @@ namespace SocialInteractions
                     return Vector3.zero;
                 }
 
-                float num = Mathf.Sin((float)ticksLeft / 60f * 8f);
+                // Check if ticksLeft is uninitialized (0) or finished
+                if (ticksLeft <= 0)
+                {
+                    // Return zero offset for uninitialized or finished state
+                    return Vector3.zero;
+                }
+
+                int totalTicks = SocialInteractions.Settings.dateLovinTicks;
+                
+                // Make sure we don't divide by zero
+                if (totalTicks <= 0)
+                {
+                    return Vector3.zero;
+                }
+
+                // Calculate progress (0.0 to 1.0 as time passes)
+                float progress = 1.0f - ((float)ticksLeft / totalTicks);
+
+                // Calculate animation speed based on progress
+                float animationSpeed = 1.0f;
+                if (progress <= 0.90f)
+                {
+                    // Linear interpolation from 1.0 to 2.0
+                    animationSpeed = 1.0f + (progress / 0.90f) * 1.0f;
+                }
+                else
+                {
+                    // Drop to 20% speed for the remaining time
+                    animationSpeed = 0.2f;
+                }
+                
+                // Calculate the base time parameter
+                float baseTime = progress * 8.0f * (totalTicks / 60.0f);
+                
+                // Apply the animation speed to effectively change the frequency
+                // To double the speed, we double the frequency (multiply time by speed)
+                float adjustedTime = baseTime * animationSpeed;
+                
+                float num = Mathf.Sin(adjustedTime);
                 Pawn initiator = DatingManager.GetInitiatorOfDateWith(pawn);
 
                 // If we can't get the initiator, just return zero offset
