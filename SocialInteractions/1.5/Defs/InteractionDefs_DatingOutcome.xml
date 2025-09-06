@@ -8,12 +8,12 @@
     <symbol>Things/Mote/SpeechSymbols/Slight</symbol>
     <logRulesInitiator>
       <rulesStrings>
-        <li>r_logentry->Asked [RECIPIENT_nameDef] on a date and was rejected.</li>
+        <li>r_logentry->[INITIATOR_nameDef] asked [RECIPIENT_nameDef] on a date and was rejected.</li>
       </rulesStrings>
     </logRulesInitiator>
     <logRulesRecipient>
       <rulesStrings>
-        <li>r_logentry->Rejected [INITIATOR_nameDef]'s date proposal.</li>
+        <li>r_logentry->[RECIPIENT_nameDef] rejected [INITIATOR_nameDef]'s date proposal.</li>
       </rulesStrings>
     </logRulesRecipient>
   </InteractionDef>
@@ -25,12 +25,12 @@
     <symbol>Things/Mote/SpeechSymbols/Romance</symbol>
     <logRulesInitiator>
       <rulesStrings>
-        <li>r_logentry->Went on a date with [RECIPIENT_nameDef].</li>
+        <li>r_logentry->[INITIATOR_nameDef] went on a date with [RECIPIENT_nameDef].</li>
       </rulesStrings>
     </logRulesInitiator>
     <logRulesRecipient>
       <rulesStrings>
-        <li>r_logentry->Went on a date with [INITIATOR_nameDef].</li>
+        <li>r_logentry->[RECIPIENT_nameDef] went on a date with [INITIATOR_nameDef].</li>
       </rulesStrings>
     </logRulesRecipient>
   </InteractionDef>

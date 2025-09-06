@@ -61,3 +61,4 @@ LordJob_PsychicRitual_CreateGraph_Patch.cs
 LordJob_Joinable_Party_CreateGraph_Patch.cs
 ChatLogManager.cs
 ChatLogTabWindow.cs
+TaleRecorder_Patch.cs

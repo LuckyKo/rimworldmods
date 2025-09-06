@@ -76,7 +76,7 @@ namespace SocialInteractions
         {
             // Add the message to our own list
             chatLog.Add(message);
-            SLog.Message("[ChatLogManager] Added message to chat log: " + message.GetFormattedMessage());
+            // SLog.Message("[ChatLogManager] Added message to chat log: " + message.GetFormattedMessage());
         }
         
         // Method for adding date events with specific fallback texts

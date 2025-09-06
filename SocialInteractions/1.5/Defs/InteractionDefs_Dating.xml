@@ -69,12 +69,12 @@
     <symbol>Things/Mote/SpeechSymbols/Romance</symbol>
     <logRulesInitiator>
       <rulesStrings>
-        <li>r_logentry->Ended a date with [RECIPIENT_nameDef] in a special way.</li>
+        <li>r_logentry->[INITIATOR_nameDef] ended a date with [RECIPIENT_nameDef] in a special way.</li>
       </rulesStrings>
     </logRulesInitiator>
     <logRulesRecipient>
       <rulesStrings>
-        <li>r_logentry->Ended a date with [INITIATOR_nameDef] in a special way.</li>
+        <li>r_logentry->[RECIPIENT_nameDef] ended a date with [INITIATOR_nameDef] in a special way.</li>
       </rulesStrings>
     </logRulesRecipient>
   </InteractionDef>

@@ -124,8 +124,8 @@ namespace SocialInteractions
             prompt = prompt.Replace("[relation]", relation);
 
             // Extract pawn data
-            var pawn1Data = ExtractPawnData(initiator, "pawn1");
-            var pawn2Data = ExtractPawnData(recipient, "pawn2");
+            var pawn1Data = ExtractPawnData(initiator, "pawn1", recipient);
+            var pawn2Data = ExtractPawnData(recipient, "pawn2", initiator);
 
             // Replace placeholders for pawn1
             foreach (var kvp in pawn1Data)
@@ -192,7 +192,7 @@ namespace SocialInteractions
             prompt = prompt.Replace("[subject]", subject ?? "");
 
             // Extract pawn data
-            var pawn1Data = ExtractPawnData(pawn, "pawn1");
+            var pawn1Data = ExtractPawnData(pawn, "pawn1", null);
 
             // Replace placeholders for pawn1
             foreach (var kvp in pawn1Data)
@@ -275,7 +275,7 @@ namespace SocialInteractions
         /// <param name="pawn">The pawn to extract data from.</param>
         /// <param name="prefix">The prefix to use for the dictionary keys (e.g., "pawn1", "pawn2").</param>
         /// <returns>A dictionary containing the pawn's data.</returns>
-        private static Dictionary<string, string> ExtractPawnData(Pawn pawn, string prefix)
+        private static Dictionary<string, string> ExtractPawnData(Pawn pawn, string prefix, Pawn target = null)
         {
             var data = new Dictionary<string, string>();
 
@@ -294,6 +294,7 @@ namespace SocialInteractions
                 data[prefix + "_action"] = "None";
                 data[prefix + "_proficiencies"] = "None";
                 data[prefix + "_genes"] = "None";
+                data[prefix + "_journal"] = "No recent conversations";
                 return data;
             }
 
@@ -367,7 +368,102 @@ namespace SocialInteractions
             }
             data[prefix + "_genes"] = genes;
 
+            // Add social log information
+            data[prefix + "_journal"] = GetLastSocialLogEntry(pawn, target);
+
             return data;
+        }
+
+        private static string GetLastSocialLogEntry(Pawn pawn, Pawn target = null)
+        {
+            try
+            {
+                if (Find.PlayLog == null || pawn == null)
+                {
+                    return "No recent conversations";
+                }
+
+                // Get the play log entries
+                var entries = Find.PlayLog.AllEntries;
+                if (entries == null)
+                {
+                    return "No recent conversations";
+                }
+
+                // Get the current game tick to filter out very recent entries
+                int currentTick = Find.TickManager.TicksGame;
+                // Only consider entries that are at least 1 hour old (1800 ticks = 1 hour in RimWorld)
+                int minAgeTicks = 1800;
+
+                // Look for the most recent interaction entry involving this pawn
+                for (int i = entries.Count - 1; i >= 0; i--)
+                {
+                    var entry = entries[i];
+                    if (entry == null) continue;
+
+                    // Check if this is a PlayLogEntry_Interaction
+                    if (entry.GetType().Name == "PlayLogEntry_Interaction")
+                    {
+                        // Check if this entry is old enough (not the current interaction)
+                        var tickField = entry.GetType().GetField("tick", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        if (tickField != null)
+                        {
+                            int entryTick = (int)tickField.GetValue(entry);
+                            // Skip entries that are too recent
+                            if (currentTick - entryTick < minAgeTicks)
+                            {
+                                continue;
+                            }
+                        }
+
+                        // For monologues (no target specified), return the last entry involving this pawn
+                        if (target == null)
+                        {
+                            // Check if this entry concerns our pawn
+                            var concernsMethod = entry.GetType().GetMethod("Concerns", new Type[] { typeof(Pawn) });
+                            if (concernsMethod == null) continue;
+
+                            bool concernsPawn = (bool)concernsMethod.Invoke(entry, new object[] { pawn });
+                            if (!concernsPawn) continue;
+
+                            // Get the text representation of the entry and clean up rich text formatting
+                            string entryText = entry.ToGameStringFromPOV(pawn);
+                            if (!string.IsNullOrEmpty(entryText))
+                            {
+                                return RemoveRichTextTags(entryText);
+                            }
+                        }
+                        // For conversations (target specified), look for the most recent entry involving both pawns
+                        else
+                        {
+                            // Check if this entry concerns BOTH pawns (regardless of who initiated it)
+                            var concernsMethod = entry.GetType().GetMethod("Concerns", new Type[] { typeof(Pawn) });
+                            if (concernsMethod == null) continue;
+
+                            bool concernsPawn = (bool)concernsMethod.Invoke(entry, new object[] { pawn });
+                            bool concernsTarget = (bool)concernsMethod.Invoke(entry, new object[] { target });
+                            
+                            // Only return entries that involve BOTH pawns
+                            if (concernsPawn && concernsTarget)
+                            {
+                                // Get the text representation of the entry and clean up rich text formatting
+                                string entryText = entry.ToGameStringFromPOV(pawn);
+                                if (!string.IsNullOrEmpty(entryText))
+                                {
+                                    return RemoveRichTextTags(entryText);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                SLog.Warning(string.Format("[SocialInteractions] GetLastSocialLogEntry: Exception while getting social log for {0}: {1}", 
+                    pawn != null ? pawn.LabelShort : "null", ex.Message));
+            }
+
+            return "No recent conversations";
         }
 
         private static string GetRelationship(Pawn initiator, Pawn recipient)

@@ -459,7 +459,9 @@ namespace SocialInteractions
                     // Add an LLM interaction for post-lovin reactions
                     // Only if lovin interactions are enabled in settings
                     // Skip spam protection since we're already in a date
-                    if (SocialInteractions.Settings.enableLovin)
+                    // Only the real initiator should make the LLM call to avoid duplicate conversations
+                    Pawn realInitiator = DatingManager.GetInitiatorOfDateWith(pawn);
+                    if (SocialInteractions.Settings.enableLovin && pawn == realInitiator)
                     {
                         SocialInteractions.HandleNonStoppingInteraction(initiator, currentPartner, SI_InteractionDefOf.DateLovin, 
                             SpeechBubbleManager.GetPostDateLovinSubject(initiator, currentPartner), true);
