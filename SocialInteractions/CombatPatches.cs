@@ -10,9 +10,8 @@ namespace SocialInteractions
     {
         public static readonly string[] AttackingTaunts = new string[]
         {
-            "Take this!",
-            "You're finished!",
             "Eat lead!",
+            "You're finished!",
             "Die, you scum!",
 			"Your aim's as useless as your life!",
 			"Looks like you lost the fight before it started, maggot!",
@@ -20,7 +19,6 @@ namespace SocialInteractions
 			"I've seen better shots from a blind monkey.",
 			"Your sorry ass isn't worth the bullet, scum.",
 			"If you were any more pathetic, you'd be a goblin.",
-			"You're dead meat!",
 			"That shot was so bad, even a pustule could do better.",
 			"Get used to dying, because it's gonna be your new hobby.",
 			"You're going down, bitch!",
@@ -50,6 +48,50 @@ namespace SocialInteractions
 			"This ain't no game, punk. You're dead meat!",
 			"Your life just flashed before your eyes…and it was short.",
 			"You shoulda stayed in bed, you useless sack of shit."
+        };
+
+        public static readonly string[] MeleeAttackingTaunts = new string[]
+        {
+            "Take this!",
+            "Eat steel!",
+            "Die by my blade!",
+            "Feel my steel!",
+            "You're mine!",
+            "Taste my blade!",
+            "Prepare to die!",
+            "I'll gut you!",
+            "Slice and dice!",
+            "Cut to pieces!",
+            "You're dead meat!",
+            "Time to bleed!",
+            "This is for my homies!",
+            "Your blood will be my victory!",
+            "I'll carve you up!",
+            "You're finished!",
+            "Die, scum!",
+            "Feel the pain!",
+            "I'll rip you apart!",
+            "You're history!",
+            "Time to meet your maker!",
+            "This is gonna hurt!",
+            "I'll end you!",
+            "You're going down!",
+            "This is for my family!",
+            "Feel my wrath!",
+            "You're nothing!",
+            "I'll crush you!",
+            "Die screaming!",
+            "This is personal!",
+            "You're dead!",
+            "I'll make you pay!",
+            "Time to die!",
+            "You're finished, maggot!",
+            "Eat steel, bitch!",
+            "This is the end for you!",
+            "I'll show you pain!",
+            "Your time is up!",
+            "I'll send you to hell!",
+            "You're fucked!"
         };
 
         public static readonly string[] GettingHitComplaints = new string[]
@@ -121,9 +163,9 @@ namespace SocialInteractions
     {
         public static void Postfix(Verb_MeleeAttack __instance, bool __result)
         {
-            if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && __instance.CasterPawn.RaceProps.Humanlike && Rand.Value < SocialInteractions.Settings.meleeTauntProbability)
+            if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && __instance.CasterPawn.RaceProps.Humanlike && !ShamblerHelper.IsShambler(__instance.CasterPawn) && Rand.Value < SocialInteractions.Settings.meleeTauntProbability)
             {
-                string taunt = CombatTaunts.AttackingTaunts.RandomElement();
+                string taunt = CombatTaunts.MeleeAttackingTaunts.RandomElement();
                 float duration = SocialInteractions.EstimateReadingTime(taunt);
                 SpeechBubbleManager.EnqueueInstant(__instance.CasterPawn, taunt, duration, null, false); // Use standard mote for combat taunts
             }
@@ -135,7 +177,7 @@ namespace SocialInteractions
     {
         public static void Postfix(Verb_Shoot __instance, bool __result)
         {
-            if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && __instance.CasterPawn.RaceProps.Humanlike && Rand.Value < SocialInteractions.Settings.shootTauntProbability)
+            if (__result && SocialInteractions.Settings.enableCombatTaunts && __instance.CasterIsPawn && __instance.CasterPawn.RaceProps.Humanlike && !ShamblerHelper.IsShambler(__instance.CasterPawn) && Rand.Value < SocialInteractions.Settings.shootTauntProbability)
             {
                 Pawn casterPawn = __instance.CasterPawn;
                 string taunt = CombatTaunts.AttackingTaunts.RandomElement();
@@ -153,7 +195,7 @@ namespace SocialInteractions
 
             Pawn pawn = (Pawn)AccessTools.Field(typeof(Pawn_HealthTracker), "pawn").GetValue(__instance);
 
-            if (pawn == null || !pawn.Spawned || pawn.Downed || !pawn.Awake() || !pawn.RaceProps.Humanlike) return;
+            if (pawn == null || !pawn.Spawned || pawn.Downed || !pawn.Awake() || !pawn.RaceProps.Humanlike || ShamblerHelper.IsShambler(pawn)) return;
 
             if (dinfo.Instigator == null || dinfo.Instigator == pawn || !dinfo.Def.ExternalViolenceFor(pawn)) return;
 
@@ -176,7 +218,7 @@ namespace SocialInteractions
         {
             if (!SocialInteractions.Settings.enableCombatTaunts) return;
             Pawn pawn = (Pawn)AccessTools.Field(typeof(Pawn_HealthTracker), "pawn").GetValue(__instance);
-            if (pawn.Spawned && pawn.RaceProps.Humanlike && Rand.Value < SocialInteractions.Settings.downedCallForHelpProbability)
+            if (pawn.Spawned && pawn.RaceProps.Humanlike && !ShamblerHelper.IsShambler(pawn) && Rand.Value < SocialInteractions.Settings.downedCallForHelpProbability)
             {
                 string callForHelp = CombatTaunts.DownedCallsForHelp.RandomElement();
                 float duration = SocialInteractions.EstimateReadingTime(callForHelp);
@@ -184,5 +226,32 @@ namespace SocialInteractions
             }
         }
     }
-    
+}
+
+// Helper method to check if a pawn is a shambler
+public static class ShamblerHelper
+{
+    public static bool IsShambler(Pawn pawn)
+    {
+        // Check if the ModsConfig.AnomalyActive is true first (shambler functionality requires Anomaly DLC)
+        if (!ModsConfig.AnomalyActive) return false;
+        
+        // Check if the pawn has the IsShambler property
+        try
+        {
+            // Use reflection to access the IsShambler property since it might not be available in all versions
+            var isShamblerProperty = typeof(Pawn).GetProperty("IsShambler");
+            if (isShamblerProperty != null)
+            {
+                return (bool)isShamblerProperty.GetValue(pawn, null);
+            }
+        }
+        catch (Exception ex)
+        {
+            // If there's any exception, just return false to be safe
+            SocialInteractions.SLog.Warning(string.Format("[SocialInteractions] Exception checking if pawn is shambler: {0}", ex.Message));
+        }
+        
+        return false;
+    }
 }

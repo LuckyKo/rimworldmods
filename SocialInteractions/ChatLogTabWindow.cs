@@ -118,7 +118,7 @@ namespace SocialInteractions
             // Draw the list of conversation groups
             Widgets.BeginScrollView(outRect, ref messagesScrollPos, viewRect);
             float num = 0f;
-            for (int i = conversationGroups.Count - 1; i >= 0; i--)
+            for (int i = 0; i < conversationGroups.Count; i++)
             {
                 ConversationGroup group = conversationGroups[i];
                 bool matchesSearch = !quickSearchWidget.filter.Active || quickSearchWidget.filter.Matches(group.title);
