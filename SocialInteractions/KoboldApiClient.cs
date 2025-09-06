@@ -163,6 +163,10 @@ namespace SocialInteractions
 
                 if (apiResponse != null && apiResponse.Results != null && apiResponse.Results.Length > 0)
                 {
+                    // Log the API request and response
+                    SLog.Message(string.Format("[SocialInteractions] LLM API Request: {0}", prompt));
+                    SLog.Message(string.Format("[SocialInteractions] LLM API Response: {0}", apiResponse.Results[0].Text));
+                    
                     return apiResponse.Results[0].Text;
                 }
                 return null;

@@ -309,11 +309,19 @@ namespace SocialInteractions
         }
 
         // New overload for LLM messages that handles all formatting internally
-        public static void Enqueue(Verse.Pawn speaker, string rawMessage, Pawn recipient, float duration, bool isFirstMessage, int conversationId, bool isHighPriority = false, bool useCustomMote = true)
+        public static void Enqueue(Verse.Pawn speaker, string rawMessage, Pawn recipient, float duration, bool isFirstMessage, int conversationId, bool isHighPriority = false, bool useCustomMote = true, string fallbackText = null)
         {
             // Format the message with speaker name and rich text
             string formattedMessage = FormatLlmMessage(rawMessage, speaker, recipient, isHighPriority);
             string wrappedMessage = SocialInteractions.WrapText(formattedMessage, SocialInteractions.Settings.wordsPerLineLimit);
+            
+            // Add to chat log
+            Color messageColor = isHighPriority ? new Color(1.0f, 0.6f, 0.2f) : Color.white; // Orange for high priority, white for normal
+            if (string.IsNullOrEmpty(fallbackText))
+            {
+                fallbackText = string.Format("{0} talks with {1}.", speaker.Name.ToStringShort, recipient.Name.ToStringShort);
+            }
+            ChatLogManager.AddMessage(new ChatMessage(speaker, recipient, rawMessage, MessageType.LLMChat, conversationId, messageColor, fallbackText, formattedMessage));
             
             lock (queueLock)
             {
@@ -322,16 +330,18 @@ namespace SocialInteractions
         }
 
         // New overload that automatically calculates duration
-        public static void Enqueue(Verse.Pawn speaker, string rawMessage, Pawn recipient, bool isFirstMessage, int conversationId, bool isHighPriority = false)
+        public static void Enqueue(Verse.Pawn speaker, string rawMessage, Pawn recipient, bool isFirstMessage, int conversationId, bool isHighPriority = false, string fallbackText = null)
         {
             float duration = EstimateReadingTime(rawMessage);
-            Enqueue(speaker, rawMessage, recipient, duration, isFirstMessage, conversationId, isHighPriority);
+            Enqueue(speaker, rawMessage, recipient, duration, isFirstMessage, conversationId, isHighPriority, true, fallbackText);
         }
 
         // Overload for fallback messages that applies basic formatting
         public static void Enqueue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId)
         {
             string wrappedMessage = SocialInteractions.WrapText(text, SocialInteractions.Settings.wordsPerLineLimit);
+            // Add to chat log with fallback text
+            ChatLogManager.AddMessage(new ChatMessage(speaker, null, text, MessageType.LLMChat, conversationId, Color.grey, text, text));
             lock (queueLock)
             {
                 speechBubbleQueue.Enqueue(new SpeechBubble(speaker, wrappedMessage, duration, conversationId, false, null));
@@ -391,6 +401,11 @@ namespace SocialInteractions
             // Format the message with speaker name and rich text
             string formattedMessage = FormatLlmMessage(rawMessage, speaker, recipient, isHighPriority);
             string wrappedMessage = SocialInteractions.WrapText(formattedMessage, SocialInteractions.Settings.wordsPerLineLimit);
+            
+            // Add to chat log
+            Color messageColor = isHighPriority ? new Color(1.0f, 0.6f, 0.2f) : Color.white; // Orange for high priority, white for normal
+            string fallbackText = string.Format("{0} talks with {1}.", speaker.Name.ToStringShort, recipient.Name.ToStringShort);
+            ChatLogManager.AddMessage(new ChatMessage(speaker, recipient, rawMessage, MessageType.LLMChat, -1, messageColor, fallbackText, formattedMessage));
             
             float endTime;
             if (pawnBubbleEndTimes.TryGetValue(speaker, out endTime) && Time.time < endTime)

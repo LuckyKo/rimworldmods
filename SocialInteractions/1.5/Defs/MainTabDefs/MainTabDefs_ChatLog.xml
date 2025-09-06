@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <MainButtonDef>
+    <defName>SocialInteractions_ChatLog</defName>
+    <label>Social Log</label>
+    <description>View the chat log of social interactions.</description>
+    <tabWindowClass>SocialInteractions.ChatLogTabWindow</tabWindowClass>
+    <order>75</order>
+    <minimized>True</minimized>
+  </MainButtonDef>
+</Defs>

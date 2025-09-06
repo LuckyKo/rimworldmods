@@ -890,6 +890,18 @@ namespace SocialInteractions
                 if (!string.IsNullOrEmpty(subject))
                 {
                     SpeechBubbleManager.ShowDefaultBubble(initiator, subject);
+                    
+                    // Add the event to the chat log with the subject as fallback text
+                    if (interactionDef == SI_InteractionDefOf.DateAccepted || 
+                        interactionDef == SI_InteractionDefOf.DateRejected || 
+                        interactionDef == SI_InteractionDefOf.DateLovin)
+                    {
+                        ChatLogManager.AddDateEvent(initiator, recipient, subject, subject);
+                    }
+                    else
+                    {
+                        ChatLogManager.AddGameEvent(initiator, recipient, subject, subject);
+                    }
                 }
                 SpeechBubbleManager.isLlmBusy = false; // Unlock LLM
                 return -1; // Return -1 to indicate no conversation was started
@@ -987,7 +999,7 @@ namespace SocialInteractions
                                         // --- Pass conversationId ---
                                         // Capture the loop variable to avoid closure issues
                                         int currentIndex = i;
-                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(speaker, rawMessage, recipient, currentIndex == 0, conversationId, true)); // Orange for high priority
+                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(speaker, rawMessage, recipient, duration, currentIndex == 0, conversationId, true, true, subject)); // Orange for high priority, pass subject as fallback text
                                         // --- End Pass conversationId ---
                                     }
                                 }
@@ -1208,6 +1220,13 @@ namespace SocialInteractions
         public static string RemoveRichTextTags(string text)
         {
             return Regex.Replace(text, "<color=#.{8}>|</color>", "");
+        }
+        
+        // Method to add a chat message to the log
+        public static void AddChatMessage(Pawn speaker, Pawn recipient, string message, MessageType type, int conversationId = -1, Color? color = null)
+        {
+            ChatMessage chatMessage = new ChatMessage(speaker, recipient, message, type, conversationId, color);
+            ChatLogManager.AddMessage(chatMessage);
         }
     }
 

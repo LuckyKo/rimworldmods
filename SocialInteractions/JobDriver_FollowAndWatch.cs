@@ -167,7 +167,8 @@ namespace SocialInteractions
                 }
                 
                 // Check if the initiator has moved on to a non-joy job, and if so, advance the date
-                if (initiator.jobs != null && initiator.jobs.curJob != null)
+                // Only check every 30 ticks (0.5 seconds) to reduce performance impact
+                if (initiator.jobs != null && initiator.jobs.curJob != null && this.pawn.IsHashIntervalTick(30))
                 {
                     // Check if the initiator's current job is NOT a joy job
                     bool isInitiatorDoingJoyJob = false;

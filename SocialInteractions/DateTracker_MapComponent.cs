@@ -75,9 +75,10 @@ namespace SocialInteractions
                         else
                         {
                             // Check if the initiator is doing a joy job
+                            // Only check every 30 ticks (0.5 seconds) to reduce performance impact
                             bool isDoingJoyJob = false;
                             JobDef initiatorJoyJobDef = null;
-                            if (initiator != null && initiator.CurJob != null)
+                            if (initiator != null && initiator.CurJob != null && Find.TickManager.TicksGame % 30 == 0)
                             {
                                 // Check if the job is a joy job
                                 foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)

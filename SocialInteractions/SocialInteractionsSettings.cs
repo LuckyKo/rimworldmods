@@ -203,6 +203,13 @@ It's currently [time], on [date] and the weather is [weather].
             SocialInteractions.Settings.joyThresholdForDate = listingStandard.Slider(SocialInteractions.Settings.joyThresholdForDate, 0f, 1f);
             listingStandard.Label(string.Format("Base lovin' chance after a date (0.0 - 1.0): {0}", SocialInteractions.Settings.baseLovinChance.ToString("F2")));
             SocialInteractions.Settings.baseLovinChance = listingStandard.Slider(SocialInteractions.Settings.baseLovinChance, 0f, 1f);
+            
+            // Add a button to open the chat log window
+            if (listingStandard.ButtonText("Open Chat Log Window"))
+            {
+                // Open the chat log tab
+                Find.MainTabsRoot.SetCurrentTab(DefDatabase<RimWorld.MainButtonDef>.GetNamed("SocialInteractions_ChatLog"));
+            }
 
 
             listingStandard.Gap();

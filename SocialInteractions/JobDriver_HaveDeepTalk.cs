@@ -229,7 +229,7 @@ namespace SocialInteractions
                             messageText = rawMessage.Substring(recipientForDisplay.Name.ToStringShort.Length + 1).Trim();
                         }
                         
-                        SpeechBubbleManager.Enqueue(speaker, messageText, recipientForDisplay, i == 0, conversationId, true); // Orange for high priority (stopping interactions)
+                        SpeechBubbleManager.Enqueue(speaker, messageText, recipientForDisplay, i == 0, conversationId, true, subject); // Orange for high priority (stopping interactions), pass subject as fallback text
                     }
                 }
             };
