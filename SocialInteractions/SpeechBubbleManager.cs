@@ -40,6 +40,9 @@ namespace SocialInteractions
             currentConversationId = 0;
             activeConversations.Clear();
             isLlmBusy = false;
+            
+            // Clear the chat log on game load
+            ChatLogManager.ClearChatLog();
         }
 
         public override void GameComponentTick()
@@ -353,6 +356,19 @@ namespace SocialInteractions
         {
             float duration = EstimateReadingTime(text);
             Enqueue(speaker, text, duration, isFirstMessage, conversationId);
+        }
+
+        // New method for monologue messages that adds them to the chat log
+        public static void EnqueueMonologue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId, Color? color = null, bool useCustomMote = false)
+        {
+            // Add to chat log as a monologue message
+            string fallbackText = string.Format("{0} thinks to themselves.", speaker.Name.ToStringShort);
+            ChatLogManager.AddMessage(new ChatMessage(speaker, null, text, MessageType.LLMChat, conversationId, color ?? Color.grey, fallbackText, text));
+            
+            lock (queueLock)
+            {
+                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color, useCustomMote));
+            }
         }
 
         // For instant messages (combat taunts)

@@ -342,55 +342,10 @@ namespace SocialInteractions
                                 partnerFromDate = date.Initiator;
                             }
 
-                            // Give thoughts to both pawns
-                            if (initiator != null && partnerFromDate != null && currentPartner == partnerFromDate)
-                            {
-                                // Give thought to initiator
-                                if (initiator.needs != null && initiator.needs.mood != null && initiator.needs.mood.thoughts != null && initiator.needs.mood.thoughts.memories != null)
-                                {
-                                    var thought = (Thought_Memory)ThoughtMaker.MakeThought(ThoughtDefOf.GotSomeLovin);
-                                    thought.otherPawn = partnerFromDate;
-                                    initiator.needs.mood.thoughts.memories.TryGainMemory(thought, null);
-                                }
+                            // "Got some lovin" thoughts, pregnancy, and post-lovin LLM call are now handled in DatingManager.HandleDateStage when stage is Finished
 
-                                // Give thought to partner
-                                if (partnerFromDate.needs != null && partnerFromDate.needs.mood != null && partnerFromDate.needs.mood.thoughts != null && partnerFromDate.needs.mood.thoughts.memories != null)
-                                {
-                                    var thought = (Thought_Memory)ThoughtMaker.MakeThought(ThoughtDefOf.GotSomeLovin);
-                                    thought.otherPawn = initiator;
-                                    partnerFromDate.needs.mood.thoughts.memories.TryGainMemory(thought, null);
-                                }
-                                
-                                // Handle pregnancy
-                                if (ModsConfig.BiotechActive)
-                                {
-                                    Pawn malePawn = ((initiator.gender == Gender.Male) ? initiator : ((currentPartner.gender == Gender.Male) ? currentPartner : null));
-                                    Pawn femalePawn = ((initiator.gender == Gender.Female) ? initiator : ((currentPartner.gender == Gender.Female) ? currentPartner : null));
-                                    
-                                    if (malePawn != null && femalePawn != null)
-                                    {
-                                        // Use the same pregnancy chance as vanilla lovin
-                                        float pregnancyChance = 0.05f;
-                                        
-                                        if (Rand.Chance(pregnancyChance * PregnancyUtility.PregnancyChanceForPartners(femalePawn, malePawn)))
-                                        {
-                                            bool success;
-                                            GeneSet inheritedGeneSet = PregnancyUtility.GetInheritedGeneSet(malePawn, femalePawn, out success);
-                                            if (success)
-                                            {
-                                                Hediff_Pregnant hediff_Pregnant = (Hediff_Pregnant)HediffMaker.MakeHediff(HediffDefOf.PregnantHuman, femalePawn);
-                                                hediff_Pregnant.SetParents(null, malePawn, inheritedGeneSet);
-                                                femalePawn.health.AddHediff(hediff_Pregnant);
-                                            }
-                                            else if (PawnUtility.ShouldSendNotificationAbout(malePawn) || PawnUtility.ShouldSendNotificationAbout(femalePawn))
-                                            {
-                                                Messages.Message("MessagePregnancyFailed".Translate(malePawn.Named("FATHER"), femalePawn.Named("MOTHER")) + ": " + "CombinedGenesExceedMetabolismLimits".Translate(), new LookTargets(malePawn, femalePawn), MessageTypeDefOf.NegativeEvent);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
+                            // Post-lovin LLM call is now handled in DatingManager.HandleDateStage when stage is Finished
+                            
                             // Advance the date stage
                             if (date.Stage == DateStage.Lovin)
                             {
@@ -432,14 +387,17 @@ namespace SocialInteractions
             Toil cleanupToil = ToilMaker.MakeToil("CleanupToil");
             cleanupToil.initAction = delegate
             {
+                SLog.Message("[SocialInteractions] JobDriver_DateLovin: cleanupToil.initAction called");
                 try
                 {
                     // Add comprehensive null checks to prevent NullReferenceException
-                    if (initiator == null)
+                    if (pawn == null)
                     {
-                        SLog.Warning("[SocialInteractions] JobDriver_DateLovin: initiator is null in cleanupToil.initAction.");
+                        SLog.Warning("[SocialInteractions] JobDriver_DateLovin: pawn is null in cleanupToil.initAction.");
                         return;
                     }
+                    
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: cleanupToil.initAction for pawn {0}", pawn.LabelShort));
                     
                     // Re-validate partner reference
                     Pawn currentPartner = Partner;
@@ -450,44 +408,31 @@ namespace SocialInteractions
                     }
                     
                     // Additional checks to ensure pawns are still valid
-                    if (initiator.Destroyed || currentPartner.Destroyed)
+                    if (pawn.Destroyed || currentPartner.Destroyed)
                     {
                         SLog.Warning("[SocialInteractions] JobDriver_DateLovin: One or both pawns are destroyed in cleanupToil.initAction.");
                         return;
                     }
                     
-                    // Add an LLM interaction for post-lovin reactions
-                    // Only if lovin interactions are enabled in settings
-                    // Skip spam protection since we're already in a date
-                    // Only the real initiator should make the LLM call to avoid duplicate conversations
-                    Pawn realInitiator = DatingManager.GetInitiatorOfDateWith(pawn);
-                    if (SocialInteractions.Settings.enableLovin && pawn == realInitiator)
-                    {
-                        SocialInteractions.HandleNonStoppingInteraction(initiator, currentPartner, SI_InteractionDefOf.DateLovin, 
-                            SpeechBubbleManager.GetPostDateLovinSubject(initiator, currentPartner), true);
-                    }
+                    // Post-lovin LLM call has been moved to the lovinToil.tickAction where the date is still active
                     
-                    SLog.Message(string.Format("[SocialInteractions] Removing SI_Naked hediff from {0} and {1}",
-                        initiator.LabelShort != null ? initiator.LabelShort : "NULL",
-                        currentPartner.LabelShort != null ? currentPartner.LabelShort : "NULL"));
-
-                    // Try to remove SI_Naked hediff from initiator
-                    if (initiator.health != null && initiator.health.hediffSet != null)
+                    // Try to remove SI_Naked hediff from initiator (pawn)
+                    if (pawn.health != null && pawn.health.hediffSet != null)
                     {
                         try
                         {
-                            Hediff hediff = initiator.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
+                            Hediff hediff = pawn.health.hediffSet.GetFirstHediffOfDef(HediffDef.Named("SI_Naked"));
                             if (hediff != null)
                             {
-                                initiator.health.RemoveHediff(hediff);
+                                pawn.health.RemoveHediff(hediff);
                                 SLog.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", 
-                                    initiator.LabelShort != null ? initiator.LabelShort : "NULL"));
+                                    pawn.LabelShort != null ? pawn.LabelShort : "NULL"));
                             }
                         }
                         catch (Exception ex)
                         {
                             SLog.Warning(string.Format("[SocialInteractions] Exception removing SI_Naked hediff from initiator {0}: {1}", 
-                                initiator.LabelShort != null ? initiator.LabelShort : "NULL", ex.Message));
+                                pawn.LabelShort != null ? pawn.LabelShort : "NULL", ex.Message));
                         }
                     }
 

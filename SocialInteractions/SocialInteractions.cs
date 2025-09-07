@@ -857,7 +857,7 @@ namespace SocialInteractions
                                         // --- Pass conversationId ---
                                         // Capture the loop variable to avoid closure issues
                                         int currentIndex = i;
-                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(pawn, wrappedMessage, duration, currentIndex == 0, conversationId, null, true)); // Orange for high priority
+                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, wrappedMessage, duration, currentIndex == 0, conversationId, null, true)); // Orange for high priority
                                         // --- End Pass conversationId ---
                                     }
                                 }

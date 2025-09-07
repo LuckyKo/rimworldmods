@@ -21,6 +21,7 @@ namespace SocialInteractions
         public Pawn Partner;
         public DateStage Stage;
         public int StageTransitionTick; // Track when the stage transition happened
+        public bool ReachedLovinStage; // Track whether the date reached the lovin stage
         public bool IsThreewayAction; // Flag to indicate if this is a 3p action
 
         public Date()
@@ -34,6 +35,7 @@ namespace SocialInteractions
             this.Partner = partner;
             this.Stage = DateStage.Joy;
             this.StageTransitionTick = 0;
+            this.ReachedLovinStage = false;
             this.IsThreewayAction = false;
         }
 
@@ -43,6 +45,7 @@ namespace SocialInteractions
             Scribe_References.Look(ref Partner, "partner");
             Scribe_Values.Look(ref Stage, "stage", DateStage.Joy);
             Scribe_Values.Look(ref StageTransitionTick, "stageTransitionTick", 0);
+            Scribe_Values.Look(ref ReachedLovinStage, "reachedLovinStage", false);
             Scribe_Values.Look(ref IsThreewayAction, "isThreewayAction", false);
         }
     }
@@ -158,6 +161,8 @@ namespace SocialInteractions
                 string partnerLabel = (date.Partner != null) ? date.Partner.LabelShort : "NULL";
                 
                 SLog.Message(string.Format("[SocialInteractions] Ending date for {0} and {1}.", initiatorLabel, partnerLabel));
+
+                // Post-lovin LLM call is now handled in JobDriver_DateLovin.cs
 
                 // Remove the date from the list first to prevent race conditions
                 if (!dates.Remove(date))
@@ -690,9 +695,97 @@ namespace SocialInteractions
                 case DateStage.Lovin:
                     // Set the stage transition tick when transitioning to Lovin stage
                     date.StageTransitionTick = Current.Game.tickManager.TicksGame;
+                    // Note: We don't set ReachedLovinStage = true here because the transition might fail
+                    // Instead, we'll set it in TransitionToLovin when the transition is successful
+                    SLog.Message(string.Format("[SocialInteractions] Attempting to transition to Lovin stage for date between {0} and {1}", 
+                        date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
+                        date.Partner != null ? date.Partner.LabelShort : "NULL"));
                     TransitionToLovin(date);
                     break;
                 case DateStage.Finished:
+                    SLog.Message(string.Format("[SocialInteractions] Handling Finished stage for date between {0} and {1}. ReachedLovinStage: {2}", 
+                        date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
+                        date.Partner != null ? date.Partner.LabelShort : "NULL",
+                        date.ReachedLovinStage));
+                    
+                    // Give "Got some lovin" thoughts to both pawns only if the date actually reached the lovin stage
+                    if (date.Initiator != null && date.Partner != null && date.ReachedLovinStage)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Giving lovin thoughts to {0} and {1}", 
+                            date.Initiator.LabelShort, date.Partner.LabelShort));
+                        
+                        // Give thought to initiator
+                        if (date.Initiator.needs != null && date.Initiator.needs.mood != null && date.Initiator.needs.mood.thoughts != null && date.Initiator.needs.mood.thoughts.memories != null)
+                        {
+                            var thought = (Thought_Memory)ThoughtMaker.MakeThought(ThoughtDefOf.GotSomeLovin);
+                            thought.otherPawn = date.Partner;
+                            date.Initiator.needs.mood.thoughts.memories.TryGainMemory(thought, null);
+                        }
+
+                        // Give thought to partner
+                        if (date.Partner.needs != null && date.Partner.needs.mood != null && date.Partner.needs.mood.thoughts != null && date.Partner.needs.mood.thoughts.memories != null)
+                        {
+                            var thought = (Thought_Memory)ThoughtMaker.MakeThought(ThoughtDefOf.GotSomeLovin);
+                            thought.otherPawn = date.Initiator;
+                            date.Partner.needs.mood.thoughts.memories.TryGainMemory(thought, null);
+                        }
+                    }
+                    else if (date.Initiator != null && date.Partner != null)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Skipping lovin thoughts for {0} and {1} because ReachedLovinStage is false", 
+                            date.Initiator.LabelShort, date.Partner.LabelShort));
+                    }
+                    
+                    // Handle pregnancy only if the date actually reached the lovin stage
+                    if (ModsConfig.BiotechActive && date.Initiator != null && date.Partner != null && date.ReachedLovinStage)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Handling pregnancy for {0} and {1}", 
+                            date.Initiator.LabelShort, date.Partner.LabelShort));
+                        
+                        Pawn malePawn = ((date.Initiator.gender == Gender.Male) ? date.Initiator : ((date.Partner.gender == Gender.Male) ? date.Partner : null));
+                        Pawn femalePawn = ((date.Initiator.gender == Gender.Female) ? date.Initiator : ((date.Partner.gender == Gender.Female) ? date.Partner : null));
+                        
+                        if (malePawn != null && femalePawn != null)
+                        {
+                            // Use the same pregnancy chance as vanilla lovin
+                            float pregnancyChance = 0.05f;
+                            
+                            if (Rand.Chance(pregnancyChance * PregnancyUtility.PregnancyChanceForPartners(femalePawn, malePawn)))
+                            {
+                                bool success;
+                                GeneSet inheritedGeneSet = PregnancyUtility.GetInheritedGeneSet(malePawn, femalePawn, out success);
+                                if (success)
+                                {
+                                    Hediff_Pregnant hediff_Pregnant = (Hediff_Pregnant)HediffMaker.MakeHediff(HediffDefOf.PregnantHuman, femalePawn);
+                                    hediff_Pregnant.SetParents(null, malePawn, inheritedGeneSet);
+                                    femalePawn.health.AddHediff(hediff_Pregnant);
+                                }
+                                else if (PawnUtility.ShouldSendNotificationAbout(malePawn) || PawnUtility.ShouldSendNotificationAbout(femalePawn))
+                                {
+                                    Messages.Message("MessagePregnancyFailed".Translate(malePawn.Named("FATHER"), femalePawn.Named("MOTHER")) + ": " + "CombinedGenesExceedMetabolismLimits".Translate(), new LookTargets(malePawn, femalePawn), MessageTypeDefOf.NegativeEvent);
+                                }
+                            }
+                        }
+                    }
+                    else if (date.Initiator != null && date.Partner != null)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Skipping pregnancy handling for {0} and {1} because ReachedLovinStage is false", 
+                            date.Initiator.LabelShort, date.Partner.LabelShort));
+                    }
+                    
+                    // Make post-lovin LLM call only if the date actually reached the lovin stage
+                    if (SocialInteractions.Settings.enableLovin && date.Initiator != null && date.Partner != null && date.ReachedLovinStage)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Making post-lovin LLM call between {0} and {1}", 
+                            date.Initiator.LabelShort, date.Partner.LabelShort));
+                        SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, 
+                            SpeechBubbleManager.GetPostDateLovinSubject(date.Initiator, date.Partner), true);
+                    }
+                    else if (date.Initiator != null && date.Partner != null)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Skipping post-lovin LLM call for {0} and {1} because ReachedLovinStage is false", 
+                            date.Initiator.LabelShort, date.Partner.LabelShort));
+                    }
                     EndDate(date);
                     break;
             }
@@ -819,6 +912,12 @@ namespace SocialInteractions
                         date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL",
                         date.Partner.jobs.curJob != null ? date.Partner.jobs.curJob.def.defName : "NULL"));
                 }
+
+                // Mark that the date successfully reached the lovin stage
+                date.ReachedLovinStage = true;
+                SLog.Message(string.Format("[SocialInteractions] Successfully transitioned to Lovin stage for date between {0} and {1}. ReachedLovinStage set to true.", 
+                    date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
+                    date.Partner != null ? date.Partner.LabelShort : "NULL"));
 
                 // Start the LLM interaction for date lovin, skipping spam protection since we're already in a date
                 // Only if lovin interactions are enabled in settings

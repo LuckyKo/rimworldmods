@@ -45,7 +45,8 @@ namespace SocialInteractions
                 messages.Sort((x, y) => x.timestamp.CompareTo(y.timestamp));
                 
                 // Build the full conversation with formatted messages and spacing
-                string conversation = "";
+                // Start with the title as the first line
+                string conversation = title + "\n\n";
                 for (int i = 0; i < messages.Count; i++)
                 {
                     ChatMessage message = messages[i];

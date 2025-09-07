@@ -72,7 +72,8 @@ namespace SocialInteractions
                     // Don't trigger LLM interaction when pawn is tending to themselves
                     if (doctor != patient)
                     {
-                        SocialInteractions.HandleNonStoppingInteraction(doctor, patient, SI_InteractionDefOf.TendPatient, "Tending to patient");
+                        string subject = string.Format("{0} is tending to patient {1}", doctor.LabelShort, patient.LabelShort);
+                        SocialInteractions.HandleNonStoppingInteraction(doctor, patient, SI_InteractionDefOf.TendPatient, subject);
                     }
                 });
             }
@@ -144,7 +145,8 @@ namespace SocialInteractions
                     Toil dialogueToil = new Toil();
                     dialogueToil.initAction = () =>
                     {
-                        SocialInteractions.HandleNonStoppingInteraction(initiator, partner, SI_InteractionDefOf.Lovin, "Lying in bed together, making love");
+                        string subject = string.Format("{0} and {1} are lying in bed together, making love", initiator.LabelShort, partner.LabelShort);
+                        SocialInteractions.HandleNonStoppingInteraction(initiator, partner, SI_InteractionDefOf.Lovin, subject);
                     };
                     dialogueToil.defaultCompleteMode = ToilCompleteMode.Instant;
 

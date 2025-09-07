@@ -14,12 +14,10 @@ namespace SocialInteractions
         // Postfix to handle the birth event
         public static void Postfix(TaleDef def, object[] args)
         {
-            // Debug logging to see if we're intercepting the method
-            SLog.Message(string.Format("[SocialInteractions] TaleRecorder_RecordTale_Patch.Postfix called with TaleDef: {0}", def != null ? def.defName : "null"));
-            
             // Check if this is a birth tale
             if (def == TaleDefOf.GaveBirth)
             {
+                SLog.Message(string.Format("[SocialInteractions] TaleRecorder_RecordTale_Patch.Postfix called with TaleDef: {0}", def != null ? def.defName : "null"));
                 SLog.Message("[SocialInteractions] Detected GaveBirth tale");
                 
                 // Try to cast the arguments to pawns
@@ -107,16 +105,12 @@ namespace SocialInteractions
         // Helper method to find the doctor who delivered the baby
         private static Pawn FindDoctorWhoDeliveredBaby(Pawn mother)
         {
-            SLog.Message("[SocialInteractions] FindDoctorWhoDeliveredBaby called");
-            
             // Check if there's a doctor nearby who has medical skills
             if (mother.Map != null && mother.Map.listerThings != null)
             {
                 List<Thing> nearbyThings = mother.Map.listerThings.ThingsOfDef(ThingDefOf.Human);
                 if (nearbyThings != null)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] Found {0} nearby humans", nearbyThings.Count));
-                    
                     Pawn bestCandidate = null;
                     int bestMedicalSkill = -1;
                     
@@ -125,16 +119,12 @@ namespace SocialInteractions
                         Pawn pawn = thing as Pawn;
                         if (pawn != null && pawn != mother && pawn.Position.DistanceTo(mother.Position) <= 10f)
                         {
-                            SLog.Message(string.Format("[SocialInteractions] Checking nearby pawn {0}", pawn.LabelShort));
-                            
                             // Check if this pawn has medical skills
                             if (pawn.skills != null)
                             {
                                 SkillRecord medicalSkill = pawn.skills.GetSkill(SkillDefOf.Medicine);
                                 if (medicalSkill != null)
                                 {
-                                    SLog.Message(string.Format("[SocialInteractions] Pawn {0} has medical skill level {1}", pawn.LabelShort, medicalSkill.Level));
-                                    
                                     // Prefer pawns with higher medical skills
                                     if (medicalSkill.Level > bestMedicalSkill)
                                     {
@@ -147,14 +137,11 @@ namespace SocialInteractions
                             // Also check current job
                             if (pawn.jobs != null && pawn.jobs.curJob != null)
                             {
-                                SLog.Message(string.Format("[SocialInteractions] Pawn {0} has current job: {1}", pawn.LabelShort, pawn.jobs.curJob.def.defName));
-                                
                                 // If they're currently doing a medical job, they're probably the doctor
                                 if (pawn.jobs.curJob.def == JobDefOf.TendPatient || 
                                     pawn.jobs.curJob.def == JobDefOf.CarryToMomAfterBirth ||
                                     pawn.jobs.curJob.def.defName == "AssistInChildbirth")
                                 {
-                                    SLog.Message(string.Format("[SocialInteractions] Found doctor with medical job: {0}", pawn.jobs.curJob.def.defName));
                                     return pawn;
                                 }
                             }
@@ -164,15 +151,14 @@ namespace SocialInteractions
                     // If we found a candidate with medical skills, return them
                     if (bestCandidate != null)
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Returning best candidate {0} with medical skill {1}", 
-                            bestCandidate.LabelShort, bestMedicalSkill));
+                        SLog.Message(string.Format("[SocialInteractions] Found doctor {0} with medical skill {1} for mother {2}", 
+                            bestCandidate.LabelShort, bestMedicalSkill, mother.LabelShort));
                         return bestCandidate;
                     }
                 }
             }
             
             // If we still haven't found a doctor, return null
-            SLog.Message("[SocialInteractions] No doctor found");
             return null;
         }
     }
