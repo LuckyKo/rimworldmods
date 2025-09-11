@@ -16,6 +16,7 @@ namespace SocialInteractions
         
         public static InteractionDef DateLovin;
         public static InteractionDef CaughtCheating;
+        public static InteractionDef ManualChat;
         
     }
 }

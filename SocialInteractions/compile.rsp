@@ -62,3 +62,5 @@ LordJob_Joinable_Party_CreateGraph_Patch.cs
 ChatLogManager.cs
 ChatLogTabWindow.cs
 TaleRecorder_Patch.cs
+JobDriver_HaveChatWith.cs
+Pawn_GetGizmos_Patch.cs

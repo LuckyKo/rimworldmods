@@ -57,7 +57,7 @@ namespace SocialInteractions
                 string subject = GenerateRitualSubject(__instance.def, invoker);
                 
                 // Trigger a monologue for the invoker
-                SocialInteractions.HandleMonologue(invoker, subject, true);
+                SocialInteractions.HandleMonologue(invoker, subject, true, "speech");
             }
             catch (Exception ex)
             {

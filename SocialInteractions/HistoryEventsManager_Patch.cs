@@ -43,7 +43,7 @@ namespace SocialInteractions
 
             string subject = " bonded with an animal";
 
-            SocialInteractions.HandleMonologue(doer, subject);
+            SocialInteractions.HandleMonologue(doer, subject, false, "monologue");
         }
 
         private static void CleanupExpiredCooldowns()

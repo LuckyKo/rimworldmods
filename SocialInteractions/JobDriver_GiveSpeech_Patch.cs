@@ -83,7 +83,7 @@ namespace SocialInteractions
                 }
             }
 
-            SocialInteractions.HandleMonologue(__instance.pawn, subject, true);
+            SocialInteractions.HandleMonologue(__instance.pawn, subject, true, "speech");
         }
 
         private static void CleanupExpiredCooldowns()

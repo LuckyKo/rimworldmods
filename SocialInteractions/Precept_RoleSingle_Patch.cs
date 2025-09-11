@@ -18,7 +18,7 @@ namespace SocialInteractions
             string subject = " has been assigned the role of " + __instance.LabelCap;
 
             // Call the monologue handler
-            SocialInteractions.HandleMonologue(p, subject, true);
+            SocialInteractions.HandleMonologue(p, subject, true, "speech");
         }
     }
 }

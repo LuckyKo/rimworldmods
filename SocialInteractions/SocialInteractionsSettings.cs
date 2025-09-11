@@ -13,9 +13,9 @@ namespace SocialInteractions
         public string llmApiKey = "1234";
         public string llmPromptTemplate = @"The following is an interraction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
 
-[pawn1] is a [pawn1_age] yo [pawn1_sex], has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1] is currently [pawn1_action].
+[pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1]'s family: [pawn1_family]. [pawn1] is currently [pawn1_action].
 
-[pawn2] is a [pawn2_age] yo [pawn2_sex], has the following traits: [pawn2_traits]; Xenotype: [pawn2_genes]; [pawn2] is proficient in: [pawn2_proficiencies]; [pawn2]'s mood is [pawn2_mood], positives: [pawn2_likes] / negatives: [pawn2_dislikes]; Medical status: [pawn2_afflictions]. [pawn2] is currently [pawn2_action].
+[pawn2] is a [pawn2_sex], age [pawn2_age], a [pawn2_title] following the [pawn2_ideology] ideology, has the following traits: [pawn2_traits]; Xenotype: [pawn2_genes]; [pawn2] is proficient in: [pawn2_proficiencies]; [pawn2]'s mood is [pawn2_mood], positives: [pawn2_likes] / negatives: [pawn2_dislikes]; Medical status: [pawn2_afflictions]. [pawn2]'s family: [pawn2_family]. [pawn2] is currently [pawn2_action].
 
 [pawn2] is [pawn1]'s [relation].
 Last time they spoke: [pawn1_journal]
@@ -26,9 +26,9 @@ Current event: [subject]
 
 <start>
 [pawn1]:";
-        public string llmMonologuePromptTemplate = @"The following is a monologue by a RimWorld character, [pawn1]. It's a brutal world out there so use swearing, explicit or rough language freely.
+        public string llmMonologuePromptTemplate = @"The following is a [topic] by a RimWorld character, [pawn1]. It's a brutal world out there so use swearing, explicit or rough language freely.
 
-[pawn1] is a [pawn1_age] yo [pawn1_sex], has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1] is currently [pawn1_action]. Last time they spoke: [pawn1_journal]
+[pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1] is currently [pawn1_action]. Last time they spoke: [pawn1_journal]
 
 It's currently [time], on [date] and the weather is [weather].
 
@@ -44,6 +44,7 @@ Current event: [pawn1] [subject]
         public bool preventSpam = false;
 
         public bool enableChitchat = true;
+        public bool enableManualChat = true; // New setting for manual chat
         public bool enableDeepTalk = true;
         public bool enableInsult = true;
         public bool enableRomanceAttempt = true;
@@ -116,6 +117,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref llmMaxTokens, "llmMaxTokens", 300);
 
             Scribe_Values.Look(ref enableChitchat, "enableChitchat", true);
+            Scribe_Values.Look(ref enableManualChat, "enableManualChat", true); // New setting for manual chat
             Scribe_Values.Look(ref enableDeepTalk, "enableDeepTalk", true);
             Scribe_Values.Look(ref enableInsult, "enableInsult", true);
             Scribe_Values.Look(ref enableRomanceAttempt, "enableRomanceAttempt", true);
@@ -289,6 +291,7 @@ Current event: [pawn1] [subject]
             listingStandard.Gap();
             listingStandard.Label("Enabled LLM Interaction Types:");
             listingStandard.CheckboxLabeled("Chitchat", ref SocialInteractions.Settings.enableChitchat);
+            listingStandard.CheckboxLabeled("Manual Chat", ref SocialInteractions.Settings.enableManualChat); // New setting for manual chat
             listingStandard.CheckboxLabeled("DeepTalk", ref SocialInteractions.Settings.enableDeepTalk);
             listingStandard.CheckboxLabeled("Insult", ref SocialInteractions.Settings.enableInsult);
             listingStandard.CheckboxLabeled("RomanceAttempt", ref SocialInteractions.Settings.enableRomanceAttempt);

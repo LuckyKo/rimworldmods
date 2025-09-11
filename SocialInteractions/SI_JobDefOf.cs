@@ -10,5 +10,6 @@ namespace SocialInteractions
         public static JobDef GoOnDate;
         public static JobDef FollowAndWatchInitiator;
         public static JobDef CaughtCheatingInteraction;
+        public static JobDef HaveChatWith;
     }
 }

@@ -42,7 +42,7 @@ namespace SocialInteractions
             string subject = " is experiencing " + stateDef.LabelCap;
 
             // Call the monologue handler
-            SocialInteractions.HandleMonologue(pawn, subject);
+            SocialInteractions.HandleMonologue(pawn, subject, false, "monologue");
         }
 
         private static void CleanupExpiredCooldowns()

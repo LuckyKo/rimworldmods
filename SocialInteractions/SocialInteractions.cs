@@ -56,6 +56,7 @@ namespace SocialInteractions
             if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) return true;
             if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating && Settings.enableLovin) return true;
             if (interactionDef == SI_InteractionDefOf.CaughtCheating && Settings.enableDating) return true;
+            if (interactionDef == SI_InteractionDefOf.ManualChat && Settings.enableManualChat) return true;
             return false;
         }
 
@@ -102,6 +103,7 @@ namespace SocialInteractions
             else if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating && Settings.enableLovin) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.CaughtCheating && Settings.enableDating) isEnabled = true;
+            else if (interactionDef == SI_InteractionDefOf.ManualChat && Settings.enableManualChat) isEnabled = true;
 
             SLog.Message(string.Format("[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for {0}: {1}", interactionDef.defName, isEnabled));
             if (!isEnabled)
@@ -116,7 +118,7 @@ namespace SocialInteractions
 
             // Placeholder replacement (initial version, will expand later)
             string prompt = Settings.llmPromptTemplate;
-            prompt = prompt.Replace("[topic]", interactionDef.label);
+            prompt = prompt.Replace("[topic]", "interaction");
             prompt = prompt.Replace("[subject]", subject ?? "");
 
             // Get relationship
@@ -166,7 +168,7 @@ namespace SocialInteractions
             return prompt;
         }
 
-        public static string GenerateMonologuePrompt(Pawn pawn, string subject)
+        public static string GenerateMonologuePrompt(Pawn pawn, string subject, string topic = "monologue")
         {
             if (pawn == null)
             {
@@ -189,6 +191,7 @@ namespace SocialInteractions
 
             // Placeholder replacement (initial version, will expand later)
             string prompt = Settings.llmMonologuePromptTemplate;
+            prompt = prompt.Replace("[topic]", topic);
             prompt = prompt.Replace("[subject]", subject ?? "");
 
             // Extract pawn data
@@ -285,6 +288,8 @@ namespace SocialInteractions
                 data[prefix] = "Unknown";
                 data[prefix + "_age"] = "Unknown";
                 data[prefix + "_sex"] = "Unknown";
+                data[prefix + "_title"] = "Unknown";
+                data[prefix + "_ideology"] = "None";
                 data[prefix + "_traits"] = "None";
                 data[prefix + "_mood"] = "N/A";
                 data[prefix + "_dislikes"] = "None";
@@ -294,6 +299,7 @@ namespace SocialInteractions
                 data[prefix + "_action"] = "None";
                 data[prefix + "_proficiencies"] = "None";
                 data[prefix + "_genes"] = "None";
+                data[prefix + "_family"] = "None";
                 data[prefix + "_journal"] = "No recent conversations";
                 return data;
             }
@@ -302,6 +308,145 @@ namespace SocialInteractions
             data[prefix] = pawn.Name.ToStringShort;
             data[prefix + "_age"] = pawn.ageTracker.AgeBiologicalYears.ToString();
             data[prefix + "_sex"] = pawn.gender.ToString();
+            
+            // Title (colonist/prisoner/slave/outsider/guest/animal) with optional royalty title
+            string title = "outsider"; // Default to outsider
+            if (!pawn.RaceProps.Humanlike)
+            {
+                // More specific categorization for non-humanlike entities
+                if (pawn.RaceProps.IsMechanoid)
+                {
+                    title = "mech";
+                }
+                else if (pawn.RaceProps.IsAnomalyEntity)
+                {
+                    // Further categorize anomaly entities
+                    if (pawn.IsGhoul)
+                    {
+                        title = "ghoul";
+                    }
+                    else if (pawn.IsShambler)
+                    {
+                        title = "shambler";
+                    }
+                    else if (pawn.RaceProps.FleshType == FleshTypeDefOf.EntityFlesh)
+                    {
+                        title = "entity (flesh)";
+                    }
+                    else if (pawn.RaceProps.FleshType == FleshTypeDefOf.EntityMechanical)
+                    {
+                        title = "entity (mechanical)";
+                    }
+                    else if (pawn.RaceProps.FleshType == FleshTypeDefOf.Fleshbeast)
+                    {
+                        title = "fleshbeast";
+                    }
+                    else
+                    {
+                        title = "entity";
+                    }
+                }
+                else if (pawn.RaceProps.IsDrone)
+                {
+                    title = "drone";
+                }
+                else if (pawn.RaceProps.Animal)
+                {
+                    // More specific animal types
+                    if (pawn.RaceProps.Insect)
+                    {
+                        title = "insect";
+                    }
+                    else if (pawn.RaceProps.Dryad)
+                    {
+                        title = "dryad";
+                    }
+                    else
+                    {
+                        title = "animal (" + pawn.kindDef.race.defName + ")";
+                    }
+                }
+                else
+                {
+                    title = "animal";
+                }
+            }
+            else if (pawn.IsColonist)
+            {
+                title = "colonist";
+            }
+            else if (pawn.IsPrisonerOfColony)
+            {
+                title = "prisoner";
+            }
+            else if (pawn.IsSlaveOfColony)
+            {
+                title = "slave";
+            }
+            else if (pawn.guest != null && pawn.guest.GuestStatus == GuestStatus.Guest)
+            {
+                title = "guest";
+            }
+            
+            // Append royalty title if the pawn has one
+            if (pawn.royalty != null)
+            {
+                RoyalTitleDef royalTitle = pawn.royalty.MainTitle();
+                if (royalTitle != null)
+                {
+                    title += " (" + royalTitle.GetLabelCapFor(pawn);
+                    
+                    // If the pawn has a noble rank and belongs to a faction, add the faction name
+                    // Check the title's faction first, then fall back to pawn's faction
+                    Faction titleFaction = null;
+                    List<RoyalTitle> allTitles = pawn.royalty.AllTitlesForReading;
+                    if (allTitles != null)
+                    {
+                        foreach (RoyalTitle rt in allTitles)
+                        {
+                            if (rt.def == royalTitle && rt.faction != null)
+                            {
+                                titleFaction = rt.faction;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // If we couldn't get the title's faction, fall back to pawn's faction
+                    if (titleFaction == null && pawn.Faction != null && !pawn.Faction.IsPlayer)
+                    {
+                        titleFaction = pawn.Faction;
+                    }
+                    
+                    if (titleFaction != null)
+                    {
+                        // Add more detailed logging to help debug faction name issues
+                        string factionName = titleFaction.Name;
+                        if (!string.IsNullOrEmpty(factionName))
+                        {
+                            title += " of " + factionName;
+                        }
+                        else
+                        {
+                            // If faction name is empty, use the faction def name as fallback
+                            title += " of " + titleFaction.def.label;
+                        }
+                    }
+                    
+                    title += ")";
+                }
+            }
+            
+            data[prefix + "_title"] = title;
+            
+            // Ideology
+            string ideology = "None";
+            if (pawn.Ideo != null)
+            {
+                ideology = pawn.Ideo.name;
+            }
+            
+            data[prefix + "_ideology"] = ideology;
 
             // Traits
             string traits = "None";
@@ -367,6 +512,9 @@ namespace SocialInteractions
                 }
             }
             data[prefix + "_genes"] = genes;
+
+            // Family information
+            data[prefix + "_family"] = GetFamily(pawn);
 
             // Add social log information
             data[prefix + "_journal"] = GetLastSocialLogEntry(pawn, target);
@@ -759,9 +907,9 @@ namespace SocialInteractions
             return conversationId;
         }
 
-        public static int HandleMonologue(Pawn pawn, string subject, bool skipSpamProtection = false)
+        public static int HandleMonologue(Pawn pawn, string subject, bool skipSpamProtection = false, string topic = "monologue")
         {
-            SLog.Message(string.Format("[SocialInteractions] HandleMonologue called for: {0}. preventSpam: {1}, isLlmBusy: {2}, skipSpamProtection: {3}", pawn.LabelShort, Settings.preventSpam, SpeechBubbleManager.isLlmBusy, skipSpamProtection));
+            SLog.Message(string.Format("[SocialInteractions] HandleMonologue called for: {0}. preventSpam: {1}, isLlmBusy: {2}, skipSpamProtection: {3}, topic: {4}", pawn.LabelShort, Settings.preventSpam, SpeechBubbleManager.isLlmBusy, skipSpamProtection, topic));
             if (!skipSpamProtection && Settings.preventSpam && SpeechBubbleManager.isLlmBusy)
             {
                 // Show default bubble when LLM is busy and we're preventing spam
@@ -778,7 +926,7 @@ namespace SocialInteractions
             SLog.Message(string.Format("[SocialInteractions] Set isLlmBusy = true for monologue by {0}", pawn.LabelShort));
             // --- End Explicitly set LLM busy flag ---
 
-            string prompt = GenerateMonologuePrompt(pawn, subject);
+            string prompt = GenerateMonologuePrompt(pawn, subject, topic);
 
             // If we can't generate a prompt, show a default bubble and return
             if (string.IsNullOrEmpty(prompt))
@@ -1313,6 +1461,58 @@ namespace SocialInteractions
             });
         }
 
+        /// <summary>
+        /// Gets the first-degree relatives of a pawn as a formatted string.
+        /// </summary>
+        /// <param name="pawn">The pawn to get relatives for</param>
+        /// <returns>A formatted string listing the pawn's first-degree relatives, or "None" if none exist</returns>
+        private static string GetFamily(Pawn pawn)
+        {
+            if (pawn == null || pawn.relations == null)
+            {
+                return "None";
+            }
+
+            try
+            {
+                List<string> relatives = new List<string>();
+                
+                // Get direct relations (spouse, lover, etc.)
+                foreach (var relation in pawn.relations.PotentiallyRelatedPawns)
+                {
+                    if (relation == null || relation == pawn) continue;
+                    
+                    PawnRelationDef relationDef = pawn.GetMostImportantRelation(relation);
+                    if (relationDef != null)
+                    {
+                        // Only include family relations
+                        if (relationDef.familyByBloodRelation || 
+                            relationDef == PawnRelationDefOf.Spouse || 
+                            relationDef == PawnRelationDefOf.Fiance || 
+                            relationDef == PawnRelationDefOf.Lover ||
+                            relationDef == PawnRelationDefOf.Parent || 
+                            relationDef == PawnRelationDefOf.Child)
+                        {
+                            string relationLabel = relationDef.GetGenderSpecificLabelCap(relation);
+                            relatives.Add(string.Format("{0} ({1})", relation.Name.ToStringShort, relationLabel));
+                        }
+                    }
+                }
+
+                if (relatives.Count > 0)
+                {
+                    return string.Join(", ", relatives.ToArray());
+                }
+            }
+            catch (Exception ex)
+            {
+                SLog.Warning(string.Format("[SocialInteractions] GetFamily: Exception while getting family for {0}: {1}", 
+                    pawn != null ? pawn.LabelShort : "null", ex.Message));
+            }
+
+            return "None";
+        }
+        
         public static string RemoveRichTextTags(string text)
         {
             return Regex.Replace(text, "<color=#.{8}>|</color>", "");

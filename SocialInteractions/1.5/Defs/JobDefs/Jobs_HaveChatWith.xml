@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <JobDef>
+    <defName>HaveChatWith</defName>
+    <driverClass>SocialInteractions.JobDriver_HaveChatWith</driverClass>
+    <reportString>having a chat with TargetA.</reportString>
+    <joyDuration>2000</joyDuration>
+    <joyKind>Social</joyKind>
+  </JobDef>
+</Defs>

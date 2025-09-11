@@ -48,7 +48,7 @@ namespace SocialInteractions
                 subject = "is starting a concert";
             }
 
-            SocialInteractions.HandleMonologue(organizer, subject, true);
+            SocialInteractions.HandleMonologue(organizer, subject, true, "speech");
         }
 
         private static void CleanupExpiredCooldowns()

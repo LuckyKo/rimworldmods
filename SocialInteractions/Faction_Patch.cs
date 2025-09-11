@@ -24,7 +24,7 @@ namespace SocialInteractions
             string subject = " has become the new leader";
 
             // Call the monologue handler
-            SocialInteractions.HandleMonologue(newLeader, subject, true);
+            SocialInteractions.HandleMonologue(newLeader, subject, true, "speech");
         }
     }
 }
