@@ -228,7 +228,7 @@ namespace SocialInteractions
         
         public static string GetDateLovinSubject(Pawn initiator, Pawn recipient)
         {
-            return string.Format("{0} and {1} are doing some passionate lovin' after a fun date.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+            return string.Format("{0} and {1} are making love after a fun date.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
         }
         
         public static string GetDateRejectionSubject(Pawn initiator, Pawn recipient)
