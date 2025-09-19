@@ -14,8 +14,10 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
   - `GenerateDeepTalkPrompt`, `GenerateMonologuePrompt`: Constructs detailed prompts for the LLM using pawn (traits, mood, genes, skills, etc.) and world data (date, time, weather). Now includes recent conversation history via the `[pawn1_journal]` and `[pawn2_journal]` placeholders.
   - `HandleInteraction`, `HandleNonStoppingInteraction`, `HandleJobGiverInteraction`, `HandleMonologue`: Entry points for triggering LLM interactions, managing asynchronous calls, parsing responses, and queuing speech bubbles.
   - `HandleCaughtCheatingInteraction`: A special handler that holds the cheating pawn in place, triggers a specific LLM interaction, and schedules a delayed fight between the pawns.
+  - `HandleThreewayLovinInteraction`: Handles special 3p action scenarios with LLM dialogue.
   - Text utility methods (`WrapText`, `EstimateReadingTime`, `RemoveRichTextTags`, `FormatLlmText`).
 - **Pawn Data Helpers**: Private methods (`GetRelationship`, `GetDislikes`, `GetAfflictions`, etc.) to extract relevant pawn information for prompts. Includes `GetLastSocialLogEntry` to extract recent conversation history between pawns.
+- **Multi-API Support**: Added support for multiple LLM API types (KoboldCpp, Ollama, LMStudio, OpenAI) with `GenerateTextWithApiClient` method.
 
 ### 2. `SpeechBubbleManager.cs` (UI/Display)
 - **GameComponent** managing the display and queuing of speech bubbles.
@@ -24,6 +26,8 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **Threading**: Uses locks to safely manage shared queues (`speechBubbleQueue`, `pendingJobs`) across asynchronous LLM calls and the main game thread.
 - **Display Methods**: `Enqueue` (for sequential), `EnqueueInstant` (for immediate, e.g., taunts), `ShowDefaultBubble` (for non-LLM summaries).
 - **Conversation Management**: Tracks conversation IDs and active conversations to prevent overlapping dialogues.
+- **Chat Log Integration**: Integrates with `ChatLogManager` to store all interactions for later review.
+- **Efficiency System**: Implements scheduled unlock timing to optimize LLM request handling with `ScheduleUnlock` method.
 
 ### 3. `DatingManager.cs` (Dating State Machine)
 - **Static class** managing the high-level state of ongoing dates.
@@ -37,6 +41,7 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **Persistence**: `ExposeData` for saving/loading date state.
 - **Maintenance**: `CleanupExpiredDateCooldowns`, `CheckForStuckDates`.
 - **Stage Management**: Handles date stage transitions with proper timing and job management.
+- **3p Actions**: Support for threeway actions with special handling for spouse involvement.
 
 ### 4. `DateTracker_MapComponent.cs` (Date Lifecycle Engine)
 - **MapComponent** that acts as the primary engine for progressing dates. It runs continuously, monitoring pawns and calling state changes on the `DatingManager`.
@@ -52,11 +57,12 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **Grace Period**: Provides a grace period for pawns to transition into the correct job before removing the hediff.
 - **3p Action Support**: Handles special cases for 3p actions where multiple pawns may have the SI_Naked hediff.
 
-### 6. `KoboldApiClient.cs` (LLM Communication)
-- **Class** handling communication with the external LLM API (KoboldCpp).
-- **Data Contracts**: Defines `KoboldApiRequest` and `KoboldApiResponse` for serialization.
+### 6. `KoboldApiClient.cs`, `OllamaApiClient.cs`, `LMStudioApiClient.cs`, `OpenAiApiClient.cs` (LLM Communication)
+- **Classes** handling communication with various external LLM APIs.
+- **Data Contracts**: Defines API request/response structures for serialization.
 - **`GenerateText`**: Main method to send a prompt to the API and receive a response.
 - **Error Handling**: Robust error handling for network issues and API failures.
+- **Sampling Parameters**: Support for advanced sampling parameters like Top-K, Top-P, Min-P.
 
 ### 7. `SLog.cs` (Logging)
 - **Static class** providing a wrapper around `Verse.Log` with a verbosity toggle based on mod settings.
@@ -66,6 +72,13 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **`SocialInteractionsModSettings`**: Holds all configurable options (API keys, flags for features/interactions, prompt template, UI/UX settings).
 - **`SocialInteractionsMod`**: Implements the in-game settings UI.
 - **Extensive Configuration**: Numerous settings for fine-tuning all aspects of the mod's behavior, from dating mechanics to LLM parameters.
+- **Multi-API Support**: Configuration options for different LLM API types with their specific settings.
+
+### 9. `ChatLogManager.cs` (Chat History)
+- **Static class** managing the storage and retrieval of all chat messages.
+- **ChatMessage Class**: Represents individual messages with speaker, recipient, timestamp, type, and formatting information.
+- **Message Types**: Supports different message types (LLMChat, GameEvent, DateEvent, CombatEvent) for filtering.
+- **Integration**: Works with SpeechBubbleManager to store all interactions for later review in the chat log window.
 
 ## Job Drivers
 
@@ -82,6 +95,7 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **Thought Management**: Gives appropriate thoughts to both pawns after the activity.
 - **Pregnancy Handling**: Handles pregnancy mechanics for Biotech-enabled games.
 - **Stage Completion**: Advances the date to the finished stage upon completion.
+- **Efficiency**: Optimized tick handling with proper cleanup.
 
 ### `JobDriver_FollowAndWatch.cs`
 - **Custom JobDriver** for the date partner to follow the initiator during the joy stage.
@@ -137,12 +151,17 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 3. `HandleMonologue`:
     - Checks if LLM interactions are enabled and if spam protection is active.
     - Generates a prompt using `GenerateMonologuePrompt`, which includes detailed information about the pawn and the world context.
-    - Sends the prompt to the LLM API via `KoboldApiClient`.
+    - Sends the prompt to the LLM API via the appropriate client.
     - Processes the LLM response, splitting it into individual lines.
     - Queues each line as a speech bubble via `SpeechBubbleManager.Enqueue`.
     - Manages conversation state and timing for a smooth display experience.
 
 ## Recent Enhancements
+
+### Multi-API Support
+- **Expanded LLM Integration**: Support for multiple LLM API types including KoboldCpp, Ollama, LMStudio, and OpenAI.
+- **Flexible Configuration**: Each API type has its own configuration options and model settings.
+- **Improved Prompt Generation**: Enhanced prompt templates with comprehensive pawn and world information.
 
 ### Enhanced Dating System
 - **Three-Way Actions**: Support for 3p actions with special handling for spouse involvement.
@@ -154,8 +173,15 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **Conversation Management**: Better tracking of conversation IDs to prevent overlapping dialogues.
 - **Enhanced Prompt Generation**: More detailed prompts with comprehensive pawn and world information.
 - **Graceful Degradation**: Fallback mechanisms when LLM interactions are disabled or unavailable.
+- **Efficiency System**: Scheduled unlock timing to optimize LLM request handling.
 
 ### Better Performance and Stability
 - **Optimized Tick Handling**: Reduced frequency of expensive operations.
 - **Memory Management**: Proper cleanup of resources and references.
 - **Extensive Logging**: Detailed logging for debugging (when enabled).
+- **Chat Log Integration**: Complete history of all interactions stored for later review.
+
+### Combat Taunts
+- **Expanded Taunt System**: Comprehensive combat taunts for melee attacks, ranged attacks, getting hit, and going down.
+- **Configurable Probabilities**: Adjustable probabilities for different types of combat taunts.
+- **Visual Differentiation**: Combat taunts use different visual styles from regular dialogue.

@@ -1,0 +1,34 @@
+# Build output
+bin/
+obj/
+*.dll
+*.pdb
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+
+# Log files
+*.log
+
+# IDE files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS generated files
+Thumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Icon?
+
+# Visual Studio
+.vs/
