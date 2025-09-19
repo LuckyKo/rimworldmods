@@ -28,6 +28,12 @@ namespace SocialInteractions
         public float XtcProbability { get; set; }
         [DataMember(Name = "xtc_threshold", EmitDefaultValue = false)]
         public float XtcThreshold { get; set; }
+        [DataMember(Name = "top_k", EmitDefaultValue = false)]
+        public int TopK { get; set; }
+        [DataMember(Name = "top_p", EmitDefaultValue = false)]
+        public float TopP { get; set; }
+        [DataMember(Name = "min_p", EmitDefaultValue = false)]
+        public float MinP { get; set; }
 
         public KoboldApiRequest()
         {
@@ -117,7 +123,7 @@ namespace SocialInteractions
             return true;
         }
 
-        public async Task<string> GenerateText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, bool? enableXtcSampling = null)
+        public async Task<string> GenerateText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, bool? enableXtcSampling = null, int? topK = null, float? topP = null, float? minP = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException("KoboldApiClient");
@@ -129,7 +135,10 @@ namespace SocialInteractions
                     Prompt = prompt,
                     MaxLength = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
                     Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
-                    StopSequence = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
+                    StopSequence = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)),
+                    TopK = topK ?? SocialInteractions.Settings.llmTopK,
+                    TopP = topP ?? SocialInteractions.Settings.llmTopP,
+                    MinP = minP ?? SocialInteractions.Settings.llmMinP
                 };
 
                 if (enableXtcSampling ?? SocialInteractions.Settings.enableXtcSampling)

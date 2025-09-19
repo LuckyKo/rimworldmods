@@ -1114,11 +1114,10 @@ namespace SocialInteractions
             }
 
             // Age check (both must be at least 16)
-			// temprorary disabled for debug
-            // if (pawn1.ageTracker.AgeBiologicalYearsFloat < 16f || pawn2.ageTracker.AgeBiologicalYearsFloat < 16f)
-            // {
-            //     return 0f;
-            // }
+			if (pawn1.ageTracker.AgeBiologicalYearsFloat < 16f || pawn2.ageTracker.AgeBiologicalYearsFloat < 16f)
+            {
+                return 0f;
+            }
 
              // If all checks pass, return a positive compatibility factor based on attractiveness
             float pawn1Attractiveness = CalculateAttractiveness(pawn1, pawn2);

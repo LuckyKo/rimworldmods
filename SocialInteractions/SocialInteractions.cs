@@ -306,7 +306,17 @@ namespace SocialInteractions
 
             // Basic pawn info
             data[prefix] = pawn.Name.ToStringShort;
-            data[prefix + "_age"] = pawn.ageTracker.AgeBiologicalYears.ToString();
+            // Format age as "bio_age (real_age)" if they differ, otherwise just the bio age
+            int biologicalAge = pawn.ageTracker.AgeBiologicalYears;
+            int chronologicalAge = pawn.ageTracker.AgeChronologicalYears;
+            if (biologicalAge != chronologicalAge)
+            {
+                data[prefix + "_age"] = string.Format("{0} ({1})", biologicalAge, chronologicalAge);
+            }
+            else
+            {
+                data[prefix + "_age"] = biologicalAge.ToString();
+            }
             data[prefix + "_sex"] = pawn.gender.ToString();
             
             // Title (colonist/prisoner/slave/outsider/guest/animal) with optional royalty title
@@ -947,7 +957,6 @@ namespace SocialInteractions
             SLog.Message(string.Format("[SocialInteractions] Started conversation ID: {0} for monologue by {1}", conversationId, pawn.LabelShort));
 
             Task.Run(async () => {
-                KoboldApiClient client = null;
                 // --- For LLM Efficiency Timing ---
                 DateTime startTime = DateTime.UtcNow;
                 // --- End For LLM Efficiency Timing ---
@@ -955,8 +964,7 @@ namespace SocialInteractions
                 {
                     if (!string.IsNullOrEmpty(prompt))
                     {
-                        client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
-                        string llmResponse = await client.GenerateText(prompt);
+                        string llmResponse = await GenerateTextWithApiClient(prompt);
 
                         // --- For LLM Efficiency Timing ---
                         DateTime endTime = DateTime.UtcNow;
@@ -1158,7 +1166,6 @@ namespace SocialInteractions
             SLog.Message(string.Format("[SocialInteractions] Started conversation ID: {0} for interaction {1}", conversationId, interactionDef.defName));
 
             Task.Run(async () => {
-                KoboldApiClient client = null;
                 // --- For LLM Efficiency Timing ---
                 DateTime startTime = DateTime.UtcNow;
                 // --- End For LLM Efficiency Timing ---
@@ -1166,8 +1173,7 @@ namespace SocialInteractions
                 {
                     if (!string.IsNullOrEmpty(prompt))
                     {
-                        client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
-                        string llmResponse = await client.GenerateText(prompt);
+                        string llmResponse = await GenerateTextWithApiClient(prompt);
                         
                         // --- For LLM Efficiency Timing ---
                         DateTime endTime = DateTime.UtcNow;
@@ -1376,8 +1382,7 @@ namespace SocialInteractions
                     SLog.Message(string.Format("[SocialInteractions] Generated prompt: {0}", prompt != null ? prompt.Substring(0, Math.Min(prompt.Length, 200)) : "NULL"));
                     if (!string.IsNullOrEmpty(prompt))
                     {
-                        client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
-                        string llmResponse = await client.GenerateText(prompt);
+                        string llmResponse = await GenerateTextWithApiClient(prompt);
                         SLog.Message(string.Format("[SocialInteractions] LLM Response: {0}", llmResponse != null ? llmResponse.Substring(0, Math.Min(llmResponse.Length, 200)) : "NULL"));
                         
                         if (llmResponse == null)
@@ -1513,18 +1518,155 @@ namespace SocialInteractions
             return "None";
         }
         
+        /// <summary>
+        /// Removes rich text tags from a string
+        /// </summary>
+        /// <param name="text">The text to process</param>
+        /// <returns>The text with rich text tags removed</returns>
         public static string RemoveRichTextTags(string text)
         {
             return Regex.Replace(text, "<color=#.{8}>|</color>", "");
         }
-        
-        // Method to add a chat message to the log
-        public static void AddChatMessage(Pawn speaker, Pawn recipient, string message, MessageType type, int conversationId = -1, Color? color = null)
+
+        /// <summary>
+        /// Gets the appropriate API client based on the selected API type
+        /// </summary>
+        /// <returns>IDisposable client instance</returns>
+        private static IDisposable GetApiClient()
         {
-            ChatMessage chatMessage = new ChatMessage(speaker, recipient, message, type, conversationId, color);
-            ChatLogManager.AddMessage(chatMessage);
+            if (Settings.llmApiType == LlmApiType.Ollama)
+            {
+                return new OllamaApiClient(Settings.llmApiUrl, Settings.ollamaModelName);
+            }
+            else if (Settings.llmApiType == LlmApiType.OpenAI)
+            {
+                return new OpenAiApiClient(Settings.llmApiUrl, Settings.openAiModelName, Settings.llmApiKey);
+            }
+            else if (Settings.llmApiType == LlmApiType.LMStudio)
+            {
+                return new LMStudioApiClient(Settings.llmApiUrl, Settings.lmStudioModelName);
+            }
+            else
+            {
+                return new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
+            }
+        }
+
+        /// <summary>
+        /// Generates text using the configured API client
+        /// </summary>
+        /// <param name="prompt">The prompt to send to the LLM</param>
+        /// <returns>The generated text response</returns>
+        private static async Task<string> GenerateTextWithApiClient(string prompt)
+        {
+            IDisposable client = null;
+            try
+            {
+                if (Settings.llmApiType == LlmApiType.Ollama)
+                {
+                    client = new OllamaApiClient(Settings.llmApiUrl, Settings.ollamaModelName);
+                    OllamaApiClient ollamaClient = client as OllamaApiClient;
+                    if (ollamaClient != null)
+                    {
+                        // Prepare sampling parameters
+                        int? topK = null;
+                        float? topP = null;
+                        float? minP = null;
+                        
+                        if (Settings.llmTopK > 0)
+                        {
+                            topK = Settings.llmTopK;
+                        }
+                        
+                        if (Settings.llmTopP < 1.0f)
+                        {
+                            topP = Settings.llmTopP;
+                        }
+                        
+                        if (Settings.llmMinP > 0.0f)
+                        {
+                            minP = Settings.llmMinP;
+                        }
+                        
+                        return await ollamaClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                    }
+                }
+                else if (Settings.llmApiType == LlmApiType.LMStudio)
+                {
+                    client = new LMStudioApiClient(Settings.llmApiUrl, Settings.lmStudioModelName);
+                    LMStudioApiClient lmStudioClient = client as LMStudioApiClient;
+                    if (lmStudioClient != null)
+                    {
+                        return await lmStudioClient.GenerateText(prompt, null, null, null, null, null, null, null);
+                    }
+                }
+                else if (Settings.llmApiType == LlmApiType.OpenAI)
+                {
+                    client = new OpenAiApiClient(Settings.llmApiUrl, Settings.openAiModelName, Settings.llmApiKey);
+                    OpenAiApiClient openAiClient = client as OpenAiApiClient;
+                    if (openAiClient != null)
+                    {
+                        // Prepare sampling parameters
+                        int? topK = null;
+                        float? topP = null;
+                        float? minP = null;
+                        
+                        if (Settings.llmTopK > 0)
+                        {
+                            topK = Settings.llmTopK;
+                        }
+                        
+                        if (Settings.llmTopP < 1.0f)
+                        {
+                            topP = Settings.llmTopP;
+                        }
+                        
+                        if (Settings.llmMinP > 0.0f)
+                        {
+                            minP = Settings.llmMinP;
+                        }
+                        
+                        return await openAiClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                    }
+                }
+                else
+                {
+                    client = new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
+                    KoboldApiClient koboldClient = client as KoboldApiClient;
+                    if (koboldClient != null)
+                    {
+                        // Prepare sampling parameters
+                        int? topK = null;
+                        float? topP = null;
+                        float? minP = null;
+                        
+                        if (Settings.llmTopK > 0)
+                        {
+                            topK = Settings.llmTopK;
+                        }
+                        
+                        if (Settings.llmTopP < 1.0f)
+                        {
+                            topP = Settings.llmTopP;
+                        }
+                        
+                        if (Settings.llmMinP > 0.0f)
+                        {
+                            minP = Settings.llmMinP;
+                        }
+                        
+                        return await koboldClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                    }
+                }
+            }
+            finally
+            {
+                if (client != null)
+                {
+                    client.Dispose();
+                }
+            }
+            return null;
         }
     }
-
-    
 }

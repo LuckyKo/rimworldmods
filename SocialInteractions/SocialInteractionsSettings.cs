@@ -5,13 +5,18 @@ using System;
 
 namespace SocialInteractions
 {
+    public enum LlmApiType
+    {
+        KoboldCpp,
+        Ollama,
+        LMStudio,
+        OpenAI
+    }
+
     public class SocialInteractionsModSettings : ModSettings
     {
-        public bool pawnsStopOnInteraction = true;
-        public bool enableDatingFeature = true;
-        public string llmApiUrl = "http://localhost:5001";
-        public string llmApiKey = "1234";
-        public string llmPromptTemplate = @"The following is an interraction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
+        // Default templates
+        public const string DEFAULT_DIALOGUE_TEMPLATE = @"The following is an interraction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
 
 [pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1]'s family: [pawn1_family]. [pawn1] is currently [pawn1_action].
 
@@ -26,7 +31,8 @@ Current event: [subject]
 
 <start>
 [pawn1]:";
-        public string llmMonologuePromptTemplate = @"The following is a [topic] by a RimWorld character, [pawn1]. It's a brutal world out there so use swearing, explicit or rough language freely.
+        
+        public const string DEFAULT_MONOLOGUE_TEMPLATE = @"The following is a [topic] by a RimWorld character, [pawn1]. It's a brutal world out there so use swearing, explicit or rough language freely.
 
 [pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1] is currently [pawn1_action]. Last time they spoke: [pawn1_journal]
 
@@ -36,13 +42,37 @@ Current event: [pawn1] [subject]
 
 <start>
 [pawn1]:";
+
+        public string llmApiKey = "1234";
+        public string llmPromptTemplate = DEFAULT_DIALOGUE_TEMPLATE;
+        public string llmMonologuePromptTemplate = DEFAULT_MONOLOGUE_TEMPLATE;
         public bool llmInteractionsEnabled = false;
         public int wordsPerLineLimit = 10; // Default to 10 words per line
         public float wordsPerSecond = 4.0f; // Default to 5 words per second
         public float llmTemperature = 0.7f; // Default temperature
         public int llmMaxTokens = 300; // Default max tokens
+        public int llmTopK = 0; // Default Top K (0 = disabled)
+        public float llmTopP = 1.0f; // Default Top P (1.0 = disabled)
+        public float llmMinP = 0.0f; // Default Min P (0.0 = disabled)
+        public string ollamaModelName = "llama3.2"; // Default Ollama model name
+        public string lmStudioModelName = "gemma-2-2b-it"; // Default LM Studio model name
+        public string openAiModelName = "gpt-3.5-turbo"; // Default OpenAI model name
         public bool preventSpam = false;
 
+        // API settings
+        public LlmApiType llmApiType = LlmApiType.KoboldCpp; // Default to KoboldCpp
+        public string llmApiUrl = "http://localhost:5001";
+        
+        // Feature enablement settings
+        public bool pawnsStopOnInteraction = true;
+        public bool enableCombatTaunts = true;
+        public bool enableDatingFeature = true;
+        public bool enableXtcSampling = false;
+        public bool enableEarlyLlmRequests = true;
+        public bool verboseLogging = false;
+        public bool useBackgroundTextRendering = false; // False = drop shadow (current), True = background style
+        
+        // Interaction type settings
         public bool enableChitchat = true;
         public bool enableManualChat = true; // New setting for manual chat
         public bool enableDeepTalk = true;
@@ -56,6 +86,8 @@ Current event: [pawn1] [subject]
         public bool enableVisitSickPawn = true;
         public bool enableLovin = true;
         public bool enableDating = true;
+        
+        // String settings
         public string llmStoppingStrings = @"<end>
 </end>
 </start>
@@ -63,14 +95,6 @@ Current event: [pawn1] [subject]
 —END—
 **end**
 (end)";
-        public bool enableCombatTaunts = true;
-        public bool enableXtcSampling = false;
-        public bool enableEarlyLlmRequests = true;
-
-        public bool verboseLogging = false;
-        
-        // Text rendering style setting
-        public bool useBackgroundTextRendering = false; // False = drop shadow (current), True = background style
         
         // Magic number settings (not exposed in UI)
         public float meleeTauntProbability = 0.35f;
@@ -107,6 +131,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref pawnsStopOnInteraction, "pawnsStopOnInteraction", true);
             Scribe_Values.Look(ref enableCombatTaunts, "enableCombatTaunts", true);
             Scribe_Values.Look(ref llmInteractionsEnabled, "llmInteractionsEnabled", false);
+            Scribe_Values.Look(ref llmApiType, "llmApiType", LlmApiType.KoboldCpp);
             Scribe_Values.Look(ref llmApiUrl, "llmApiUrl", "");
             Scribe_Values.Look(ref llmApiKey, "llmApiKey", "");
             Scribe_Values.Look(ref llmPromptTemplate, "llmPromptTemplate", "");
@@ -115,6 +140,11 @@ Current event: [pawn1] [subject]
             
             Scribe_Values.Look(ref llmTemperature, "llmTemperature", 0.7f);
             Scribe_Values.Look(ref llmMaxTokens, "llmMaxTokens", 300);
+            Scribe_Values.Look(ref llmTopK, "llmTopK", 0);
+            Scribe_Values.Look(ref llmTopP, "llmTopP", 1.0f);
+            Scribe_Values.Look(ref llmMinP, "llmMinP", 0.0f);
+            Scribe_Values.Look(ref ollamaModelName, "ollamaModelName", "llama3.2");
+            Scribe_Values.Look(ref lmStudioModelName, "lmStudioModelName", "gemma-2-2b-it");
 
             Scribe_Values.Look(ref enableChitchat, "enableChitchat", true);
             Scribe_Values.Look(ref enableManualChat, "enableManualChat", true); // New setting for manual chat
@@ -173,6 +203,8 @@ Current event: [pawn1] [subject]
         private string llmApiUrlBuffer;
         private string llmApiKeyBuffer;
         private string llmPromptTemplateBuffer;
+        private string llmMonologuePromptTemplateBuffer;
+        private string openAiModelNameBuffer;
 
         public SocialInteractionsMod(ModContentPack content)
             : base(content)
@@ -181,6 +213,8 @@ Current event: [pawn1] [subject]
             llmApiUrlBuffer = SocialInteractions.Settings.llmApiUrl;
             llmApiKeyBuffer = SocialInteractions.Settings.llmApiKey;
             llmPromptTemplateBuffer = SocialInteractions.Settings.llmPromptTemplate;
+            llmMonologuePromptTemplateBuffer = SocialInteractions.Settings.llmMonologuePromptTemplate;
+            openAiModelNameBuffer = SocialInteractions.Settings.openAiModelName;
         }
 
         public override string SettingsCategory()
@@ -220,9 +254,6 @@ Current event: [pawn1] [subject]
             listingStandard.CheckboxLabeled("Prevent Spam", ref SocialInteractions.Settings.preventSpam, "If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.");
 
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Enable XTC Sampling", ref SocialInteractions.Settings.enableXtcSampling, "If enabled, XTC (Exclude Top Choices) sampling will be used for LLM requests to encourage more creative responses.");
-
-            listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable Early LLM Requests", ref SocialInteractions.Settings.enableEarlyLlmRequests, "If enabled, LLM requests will be sent early before the current speech bubbles finish displaying. If disabled, LLM requests will only be sent after the current speech bubbles finish.");
 
             listingStandard.Gap();
@@ -231,6 +262,46 @@ Current event: [pawn1] [subject]
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable Verbose Logging", ref SocialInteractions.Settings.verboseLogging, "If enabled, detailed logs will be written to the Player.log file for debugging purposes.");
             listingStandard.Label("LLM API Configuration");
+
+            // API Type Selection
+            listingStandard.Gap();
+            listingStandard.Label("LLM API Type:");
+            string[] apiTypeNames = System.Enum.GetNames(typeof(LlmApiType));
+            LlmApiType[] apiTypeValues = (LlmApiType[])System.Enum.GetValues(typeof(LlmApiType));
+            int currentApiTypeIndex = System.Array.IndexOf(apiTypeValues, SocialInteractions.Settings.llmApiType);
+            
+            // Use a horizontal row of buttons instead of SelectionGrid
+            Rect rowRect = listingStandard.GetRect(30f);
+            float buttonWidth = rowRect.width / apiTypeNames.Length;
+            for (int i = 0; i < apiTypeNames.Length; i++)
+            {
+                Rect buttonRect = new Rect(rowRect.x + i * buttonWidth, rowRect.y, buttonWidth, rowRect.height);
+                bool isSelected = (i == currentApiTypeIndex);
+                if (Widgets.ButtonText(buttonRect, apiTypeNames[i]))
+                {
+                    SocialInteractions.Settings.llmApiType = apiTypeValues[i];
+                    // Set default URL based on API type
+                    switch (apiTypeValues[i])
+                    {
+                        case LlmApiType.KoboldCpp:
+                            SocialInteractions.Settings.llmApiUrl = "http://localhost:5001";
+                            llmApiUrlBuffer = "http://localhost:5001";
+                            break;
+                        case LlmApiType.Ollama:
+                            SocialInteractions.Settings.llmApiUrl = "http://localhost:11434";
+                            llmApiUrlBuffer = "http://localhost:11434";
+                            break;
+                        case LlmApiType.LMStudio:
+                            SocialInteractions.Settings.llmApiUrl = "http://localhost:1234";
+                            llmApiUrlBuffer = "http://localhost:1234";
+                            break;
+                        case LlmApiType.OpenAI:
+                            SocialInteractions.Settings.llmApiUrl = "https://api.openai.com";
+                            llmApiUrlBuffer = "https://api.openai.com";
+                            break;
+                    }
+                }
+            }
 
             listingStandard.Label("API URL:");
             string newApiUrl = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), llmApiUrlBuffer);
@@ -248,6 +319,43 @@ Current event: [pawn1] [subject]
                 SocialInteractions.Settings.llmApiKey = newApiKey;
             }
 
+            // Ollama-specific settings
+            if (SocialInteractions.Settings.llmApiType == LlmApiType.Ollama)
+            {
+                listingStandard.Gap();
+                listingStandard.Label("Ollama Model Name:");
+                string newOllamaModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.ollamaModelName);
+                if (!string.IsNullOrEmpty(newOllamaModel))
+                {
+                    SocialInteractions.Settings.ollamaModelName = newOllamaModel;
+                }
+            }
+            
+            // LM Studio-specific settings
+            if (SocialInteractions.Settings.llmApiType == LlmApiType.LMStudio)
+            {
+                listingStandard.Gap();
+                listingStandard.Label("LM Studio Model Name:");
+                string newLMStudioModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.lmStudioModelName);
+                if (!string.IsNullOrEmpty(newLMStudioModel))
+                {
+                    SocialInteractions.Settings.lmStudioModelName = newLMStudioModel;
+                }
+            }
+            
+            // OpenAI-specific settings
+            if (SocialInteractions.Settings.llmApiType == LlmApiType.OpenAI)
+            {
+                listingStandard.Gap();
+                listingStandard.Label("OpenAI Model Name:");
+                string newOpenAiModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), openAiModelNameBuffer);
+                if (!string.IsNullOrEmpty(newOpenAiModel))
+                {
+                    openAiModelNameBuffer = newOpenAiModel;
+                    SocialInteractions.Settings.openAiModelName = newOpenAiModel;
+                }
+            }
+
             listingStandard.Label("Prompt Template:");
             string newPromptTemplate = Widgets.TextArea(listingStandard.GetRect(200f), llmPromptTemplateBuffer);
             if (newPromptTemplate != llmPromptTemplateBuffer)
@@ -258,10 +366,22 @@ Current event: [pawn1] [subject]
 
             listingStandard.Gap();
             listingStandard.Label("Monologue Prompt Template:");
-            string newMonologuePromptTemplate = Widgets.TextArea(listingStandard.GetRect(200f), SocialInteractions.Settings.llmMonologuePromptTemplate);
-            if (newMonologuePromptTemplate != SocialInteractions.Settings.llmMonologuePromptTemplate)
+            string newMonologuePromptTemplate = Widgets.TextArea(listingStandard.GetRect(200f), llmMonologuePromptTemplateBuffer);
+            if (newMonologuePromptTemplate != llmMonologuePromptTemplateBuffer)
             {
+                llmMonologuePromptTemplateBuffer = newMonologuePromptTemplate;
                 SocialInteractions.Settings.llmMonologuePromptTemplate = newMonologuePromptTemplate;
+            }
+
+            // Add Reset Templates button
+            listingStandard.Gap();
+            listingStandard.Label("Reset Templates:");
+            if (listingStandard.ButtonText("Reset Templates to Default"))
+            {
+                SocialInteractions.Settings.llmPromptTemplate = SocialInteractionsModSettings.DEFAULT_DIALOGUE_TEMPLATE;
+                SocialInteractions.Settings.llmMonologuePromptTemplate = SocialInteractionsModSettings.DEFAULT_MONOLOGUE_TEMPLATE;
+                llmPromptTemplateBuffer = SocialInteractions.Settings.llmPromptTemplate;
+                llmMonologuePromptTemplateBuffer = SocialInteractions.Settings.llmMonologuePromptTemplate;
             }
 
             listingStandard.Gap();
@@ -279,14 +399,32 @@ Current event: [pawn1] [subject]
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.wordsPerSecond, ref wordsPerSecondBuffer, 1.0f, 20.0f);
 
             listingStandard.Gap();
-            listingStandard.Label("LLM Temperature (0.1 - 2.0):");
+            listingStandard.Label("Max Output Tokens (1 - 2000):");
+            string maxTokensBuffer = SocialInteractions.Settings.llmMaxTokens.ToString();
+            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmMaxTokens, ref maxTokensBuffer, 1, 2000);
+
+            listingStandard.Gap();
+            listingStandard.Label("Temperature (0.1 - 2.0):");
             string temperatureBuffer = SocialInteractions.Settings.llmTemperature.ToString();
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmTemperature, ref temperatureBuffer, 0.1f, 2.0f);
 
             listingStandard.Gap();
-            listingStandard.Label("LLM Max Tokens (1 - 2000):");
-            string maxTokensBuffer = SocialInteractions.Settings.llmMaxTokens.ToString();
-            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmMaxTokens, ref maxTokensBuffer, 1, 2000);
+            listingStandard.Label("Top K (0 = disabled, 1-100 = enabled):");
+            string topKBuffer = SocialInteractions.Settings.llmTopK.ToString();
+            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmTopK, ref topKBuffer, 0, 100);
+
+            listingStandard.Gap();
+            listingStandard.Label("Top P (0.0 - 1.0, 1.0 = disabled):");
+            string topPBuffer = SocialInteractions.Settings.llmTopP.ToString();
+            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmTopP, ref topPBuffer, 0.0f, 1.0f);
+
+            listingStandard.Gap();
+            listingStandard.Label("Min P (0.0 - 1.0, 0.0 = disabled):");
+            string minPBuffer = SocialInteractions.Settings.llmMinP.ToString();
+            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmMinP, ref minPBuffer, 0.0f, 1.0f);
+
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("XTC Sampling", ref SocialInteractions.Settings.enableXtcSampling, "If enabled, XTC (Exclude Top Choices) sampling will be used for LLM requests to encourage more creative responses.");
 
             listingStandard.Gap();
             listingStandard.Label("Enabled LLM Interaction Types:");

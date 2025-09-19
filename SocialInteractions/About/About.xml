@@ -8,7 +8,7 @@
   </supportedVersions>
   <description>
     This mod enhances the social interactions between pawns, making them more immersive and engaging by using an LLM to generate interraction messages.
-	Supported API: koboldcpp
+	Supported APIs: koboldcpp, Ollama, LM Studio, OpenAI
   </description>
   <packageId>LuckyKo.SocialInteractions</packageId>
 </ModMetaData>
