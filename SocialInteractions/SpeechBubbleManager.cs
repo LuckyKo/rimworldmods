@@ -20,7 +20,9 @@ namespace SocialInteractions
         public static bool isLlmBusy = false;
         
         // --- For LLM Efficiency Unlock Scheduling ---
-        private static DateTime? scheduledUnlockTime = null;
+        private static DateTime? scheduledUnlockTime = null; // Kept for backward compatibility if needed, but we'll use tick-based scheduling
+        private static int? scheduledUnlockTick = null; // Use game ticks instead of real-world time
+        private static float scheduledUnlockDelay = 0f; // Store the delay to recalculate when resuming from pause
         // --- End For LLM Efficiency Unlock Scheduling ---
         
         // --- For Job Queue ---
@@ -149,11 +151,12 @@ namespace SocialInteractions
             }
 
             // --- Check for scheduled LLM unlock ---
-            if (scheduledUnlockTime.HasValue && DateTime.UtcNow >= scheduledUnlockTime.Value)
+            if (scheduledUnlockTick.HasValue && Find.TickManager.TicksGame >= scheduledUnlockTick.Value)
             {
                 isLlmBusy = false;
-                scheduledUnlockTime = null;
-                SLog.Message("[SocialInteractions] LLM Unlocked via scheduled time.");
+                scheduledUnlockTick = null;
+                scheduledUnlockTime = null; // Also clear the old field for safety
+                SLog.Message("[SocialInteractions] LLM Unlocked via scheduled tick.");
             }
             // --- End Check for scheduled LLM unlock ---
 
@@ -228,7 +231,7 @@ namespace SocialInteractions
         
         public static string GetDateLovinSubject(Pawn initiator, Pawn recipient)
         {
-            return string.Format("{0} and {1} are making love after a fun date.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+            return string.Format("{0} and {1} are engaged in some wild lovin' after a fun date.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
         }
         
         public static string GetDateRejectionSubject(Pawn initiator, Pawn recipient)
@@ -465,9 +468,13 @@ namespace SocialInteractions
             }
             else
             {
-                DateTime targetTime = DateTime.UtcNow.AddSeconds(delaySeconds);
-                scheduledUnlockTime = targetTime;
-                SLog.Message(string.Format("[SocialInteractions] Scheduled LLM Unlock in {0:F2}s (at {1}). Current time: {2}", delaySeconds, targetTime.ToString("HH:mm:ss.fff"), DateTime.UtcNow.ToString("HH:mm:ss.fff")));
+                // Calculate the target tick for unlock (using game time instead of real-world time)
+                int currentGameTick = Find.TickManager.TicksGame;
+                int targetTick = currentGameTick + (int)(delaySeconds * 60); // Assuming 60 ticks per second average
+                scheduledUnlockTick = targetTick;
+                scheduledUnlockDelay = delaySeconds; // Store the delay for potential adjustments
+                
+                SLog.Message(string.Format("[SocialInteractions] Scheduled LLM Unlock at tick {0} (in {1:F2}s from now)", targetTick, delaySeconds));
             }
         }
         // --- End For LLM Efficiency Unlock Scheduling ---

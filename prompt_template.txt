@@ -14,6 +14,22 @@ Current event: [subject]
 <start>
 [pawn1]:
 
+
+--- monologue ---
+
+The following is a monologue by a RimWorld character, [pawn1]. It's a brutal world out there so use swearing, explicit or rough language freely.
+
+[pawn1] is a [pawn1_age] yo [pawn1_sex], has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1]'s family: [pawn1_family]. [pawn1] is currently [pawn1_action]
+
+It's currently [time], on [date] and the weather is [weather].
+
+Event: [pawn1] [subject]
+
+<start>
+[pawn1]:
+
+-------
+
 <end>
 </end>
 </start>

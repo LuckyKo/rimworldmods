@@ -170,4 +170,6 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and updates.
 
 ---
 
-**Note**: This mod requires an LLM API to function. For local use, we recommend LM Studio or KoboldCpp for the best experience. Make sure to use a model that can fit your GPU VRAM together with the game. My preffered model to use is https://huggingface.co/mradermacher/L3-8B-Stheno-v3.2-i1-GGUF but any of the gemma-3-4B or qwen3-4B work just as well.
+**Note**: This mod requires an LLM API to function. For local use, we recommend LM Studio or KoboldCpp for the best experience. Make sure to use a model that can fit your GPU VRAM together with the game. My preffered model to use is L3-8B-Stheno-v3.2 but any of the gemma-3-4B or qwen3-4B work just as well, a 2k context window is enough for this mod.
+
+---

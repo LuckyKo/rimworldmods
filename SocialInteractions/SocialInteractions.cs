@@ -679,19 +679,29 @@ namespace SocialInteractions
             List<Thought> thoughts = new List<Thought>();
             pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
 
-            var negativeThoughts = new List<Thought>(thoughts).Select(t =>
+            // Get all negative thoughts with their absolute mood offset as weight
+            var negativeThoughtsList = new List<Thought>(thoughts).Where(t =>
             {
                 try
                 {
-                    if (t != null && t.MoodOffset() < 0) return t.LabelCap;
+                    return t != null && t.MoodOffset() < 0;
                 }
-                catch (Exception) {{ }}
-                return null;
-            }).Where(l => l != null).Take(3);
+                catch (Exception) { }
+                return false;
+            }).ToList();
 
-            if (negativeThoughts.Any())
+            if (!negativeThoughtsList.Any())
             {
-                return string.Join(", ", negativeThoughts.ToArray());
+                return "None";
+            }
+
+            // Use weighted random selection to pick up to 3 thoughts
+            var selectedThoughts = SelectWeightedRandom(negativeThoughtsList, 3, t => Math.Abs(t.MoodOffset()));
+
+            if (selectedThoughts.Any())
+            {
+                var thoughtLabels = selectedThoughts.Select(t => t.LabelCap);
+                return string.Join(", ", thoughtLabels.ToArray());
             }
 
             return "None";
@@ -795,19 +805,29 @@ namespace SocialInteractions
             List<Thought> thoughts = new List<Thought>();
             pawn.needs.mood.thoughts.GetDistinctMoodThoughtGroups(thoughts);
 
-            var positiveThoughts = new List<Thought>(thoughts).Select(t =>
+            // Get all positive thoughts with their mood offset as weight
+            var positiveThoughtsList = new List<Thought>(thoughts).Where(t =>
             {
                 try
                 {
-                    if (t != null && t.MoodOffset() > 0) return t.LabelCap;
+                    return t != null && t.MoodOffset() > 0;
                 }
-                catch (Exception) {{ }}
-                return null;
-            }).Where(l => l != null).Take(3);
+                catch (Exception) { }
+                return false;
+            }).ToList();
 
-            if (positiveThoughts.Any())
+            if (!positiveThoughtsList.Any())
             {
-                return string.Join(", ", positiveThoughts.ToArray());
+                return "None";
+            }
+
+            // Use weighted random selection to pick up to 3 thoughts
+            var selectedThoughts = SelectWeightedRandom(positiveThoughtsList, 3, t => t.MoodOffset());
+
+            if (selectedThoughts.Any())
+            {
+                var thoughtLabels = selectedThoughts.Select(t => t.LabelCap);
+                return string.Join(", ", thoughtLabels.ToArray());
             }
 
             return "None";
@@ -1481,25 +1501,33 @@ namespace SocialInteractions
             try
             {
                 List<string> relatives = new List<string>();
+                HashSet<int> addedRelativeIds = new HashSet<int>(); // Track pawn IDs to prevent duplicates
                 
                 // Get direct relations (spouse, lover, etc.)
                 foreach (var relation in pawn.relations.PotentiallyRelatedPawns)
                 {
                     if (relation == null || relation == pawn) continue;
                     
+                    // Only include living relatives
+                    if (relation.Dead || !relation.Spawned) continue;
+                    
+                    // Skip if already added (use thingIDNumber as unique identifier)
+                    if (addedRelativeIds.Contains(relation.thingIDNumber)) continue;
+                    
                     PawnRelationDef relationDef = pawn.GetMostImportantRelation(relation);
                     if (relationDef != null)
                     {
-                        // Only include family relations
-                        if (relationDef.familyByBloodRelation || 
+                        // Only include first-degree relatives: parents/children/siblings/spouse/fiance/lover
+                        if (relationDef == PawnRelationDefOf.Parent || 
+                            relationDef == PawnRelationDefOf.Child ||
+                            relationDef == PawnRelationDefOf.Sibling ||
                             relationDef == PawnRelationDefOf.Spouse || 
-                            relationDef == PawnRelationDefOf.Fiance || 
-                            relationDef == PawnRelationDefOf.Lover ||
-                            relationDef == PawnRelationDefOf.Parent || 
-                            relationDef == PawnRelationDefOf.Child)
+                            relationDef == PawnRelationDefOf.Fiance ||
+                            relationDef == PawnRelationDefOf.Lover)
                         {
                             string relationLabel = relationDef.GetGenderSpecificLabelCap(relation);
                             relatives.Add(string.Format("{0} ({1})", relation.Name.ToStringShort, relationLabel));
+                            addedRelativeIds.Add(relation.thingIDNumber); // Mark this pawn as added
                         }
                     }
                 }
@@ -1526,6 +1554,66 @@ namespace SocialInteractions
         public static string RemoveRichTextTags(string text)
         {
             return Regex.Replace(text, "<color=#.{8}>|</color>", "");
+        }
+
+        /// <summary>
+        /// Selects a specified number of items using weighted random selection
+        /// </summary>
+        /// <typeparam name="T">The type of items to select</typeparam>
+        /// <param name="items">The list of items to select from</param>
+        /// <param name="count">The maximum number of items to select</param>
+        /// <param name="weightSelector">A function to get the weight of each item</param>
+        /// <returns>A list of selected items</returns>
+        private static List<T> SelectWeightedRandom<T>(List<T> items, int count, Func<T, float> weightSelector)
+        {
+            if (items == null || items.Count == 0 || count <= 0)
+            {
+                return new List<T>();
+            }
+
+            var selectedItems = new List<T>();
+            var availableItems = new List<T>(items);
+
+            // Select up to 'count' items using weighted random selection
+            for (int i = 0; i < Math.Min(count, items.Count); i++)
+            {
+                if (availableItems.Count == 0)
+                {
+                    break;
+                }
+
+                // Calculate total weight of all remaining items
+                float totalWeight = 0f;
+                foreach (T item in availableItems)
+                {
+                    float weight = Math.Max(0.0001f, weightSelector(item)); // Ensure minimum weight to avoid division by zero
+                    totalWeight += weight;
+                }
+
+                // Select an item using weighted random selection
+                float randomValue = UnityEngine.Random.value * totalWeight;
+                float currentWeight = 0f;
+                T selectedItem = default(T);
+
+                foreach (T item in availableItems)
+                {
+                    float weight = Math.Max(0.0001f, weightSelector(item));
+                    currentWeight += weight;
+                    if (randomValue <= currentWeight)
+                    {
+                        selectedItem = item;
+                        break;
+                    }
+                }
+
+                if (!selectedItem.Equals(default(T)))
+                {
+                    selectedItems.Add(selectedItem);
+                    availableItems.Remove(selectedItem);
+                }
+            }
+
+            return selectedItems;
         }
 
         /// <summary>

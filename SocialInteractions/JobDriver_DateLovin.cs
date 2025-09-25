@@ -496,8 +496,8 @@ namespace SocialInteractions
                 float animationSpeed = 1.0f;
                 if (progress <= 0.90f)
                 {
-                    // Linear interpolation from 1.0 to 2.0
-                    animationSpeed = 1.0f + (progress / 0.90f) * 1.0f;
+                    // Linear interpolation from 1.0 to 1.75
+                    animationSpeed = 1.0f + (progress / 0.90f) * 0.75f;
                 }
                 else
                 {
