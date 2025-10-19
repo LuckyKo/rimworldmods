@@ -19,12 +19,6 @@ namespace SocialInteractions
         private static HashSet<int> activeConversations = new HashSet<int>();
         public static bool isLlmBusy = false;
         
-        // --- For LLM Efficiency Unlock Scheduling ---
-        private static DateTime? scheduledUnlockTime = null; // Kept for backward compatibility if needed, but we'll use tick-based scheduling
-        private static int? scheduledUnlockTick = null; // Use game ticks instead of real-world time
-        private static float scheduledUnlockDelay = 0f; // Store the delay to recalculate when resuming from pause
-        // --- End For LLM Efficiency Unlock Scheduling ---
-        
         // --- For Job Queue ---
         private static Queue<Action> pendingJobs = new Queue<Action>();
         // --- End For Job Queue ---
@@ -150,45 +144,12 @@ namespace SocialInteractions
                 }
             }
 
-            // --- Check for scheduled LLM unlock ---
-            if (scheduledUnlockTick.HasValue && Find.TickManager.TicksGame >= scheduledUnlockTick.Value)
-            {
-                isLlmBusy = false;
-                scheduledUnlockTick = null;
-                scheduledUnlockTime = null; // Also clear the old field for safety
-                SLog.Message("[SocialInteractions] LLM Unlocked via scheduled tick.");
-            }
-            // --- End Check for scheduled LLM unlock ---
-
             // Set isLlmBusy based on whether there are any active bubbles or conversations
-            // This logic is kept for robustness, but the primary control is now via ScheduleUnlock
+            // With the removal of ScheduleUnlock, we now use the actual queue state to determine if LLM is busy
             lock (queueLock)
             {
-                // Only set to true if not already unlocked by schedule. 
-                // This provides a fallback in case ScheduleUnlock logic has issues.
-                if (isLlmBusy == false) 
-                {
-                    // If it's false, it might have been set by ScheduleUnlock, don't override.
-                    // If it's true, it means something else set it, we should check our conditions.
-                    // Actually, let's be more careful. The scheduled unlock is the primary method.
-                    // The conditions below should probably not set it back to true once it's false.
-                    // Let's rely solely on Start/EndConversation and ScheduleUnlock for isLlmBusy.
-                    // The original logic was: isLlmBusy = speechBubbleQueue.Count > 0 || activeConversations.Count > 0;
-                    // This could conflict with ScheduleUnlock. Let's disable this automatic setting.
-                    // If a conversation is active or bubbles are queued, it means an interaction is in progress,
-                    // and ScheduleUnlock should manage the final unlock timing.
-                    // isLlmBusy = speechBubbleQueue.Count > 0 || activeConversations.Count > 0; 
-                }
-                // A better approach: isLlmBusy is true if an interaction is running (conversation active or bubbles queued)
-                // but it's explicitly set to false by ScheduleUnlock after the calculated delay.
-                // So, we don't automatically set it to true here anymore. 
-                // StartConversation will manage the conversation list, and ScheduleUnlock will manage the flag.
-                // The flag should only be true if an interaction is truly blocking new ones.
-                // Given the new system, perhaps we should remove this automatic setting entirely.
-                // Let's comment it out for now and rely on the conversation system and ScheduleUnlock.
-                /*
+                // isLlmBusy is true if conversations are active or bubbles are queued
                 isLlmBusy = speechBubbleQueue.Count > 0 || activeConversations.Count > 0;
-                */
             }
 
             // Process pending jobs
@@ -262,17 +223,8 @@ namespace SocialInteractions
         public static void EndConversation(int conversationId)
         {
             activeConversations.Remove(conversationId);
-            // With the new ScheduleUnlock system, isLlmBusy is managed by the scheduled unlock time.
-            // The condition for isLlmBusy being false is now handled by ScheduleUnlock, not by 
-            // the number of active conversations reaching zero.
-            // Therefore, we should not set isLlmBusy = false here.
-            /*
-            if (activeConversations.Count == 0)
-            {
-                isLlmBusy = false;
-            }
-            */
-            // isLlmBusy will be set to false by ScheduleUnlock when the appropriate time delay has passed.
+            // With the new queue-based system, isLlmBusy will be updated automatically by GameComponentTick
+            // based on whether there are active conversations or queued bubbles
         }
 
         public static bool IsConversationActive(int conversationId)
@@ -456,28 +408,7 @@ namespace SocialInteractions
             EnqueueInstant(speaker, rawMessage, recipient, duration, isHighPriority);
         }
 
-        // --- For LLM Efficiency Unlock Scheduling ---
-        public static void ScheduleUnlock(float delaySeconds)
-        {
-            if (delaySeconds <= 0)
-            {
-                // Unlock immediately (next possible tick)
-                // We can't directly set isLlmBusy = false here as we are likely not on the main thread.
-                // Enqueue a job to do it.
-                EnqueueJob(() => { isLlmBusy = false; SLog.Message("[SocialInteractions] LLM Unlocked immediately."); });
-            }
-            else
-            {
-                // Calculate the target tick for unlock (using game time instead of real-world time)
-                int currentGameTick = Find.TickManager.TicksGame;
-                int targetTick = currentGameTick + (int)(delaySeconds * 60); // Assuming 60 ticks per second average
-                scheduledUnlockTick = targetTick;
-                scheduledUnlockDelay = delaySeconds; // Store the delay for potential adjustments
-                
-                SLog.Message(string.Format("[SocialInteractions] Scheduled LLM Unlock at tick {0} (in {1:F2}s from now)", targetTick, delaySeconds));
-            }
-        }
-        // --- End For LLM Efficiency Unlock Scheduling ---
+        
 
         // For default summary bubbles
         public static void ShowDefaultBubble(Pawn speaker, string text)

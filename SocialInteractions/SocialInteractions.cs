@@ -331,28 +331,38 @@ namespace SocialInteractions
                 else if (pawn.RaceProps.IsAnomalyEntity)
                 {
                     // Further categorize anomaly entities
-                    if (pawn.IsGhoul)
+                    // Only check IsGhoul and IsShambler if the Anomaly DLC is active
+                    if (ModsConfig.AnomalyActive)
                     {
-                        title = "ghoul";
-                    }
-                    else if (pawn.IsShambler)
-                    {
-                        title = "shambler";
-                    }
-                    else if (pawn.RaceProps.FleshType == FleshTypeDefOf.EntityFlesh)
-                    {
-                        title = "entity (flesh)";
-                    }
-                    else if (pawn.RaceProps.FleshType == FleshTypeDefOf.EntityMechanical)
-                    {
-                        title = "entity (mechanical)";
-                    }
-                    else if (pawn.RaceProps.FleshType == FleshTypeDefOf.Fleshbeast)
-                    {
-                        title = "fleshbeast";
+                        if (pawn.IsGhoul)
+                        {
+                            title = "ghoul";
+                        }
+                        else if (pawn.IsShambler)
+                        {
+                            title = "shambler";
+                        }
+                        else if (pawn.RaceProps.FleshType == FleshTypeDefOf.EntityFlesh)
+                        {
+                            title = "entity (flesh)";
+                        }
+                        else if (pawn.RaceProps.FleshType == FleshTypeDefOf.EntityMechanical)
+                        {
+                            title = "entity (mechanical)";
+                        }
+                        else if (pawn.RaceProps.FleshType == FleshTypeDefOf.Fleshbeast)
+                        {
+                            title = "fleshbeast";
+                        }
+                        else
+                        {
+                            title = "entity";
+                        }
                     }
                     else
                     {
+                        // If Anomaly DLC is not active, but pawn has IsAnomalyEntity flag,
+                        // treat it as a generic entity to avoid accessing unavailable properties
                         title = "entity";
                     }
                 }
@@ -507,18 +517,28 @@ namespace SocialInteractions
             string genes = "None";
             if (pawn.genes != null)
             {
-                genes = pawn.genes.XenotypeLabel;
-                List<string> geneList = new List<string>();
-                foreach (Gene gene in pawn.genes.GenesListForReading)
+                try
                 {
-                    if (gene.def != null && !gene.def.skinColorBase.HasValue && !gene.Overridden)
+                    // Access XenotypeLabel safely, as it may not exist in base game without DLCs
+                    genes = pawn.genes.XenotypeLabel;
+                    List<string> geneList = new List<string>();
+                    foreach (Gene gene in pawn.genes.GenesListForReading)
                     {
-                        geneList.Add(gene.def.label);
+                        if (gene.def != null && !gene.def.skinColorBase.HasValue && !gene.Overridden)
+                        {
+                            geneList.Add(gene.def.label);
+                        }
+                    }
+                    if (geneList.Count > 0)
+                    {
+                        genes += " (" + string.Join(", ", geneList.ToArray()) + ")";
                     }
                 }
-                if (geneList.Count > 0)
+                catch (NullReferenceException)
                 {
-                    genes += " (" + string.Join(", ", geneList.ToArray()) + ")";
+                    // In base game without DLCs, genes may exist but not have xenotype info
+                    // Set to "None" as fallback
+                    genes = "None";
                 }
             }
             data[prefix + "_genes"] = genes;
@@ -528,8 +548,75 @@ namespace SocialInteractions
 
             // Add social log information
             data[prefix + "_journal"] = GetLastSocialLogEntry(pawn, target);
+            
+            // Add attire information (what they're wearing on chest/body)
+            data[prefix + "_attire"] = GetAttire(pawn);
 
             return data;
+        }
+
+        private static string GetAttire(Pawn pawn)
+        {
+            if (pawn == null)
+            {
+                return "naked";
+            }
+
+            // Check if the pawn has the SI_Naked hediff (used during dating activities)
+            if (pawn.health != null && pawn.health.hediffSet != null && pawn.health.hediffSet.HasHediff(SI_HediffDefOf.SI_Naked))
+            {
+                return "naked";
+            }
+
+            if (pawn.apparel == null)
+            {
+                return "naked";
+            }
+
+            // Look for apparel worn on the torso/chest area
+            // In RimWorld, apparel covers specific body part groups
+            var wornApparel = pawn.apparel.WornApparel;
+            if (wornApparel == null)
+            {
+                return "naked";
+            }
+
+            // Define the torso body part group (chest area)
+            BodyPartGroupDef torsoGroup = BodyPartGroupDefOf.Torso;
+            
+            // Find the outermost apparel that covers the torso
+            Apparel torsoApparel = null;
+            foreach (Apparel apparel in wornApparel)
+            {
+                if (apparel != null && apparel.def != null && apparel.def.apparel != null)
+                {
+                    // Check if this apparel covers the torso body part group
+                    // This ensures we only consider apparel that actually covers the chest/torso area
+                    // (e.g., excludes hats, helmets, etc. that only cover head parts)
+                    if (apparel.def.apparel.bodyPartGroups.Contains(torsoGroup))
+                    {
+                        // For layer-based priority, we want to find the outermost visible layer
+                        // We'll prioritize outer layers (Shell > Middle > OnSkin)
+                        if (torsoApparel == null || 
+                            (apparel.def.apparel.layers.Contains(ApparelLayerDefOf.Shell) && 
+                             !torsoApparel.def.apparel.layers.Contains(ApparelLayerDefOf.Shell)) ||
+                            (apparel.def.apparel.layers.Contains(ApparelLayerDefOf.Middle) && 
+                             torsoApparel.def.apparel.layers.Contains(ApparelLayerDefOf.OnSkin)))
+                        {
+                            torsoApparel = apparel;
+                        }
+                    }
+                }
+            }
+
+            // If we found torso-covering apparel, return its label
+            if (torsoApparel != null)
+            {
+                return torsoApparel.Label;
+            }
+            
+            // If no apparel covers the torso/chest area specifically, they are naked on the upper body
+            return "naked";
         }
 
         private static string GetLastSocialLogEntry(Pawn pawn, Pawn target = null)
@@ -1038,51 +1125,20 @@ namespace SocialInteractions
                                     }
                                 }
 
-                                // --- For LLM Efficiency Unlock ---
-                                // Calculate unlock delay based on last response time estimate and current display time
-                                // If early LLM requests are disabled, set the unlock time to totalDisplaySeconds
-                                float unlockDelaySeconds = 0f;
-                                if (SocialInteractions.Settings.enableEarlyLlmRequests)
-                                {
-                                    unlockDelaySeconds = totalDisplaySeconds - lastResponseTimeSeconds;
-                                }
-                                else
-                                {
-                                    unlockDelaySeconds = totalDisplaySeconds;
-                                }
-
-                                // Log on main thread
-                                SpeechBubbleManager.EnqueueJob(() => {
-                                    SLog.Message(string.Format("[SocialInteractions] Efficiency - Total Display Time: {0:F2}s, Estimated Next Response Time: {1:F2}s, Unlock Delay: {2:F2}s", totalDisplaySeconds, lastResponseTimeSeconds, unlockDelaySeconds));
-                                });
-
-                                if (unlockDelaySeconds > 0)
-                                {
-                                    // Schedule unlock after the delay
-                                    SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
-                                }
-                                else
-                                {
-                                    // Unlock immediately (next tick) if LLM was slower than display or no delay needed
-                                    SpeechBubbleManager.ScheduleUnlock(0.01f); // A tiny delay to ensure it happens on the next possible tick
-                                }
+                                // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
+                                // No need to calculate or schedule unlocks anymore
                                 // --- End For LLM Efficiency Unlock ---
                             }
                             else
                             {
-                                Log.Warning(string.Format("[SocialInteractions] HandleMonologue: LLM API returned empty messages for pawn {0}", pawn.LabelShort));
+                                SLog.Warning(string.Format("[SocialInteractions] HandleMonologue: LLM API returned empty messages for pawn {0}", pawn.LabelShort));
                                 // Fallback to default monologue text
                                 string fallbackText = string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort);
                                 string wrappedFallbackText = SocialInteractions.WrapText(fallbackText, SocialInteractions.Settings.wordsPerLineLimit);
                                 SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
 
-                                // --- For LLM Efficiency Unlock (Fallback) ---
-                                // Even on fallback, schedule an unlock based on a default display time
-                                float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
-                                if (unlockDelaySeconds > 0)
-                                    SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
-                                else
-                                    SpeechBubbleManager.ScheduleUnlock(0.01f);
+                                // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
+                                // No need to schedule unlocks anymore
                                 // --- End For LLM Efficiency Unlock (Fallback) ---
                             }
                         }
@@ -1095,12 +1151,8 @@ namespace SocialInteractions
                         string wrappedFallbackText = SocialInteractions.WrapText(fallbackText, SocialInteractions.Settings.wordsPerLineLimit);
                         SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
 
-                        // --- For LLM Efficiency Unlock (Prompt Fail) ---
-                        float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
-                        if (unlockDelaySeconds > 0)
-                            SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
-                        else
-                            SpeechBubbleManager.ScheduleUnlock(0.01f);
+                        // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
+                        // No need to schedule unlocks anymore
                         // --- End For LLM Efficiency Unlock (Prompt Fail) ---
                     }
                 }
@@ -1276,46 +1328,26 @@ namespace SocialInteractions
                                 
                                 // --- For LLM Efficiency Unlock ---
                                 // Calculate unlock delay based on last response time estimate and current display time
-								// If early LLM requests are disabled, set the unlock time to totalDisplaySeconds
-								float unlockDelaySeconds = 0f;
-								if (SocialInteractions.Settings.enableEarlyLlmRequests)
-								{
-									unlockDelaySeconds = totalDisplaySeconds - lastResponseTimeSeconds;
-								} else {
-									unlockDelaySeconds = totalDisplaySeconds;
-								}
-            
+								// With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
+                                // No need to calculate or log unlock delays anymore
                                 // Log on main thread
                                 SpeechBubbleManager.EnqueueJob(() => {
-                                    SLog.Message(string.Format("[SocialInteractions] Efficiency - Total Display Time: {0:F2}s, Estimated Next Response Time: {1:F2}s, Unlock Delay: {2:F2}s", totalDisplaySeconds, lastResponseTimeSeconds, unlockDelaySeconds));
+                                    SLog.Message(string.Format("[SocialInteractions] Total Display Time: {0:F2}s, Estimated Next Response Time: {1:F2}s", totalDisplaySeconds, lastResponseTimeSeconds));
                                 });
                                 
-                                if (unlockDelaySeconds > 0)
-                                {
-                                    // Schedule unlock after the delay
-                                    SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
-                                }
-                                else
-                                {
-                                    // Unlock immediately (next tick) if LLM was slower than display or no delay needed
-                                    SpeechBubbleManager.ScheduleUnlock(0.01f); // A tiny delay to ensure it happens on the next possible tick
-                                }
+                                // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
+                                // No need to schedule unlocks anymore
                                 // --- End For LLM Efficiency Unlock ---
                             }
                             else
                             {
-                                Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: LLM API returned empty messages for interaction {0}", interactionDef.defName));
+                                SLog.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: LLM API returned empty messages for interaction {0}", interactionDef.defName));
                                 // Fallback to default interaction text
                                 string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
                                 SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
                                 
-                                // --- For LLM Efficiency Unlock (Fallback) ---
-                                // Even on fallback, schedule an unlock based on a default display time
-                                float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
-                                if (unlockDelaySeconds > 0)
-                                    SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
-                                else
-                                    SpeechBubbleManager.ScheduleUnlock(0.01f);
+                                // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
+                                // No need to schedule unlocks anymore
                                 // --- End For LLM Efficiency Unlock (Fallback) ---
                             }
                         }
@@ -1327,12 +1359,8 @@ namespace SocialInteractions
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
                         SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
                         
-                        // --- For LLM Efficiency Unlock (Prompt Fail) ---
-                        float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
-                        if (unlockDelaySeconds > 0)
-                            SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
-                        else
-                            SpeechBubbleManager.ScheduleUnlock(0.01f);
+                        // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
+                        // No need to schedule unlocks anymore
                         // --- End For LLM Efficiency Unlock (Prompt Fail) ---
                     }
                 }
@@ -1345,12 +1373,8 @@ namespace SocialInteractions
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
                         SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId));
                         
-                        // --- For LLM Efficiency Unlock (Exception) ---
-                        float unlockDelaySeconds = 2.0f - lastResponseTimeSeconds; // Assume 2s default display for fallback
-                        if (unlockDelaySeconds > 0)
-                            SpeechBubbleManager.ScheduleUnlock(unlockDelaySeconds);
-                        else
-                            SpeechBubbleManager.ScheduleUnlock(0.01f);
+                        // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
+                        // No need to schedule unlocks anymore
                         // --- End For LLM Efficiency Unlock (Exception) ---
                     }
                     catch (Exception fallbackEx)

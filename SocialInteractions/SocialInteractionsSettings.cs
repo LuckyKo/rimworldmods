@@ -68,7 +68,7 @@ Current event: [pawn1] [subject]
         public bool enableCombatTaunts = true;
         public bool enableDatingFeature = true;
         public bool enableXtcSampling = false;
-        public bool enableEarlyLlmRequests = true;
+        
         public bool verboseLogging = false;
         public bool useBackgroundTextRendering = false; // False = drop shadow (current), True = background style
         
@@ -165,7 +165,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref enableXtcSampling, "enableXtcSampling", false);
             Scribe_Values.Look(ref joyThresholdForDate, "joyThresholdForDate", 0.8f);
             Scribe_Values.Look(ref verboseLogging, "verboseLogging", false);
-            Scribe_Values.Look(ref enableEarlyLlmRequests, "enableEarlyLlmRequests", true);
+            
             Scribe_Values.Look(ref useBackgroundTextRendering, "useBackgroundTextRendering", false);
             
             // Magic number settings (not exposed in UI)
@@ -254,13 +254,12 @@ Current event: [pawn1] [subject]
             listingStandard.CheckboxLabeled("Prevent Spam", ref SocialInteractions.Settings.preventSpam, "If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.");
 
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Enable Early LLM Requests", ref SocialInteractions.Settings.enableEarlyLlmRequests, "If enabled, LLM requests will be sent early before the current speech bubbles finish displaying. If disabled, LLM requests will only be sent after the current speech bubbles finish.");
-
-            listingStandard.Gap();
             listingStandard.CheckboxLabeled("Use Text Background", ref SocialInteractions.Settings.useBackgroundTextRendering, "If enabled, LLM-generated text will be displayed with a background instead of a drop shadow.");
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable Verbose Logging", ref SocialInteractions.Settings.verboseLogging, "If enabled, detailed logs will be written to the Player.log file for debugging purposes.");
+
+            listingStandard.Gap();
             listingStandard.Label("LLM API Configuration");
 
             // API Type Selection
