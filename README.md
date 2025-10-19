@@ -82,9 +82,11 @@ Pawns will automatically engage in LLM-generated conversations during:
 
 ### Dating System
 1. Pawns will naturally attempt to go on dates with others
-2. Right-click on a pawn and select "Chat" to manually initiate conversations
-3. Dates progress through Joy and Lovin stages automatically
-4. Compatible couples may engage in intimate interactions
+2. Dates progress through Joy and Lovin stages automatically
+3. Compatible couples may engage in intimate interactions
+
+### Manual Interactions
+Click on the "Chat" button in a pawn's action bar and select another pawn to manually initiate conversations between two pawns.
 
 ### Combat Taunts
 Pawns will automatically shout during combat situations:
