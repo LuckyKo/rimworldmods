@@ -10,7 +10,8 @@ namespace SocialInteractions
         KoboldCpp,
         Ollama,
         LMStudio,
-        OpenAI
+        OpenAI,
+        Gemini
     }
 
     public class SocialInteractionsModSettings : ModSettings
@@ -57,6 +58,7 @@ Current event: [pawn1] [subject]
         public string ollamaModelName = "llama3.2"; // Default Ollama model name
         public string lmStudioModelName = "gemma-2-2b-it"; // Default LM Studio model name
         public string openAiModelName = "gpt-3.5-turbo"; // Default OpenAI model name
+        public string geminiModelName = "gemini-2.5-flash"; // Default Gemini model name
         public bool preventSpam = false;
 
         // API settings
@@ -145,6 +147,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref llmMinP, "llmMinP", 0.0f);
             Scribe_Values.Look(ref ollamaModelName, "ollamaModelName", "llama3.2");
             Scribe_Values.Look(ref lmStudioModelName, "lmStudioModelName", "gemma-2-2b-it");
+            Scribe_Values.Look(ref geminiModelName, "geminiModelName", "gemini-2.5-flash");
 
             Scribe_Values.Look(ref enableChitchat, "enableChitchat", true);
             Scribe_Values.Look(ref enableManualChat, "enableManualChat", true); // New setting for manual chat
@@ -298,6 +301,10 @@ Current event: [pawn1] [subject]
                             SocialInteractions.Settings.llmApiUrl = "https://api.openai.com";
                             llmApiUrlBuffer = "https://api.openai.com";
                             break;
+                        case LlmApiType.Gemini:
+                            SocialInteractions.Settings.llmApiUrl = "https://generativelanguage.googleapis.com";
+                            llmApiUrlBuffer = "https://generativelanguage.googleapis.com";
+                            break;
                     }
                 }
             }
@@ -352,6 +359,18 @@ Current event: [pawn1] [subject]
                 {
                     openAiModelNameBuffer = newOpenAiModel;
                     SocialInteractions.Settings.openAiModelName = newOpenAiModel;
+                }
+            }
+            
+            // Gemini-specific settings
+            if (SocialInteractions.Settings.llmApiType == LlmApiType.Gemini)
+            {
+                listingStandard.Gap();
+                listingStandard.Label("Gemini Model Name:");
+                string newGeminiModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.geminiModelName);
+                if (!string.IsNullOrEmpty(newGeminiModel))
+                {
+                    SocialInteractions.Settings.geminiModelName = newGeminiModel;
                 }
             }
 

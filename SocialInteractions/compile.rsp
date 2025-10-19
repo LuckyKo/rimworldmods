@@ -14,6 +14,7 @@ KoboldApiClient.cs
 OllamaApiClient.cs
 LMStudioApiClient.cs
 OpenAiApiClient.cs
+GeminiApiClient.cs
 JobDriver_HaveDeepTalk.cs
 Job_HaveDeepTalk.cs
 JobDriver_BeTalkedTo.cs

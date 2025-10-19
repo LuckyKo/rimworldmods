@@ -1658,6 +1658,10 @@ namespace SocialInteractions
             {
                 return new LMStudioApiClient(Settings.llmApiUrl, Settings.lmStudioModelName);
             }
+            else if (Settings.llmApiType == LlmApiType.Gemini)
+            {
+                return new GeminiApiClient(Settings.llmApiUrl, Settings.llmApiKey);
+            }
             else
             {
                 return new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
@@ -1739,6 +1743,35 @@ namespace SocialInteractions
                         }
                         
                         return await openAiClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                    }
+                }
+                else if (Settings.llmApiType == LlmApiType.Gemini)
+                {
+                    client = new GeminiApiClient(Settings.llmApiUrl, Settings.llmApiKey);
+                    GeminiApiClient geminiClient = client as GeminiApiClient;
+                    if (geminiClient != null)
+                    {
+                        // Prepare sampling parameters
+                        int? topK = null;
+                        float? topP = null;
+                        float? minP = null;
+                        
+                        if (Settings.llmTopK > 0)
+                        {
+                            topK = Settings.llmTopK;
+                        }
+                        
+                        if (Settings.llmTopP < 1.0f)
+                        {
+                            topP = Settings.llmTopP;
+                        }
+                        
+                        if (Settings.llmMinP > 0.0f)
+                        {
+                            minP = Settings.llmMinP;
+                        }
+                        
+                        return await geminiClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
                     }
                 }
                 else
