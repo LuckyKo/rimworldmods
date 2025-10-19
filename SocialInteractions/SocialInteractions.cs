@@ -1662,6 +1662,22 @@ namespace SocialInteractions
             {
                 return new GeminiApiClient(Settings.llmApiUrl, Settings.llmApiKey);
             }
+            else if (Settings.llmApiType == LlmApiType.Qwen)
+            {
+                return new QwenApiClient(Settings.llmApiUrl, Settings.qwenModelName, Settings.llmApiKey);
+            }
+            else if (Settings.llmApiType == LlmApiType.Deepseek)
+            {
+                return new DeepseekApiClient(Settings.llmApiUrl, Settings.deepseekModelName, Settings.llmApiKey);
+            }
+            else if (Settings.llmApiType == LlmApiType.Grok)
+            {
+                return new GrokApiClient(Settings.llmApiUrl, Settings.grokModelName, Settings.llmApiKey);
+            }
+            else if (Settings.llmApiType == LlmApiType.Claude)
+            {
+                return new ClaudeApiClient(Settings.llmApiUrl, Settings.claudeModelName, Settings.llmApiKey);
+            }
             else
             {
                 return new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
@@ -1772,6 +1788,122 @@ namespace SocialInteractions
                         }
                         
                         return await geminiClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                    }
+                }
+                else if (Settings.llmApiType == LlmApiType.Qwen)
+                {
+                    client = new QwenApiClient(Settings.llmApiUrl, Settings.qwenModelName, Settings.llmApiKey);
+                    QwenApiClient qwenClient = client as QwenApiClient;
+                    if (qwenClient != null)
+                    {
+                        // Prepare sampling parameters
+                        int? topK = null;
+                        float? topP = null;
+                        float? minP = null;
+                        
+                        if (Settings.llmTopK > 0)
+                        {
+                            topK = Settings.llmTopK;
+                        }
+                        
+                        if (Settings.llmTopP < 1.0f)
+                        {
+                            topP = Settings.llmTopP;
+                        }
+                        
+                        if (Settings.llmMinP > 0.0f)
+                        {
+                            minP = Settings.llmMinP;
+                        }
+                        
+                        return await qwenClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                    }
+                }
+                else if (Settings.llmApiType == LlmApiType.Deepseek)
+                {
+                    client = new DeepseekApiClient(Settings.llmApiUrl, Settings.deepseekModelName, Settings.llmApiKey);
+                    DeepseekApiClient deepseekClient = client as DeepseekApiClient;
+                    if (deepseekClient != null)
+                    {
+                        // Prepare sampling parameters
+                        int? topK = null;
+                        float? topP = null;
+                        float? minP = null;
+                        
+                        if (Settings.llmTopK > 0)
+                        {
+                            topK = Settings.llmTopK;
+                        }
+                        
+                        if (Settings.llmTopP < 1.0f)
+                        {
+                            topP = Settings.llmTopP;
+                        }
+                        
+                        if (Settings.llmMinP > 0.0f)
+                        {
+                            minP = Settings.llmMinP;
+                        }
+                        
+                        return await deepseekClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                    }
+                }
+                else if (Settings.llmApiType == LlmApiType.Grok)
+                {
+                    client = new GrokApiClient(Settings.llmApiUrl, Settings.grokModelName, Settings.llmApiKey);
+                    GrokApiClient grokClient = client as GrokApiClient;
+                    if (grokClient != null)
+                    {
+                        // Prepare sampling parameters
+                        int? topK = null;
+                        float? topP = null;
+                        float? minP = null;
+                        
+                        if (Settings.llmTopK > 0)
+                        {
+                            topK = Settings.llmTopK;
+                        }
+                        
+                        if (Settings.llmTopP < 1.0f)
+                        {
+                            topP = Settings.llmTopP;
+                        }
+                        
+                        if (Settings.llmMinP > 0.0f)
+                        {
+                            minP = Settings.llmMinP;
+                        }
+                        
+                        return await grokClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                    }
+                }
+                else if (Settings.llmApiType == LlmApiType.Claude)
+                {
+                    client = new ClaudeApiClient(Settings.llmApiUrl, Settings.claudeModelName, Settings.llmApiKey);
+                    ClaudeApiClient claudeClient = client as ClaudeApiClient;
+                    if (claudeClient != null)
+                    {
+                        // Prepare sampling parameters
+                        int? topK = null;
+                        float? topP = null;
+                        float? minP = null;
+                        
+                        if (Settings.llmTopK > 0)
+                        {
+                            topK = Settings.llmTopK;
+                        }
+                        
+                        if (Settings.llmTopP < 1.0f)
+                        {
+                            topP = Settings.llmTopP;
+                        }
+                        
+                        if (Settings.llmMinP > 0.0f)
+                        {
+                            minP = Settings.llmMinP;
+                        }
+                        
+                        return await claudeClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
                     }
                 }
                 else

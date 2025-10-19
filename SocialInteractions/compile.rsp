@@ -15,6 +15,10 @@ OllamaApiClient.cs
 LMStudioApiClient.cs
 OpenAiApiClient.cs
 GeminiApiClient.cs
+QwenApiClient.cs
+DeepseekApiClient.cs
+GrokApiClient.cs
+ClaudeApiClient.cs
 JobDriver_HaveDeepTalk.cs
 Job_HaveDeepTalk.cs
 JobDriver_BeTalkedTo.cs

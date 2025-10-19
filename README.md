@@ -9,7 +9,7 @@ Enhance your RimWorld experience with dynamic, AI-generated social interactions,
 
 ### AI-Powered Social Interactions
 - **LLM Integration**: Uses large language models to generate realistic dialogue between pawns
-- **Multiple API Support**: Compatible with KoboldCpp, Ollama, LM Studio, and OpenAI
+- **Multiple API Support**: Compatible with KoboldCpp, Ollama, LM Studio, OpenAI and others
 - **Rich Context**: Dialogues consider pawn traits, mood, relationships, health, and world conditions
 - **Conversation History**: Pawns remember previous conversations for more meaningful interactions
 - **Customizable Prompts**: Fine-tune dialogue generation with editable prompt templates
@@ -41,6 +41,11 @@ Enhance your RimWorld experience with dynamic, AI-generated social interactions,
 | **Ollama** | Easy-to-use local LLM platform |
 | **LM Studio** | Local LLM experimentation platform |
 | **OpenAI** | Cloud-based GPT models |
+| **Gemini** | Cloud-based GPT models |
+| **Qwen** | Cloud-based GPT models |
+| **Deepseek** | Cloud-based GPT models |
+| **Grok** | Cloud-based GPT models |
+| **Claude** | Cloud-based GPT models |
 
 ## Installation
 
@@ -86,7 +91,7 @@ Pawns will automatically engage in LLM-generated conversations during:
 3. Compatible couples may engage in intimate interactions
 
 ### Manual Interactions
-Click on the "Chat" button in a pawn's action bar and select another pawn to manually initiate conversations between two pawns.
+Click on the "Have Chat With" button in a pawn's action bar and select another pawn to manually initiate conversations between two pawns.
 
 ### Combat Taunts
 Pawns will automatically shout during combat situations:

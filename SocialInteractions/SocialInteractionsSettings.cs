@@ -11,7 +11,11 @@ namespace SocialInteractions
         Ollama,
         LMStudio,
         OpenAI,
-        Gemini
+        Gemini,
+        Qwen,
+        Deepseek,
+        Grok,
+        Claude
     }
 
     public class SocialInteractionsModSettings : ModSettings
@@ -59,6 +63,10 @@ Current event: [pawn1] [subject]
         public string lmStudioModelName = "gemma-2-2b-it"; // Default LM Studio model name
         public string openAiModelName = "gpt-3.5-turbo"; // Default OpenAI model name
         public string geminiModelName = "gemini-2.5-flash"; // Default Gemini model name
+        public string qwenModelName = "qwen-max"; // Default Qwen model name
+        public string deepseekModelName = "deepseek-chat"; // Default Deepseek model name
+        public string grokModelName = "grok-3-mini"; // Default Grok model name
+        public string claudeModelName = "claude-3-sonnet-20240229"; // Default Claude model name
         public bool preventSpam = false;
 
         // API settings
@@ -148,6 +156,10 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref ollamaModelName, "ollamaModelName", "llama3.2");
             Scribe_Values.Look(ref lmStudioModelName, "lmStudioModelName", "gemma-2-2b-it");
             Scribe_Values.Look(ref geminiModelName, "geminiModelName", "gemini-2.5-flash");
+            Scribe_Values.Look(ref qwenModelName, "qwenModelName", "qwen-max");
+            Scribe_Values.Look(ref deepseekModelName, "deepseekModelName", "deepseek-chat");
+            Scribe_Values.Look(ref grokModelName, "grokModelName", "grok-3-mini");
+            Scribe_Values.Look(ref claudeModelName, "claudeModelName", "claude-3-sonnet-20240229");
 
             Scribe_Values.Look(ref enableChitchat, "enableChitchat", true);
             Scribe_Values.Look(ref enableManualChat, "enableManualChat", true); // New setting for manual chat
@@ -305,6 +317,22 @@ Current event: [pawn1] [subject]
                             SocialInteractions.Settings.llmApiUrl = "https://generativelanguage.googleapis.com";
                             llmApiUrlBuffer = "https://generativelanguage.googleapis.com";
                             break;
+                        case LlmApiType.Qwen:
+                            SocialInteractions.Settings.llmApiUrl = "https://dashscope.aliyuncs.com";
+                            llmApiUrlBuffer = "https://dashscope.aliyuncs.com";
+                            break;
+                        case LlmApiType.Deepseek:
+                            SocialInteractions.Settings.llmApiUrl = "https://api.deepseek.com";
+                            llmApiUrlBuffer = "https://api.deepseek.com";
+                            break;
+                        case LlmApiType.Grok:
+                            SocialInteractions.Settings.llmApiUrl = "https://api.x.ai";
+                            llmApiUrlBuffer = "https://api.x.ai";
+                            break;
+                        case LlmApiType.Claude:
+                            SocialInteractions.Settings.llmApiUrl = "https://api.anthropic.com";
+                            llmApiUrlBuffer = "https://api.anthropic.com";
+                            break;
                     }
                 }
             }
@@ -371,6 +399,54 @@ Current event: [pawn1] [subject]
                 if (!string.IsNullOrEmpty(newGeminiModel))
                 {
                     SocialInteractions.Settings.geminiModelName = newGeminiModel;
+                }
+            }
+            
+            // Qwen-specific settings
+            if (SocialInteractions.Settings.llmApiType == LlmApiType.Qwen)
+            {
+                listingStandard.Gap();
+                listingStandard.Label("Qwen Model Name:");
+                string newQwenModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.qwenModelName);
+                if (!string.IsNullOrEmpty(newQwenModel))
+                {
+                    SocialInteractions.Settings.qwenModelName = newQwenModel;
+                }
+            }
+            
+            // Deepseek-specific settings
+            if (SocialInteractions.Settings.llmApiType == LlmApiType.Deepseek)
+            {
+                listingStandard.Gap();
+                listingStandard.Label("Deepseek Model Name:");
+                string newDeepseekModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.deepseekModelName);
+                if (!string.IsNullOrEmpty(newDeepseekModel))
+                {
+                    SocialInteractions.Settings.deepseekModelName = newDeepseekModel;
+                }
+            }
+            
+            // Grok-specific settings
+            if (SocialInteractions.Settings.llmApiType == LlmApiType.Grok)
+            {
+                listingStandard.Gap();
+                listingStandard.Label("Grok Model Name:");
+                string newGrokModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.grokModelName);
+                if (!string.IsNullOrEmpty(newGrokModel))
+                {
+                    SocialInteractions.Settings.grokModelName = newGrokModel;
+                }
+            }
+            
+            // Claude-specific settings
+            if (SocialInteractions.Settings.llmApiType == LlmApiType.Claude)
+            {
+                listingStandard.Gap();
+                listingStandard.Label("Claude Model Name:");
+                string newClaudeModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.claudeModelName);
+                if (!string.IsNullOrEmpty(newClaudeModel))
+                {
+                    SocialInteractions.Settings.claudeModelName = newClaudeModel;
                 }
             }
 

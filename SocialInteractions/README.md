@@ -9,7 +9,7 @@ Enhance your RimWorld experience with dynamic, AI-generated social interactions,
 
 ### AI-Powered Social Interactions
 - **LLM Integration**: Uses large language models to generate realistic dialogue between pawns
-- **Multiple API Support**: Compatible with KoboldCpp, Ollama, LM Studio, and OpenAI
+- **Multiple API Support**: Compatible with KoboldCpp, Ollama, LM Studio, OpenAI, and others
 - **Rich Context**: Dialogues consider pawn traits, mood, relationships, health, and world conditions
 - **Conversation History**: Pawns remember previous conversations for more meaningful interactions
 - **Customizable Prompts**: Fine-tune dialogue generation with editable prompt templates
@@ -41,6 +41,11 @@ Enhance your RimWorld experience with dynamic, AI-generated social interactions,
 | **Ollama** | Easy-to-use local LLM platform |
 | **LM Studio** | Local LLM experimentation platform |
 | **OpenAI** | Cloud-based GPT models |
+| **Gemini** | Cloud-based GPT models |
+| **Qwen** | Cloud-based GPT models |
+| **Deepseek** | Cloud-based GPT models |
+| **Grok** | Cloud-based GPT models |
+| **Claude** | Cloud-based GPT models |
 
 ## Installation
 
@@ -67,7 +72,6 @@ Enhance your RimWorld experience with dynamic, AI-generated social interactions,
 
 ### Performance Options
 - Prevent spam mode to avoid overlapping dialogues
-- Enable early LLM requests for better performance
 - Adjust text rendering style (drop shadow vs background)
 
 ## How to Use
@@ -82,9 +86,11 @@ Pawns will automatically engage in LLM-generated conversations during:
 
 ### Dating System
 1. Pawns will naturally attempt to go on dates with others
-2. Right-click on a pawn and select "Chat" to manually initiate conversations
-3. Dates progress through Joy and Lovin stages automatically
-4. Compatible couples may engage in intimate interactions
+2. Dates progress through Joy and Lovin stages automatically
+3. Compatible couples may engage in intimate interactions
+
+### Manual Interactions
+Click on the "Chat With" button in a pawn's action bar and select another pawn to manually initiate conversations between two pawns.
 
 ### Combat Taunts
 Pawns will automatically shout during combat situations:
