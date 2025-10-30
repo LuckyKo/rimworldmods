@@ -11,7 +11,8 @@ namespace SocialInteractions
         LLMChat,
         GameEvent,
         DateEvent,
-        CombatEvent
+        CombatEvent,
+        DramaEvent
     }
 
     public class ChatMessage
@@ -59,6 +60,9 @@ namespace SocialInteractions
                 case MessageType.CombatEvent:
                     prefix = "[Combat]";
                     break;
+                case MessageType.DramaEvent:
+                    prefix = "[Drama]";
+                    break;
             }
 
             return string.Format("{0} {1} {2} -> {3}: {4}", 
@@ -90,6 +94,13 @@ namespace SocialInteractions
         public static void AddGameEvent(Pawn speaker, Pawn recipient, string message, string fallbackText)
         {
             ChatMessage chatMessage = new ChatMessage(speaker, recipient, message, MessageType.GameEvent, -1, Color.white, fallbackText);
+            AddMessage(chatMessage);
+        }
+        
+        // Method for adding drama events (like badmouthing) with specific fallback texts
+        public static void AddDramaEvent(Pawn speaker, Pawn recipient, string message, string fallbackText)
+        {
+            ChatMessage chatMessage = new ChatMessage(speaker, recipient, message, MessageType.DramaEvent, -1, Color.red, fallbackText); // Using red color for drama
             AddMessage(chatMessage);
         }
 

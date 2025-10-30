@@ -78,6 +78,7 @@ Current event: [pawn1] [subject]
         public bool enableCombatTaunts = true;
         public bool enableDatingFeature = true;
         public bool enableXtcSampling = false;
+        public bool enableDrama = false; // New setting for drama interactions like badmouthing
         
         public bool verboseLogging = false;
         public bool useBackgroundTextRendering = false; // False = drop shadow (current), True = background style
@@ -133,6 +134,16 @@ Current event: [pawn1] [subject]
         public float nonRelatedPartnerWeightFactor = 0.7f; // General weight factor for non-related partners
         public float cheatingPenalty = 30f;
         public float opinionDifferenceThreshold = 20f; // Opinion difference needed to eliminate cheating penalty
+        
+        // Badmouthing interaction settings (for debugging/tweaking)
+        public float baseBadmouthingChance = 0.05f; // Base chance for pawns without encouraging traits
+        public float traitEncouragedBadmouthingChance = 0.25f; // Chance for pawns with encouraging traits
+        public float badOpinionAdditionalChance = 0.15f; // Additional chance when pawn has low opinion of someone else
+        
+        // Badmouthing opinion adjustment settings
+        public int badmouthingOpinionReductionForTarget = -5; // How much to reduce recipient's opinion of the target
+        public int badmouthingOpinionReductionForInitiator = -8; // How much to reduce recipient's opinion of the initiator when it's inappropriate
+        public int badmouthingLowOpinionThreshold = 50; // Threshold for considering an opinion "low"
 
 
         public override void ExposeData()
@@ -175,6 +186,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref enableLovin, "enableLovin", true);
             Scribe_Values.Look(ref enableDating, "enableDating", true);
             Scribe_Values.Look(ref enableDatingFeature, "enableDatingFeature", true);
+            Scribe_Values.Look(ref enableDrama, "enableDrama", false);
             Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);
             Scribe_Values.Look(ref enableXtcSampling, "enableXtcSampling", false);
@@ -209,6 +221,14 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref nonRelatedPartnerWeightFactor, "nonRelatedPartnerWeightFactor", 1.0f);
             Scribe_Values.Look(ref cheatingPenalty, "cheatingPenalty", 30f);
             Scribe_Values.Look(ref opinionDifferenceThreshold, "opinionDifferenceThreshold", 20f);
+            
+            // Badmouthing interaction settings (for debugging/tweaking)
+            Scribe_Values.Look(ref baseBadmouthingChance, "baseBadmouthingChance", 0.55f);
+            Scribe_Values.Look(ref traitEncouragedBadmouthingChance, "traitEncouragedBadmouthingChance", 0.25f);
+            Scribe_Values.Look(ref badOpinionAdditionalChance, "badOpinionAdditionalChance", 0.15f);
+            Scribe_Values.Look(ref badmouthingOpinionReductionForTarget, "badmouthingOpinionReductionForTarget", -5);
+            Scribe_Values.Look(ref badmouthingOpinionReductionForInitiator, "badmouthingOpinionReductionForInitiator", -8);
+            Scribe_Values.Look(ref badmouthingLowOpinionThreshold, "badmouthingLowOpinionThreshold", 50);
         }
     }
 
@@ -244,10 +264,17 @@ Current event: [pawn1] [subject]
 
             Listing_Standard listingStandard = new Listing_Standard();
             listingStandard.Begin(viewRect);
+            listingStandard.Label("Social Interractions Settings v1.1.0");
+            
+            listingStandard.Gap();
             listingStandard.CheckboxLabeled("Pawns stop on interaction", ref SocialInteractions.Settings.pawnsStopOnInteraction, "If enabled, pawns will stop their current activities during social interactions.");
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable Combat Taunts", ref SocialInteractions.Settings.enableCombatTaunts, "If enabled, pawns will taunt each other in combat.");
+
+            // Drama interactions setting
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("Enable Drama Interactions", ref SocialInteractions.Settings.enableDrama, "If enabled, pawns may engage in drama-causing interactions like badmouthing.");
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable Dating Feature", ref SocialInteractions.Settings.enableDatingFeature, "If enabled, pawns will be able to go on dates.");

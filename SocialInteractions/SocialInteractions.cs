@@ -57,6 +57,7 @@ namespace SocialInteractions
             if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating && Settings.enableLovin) return true;
             if (interactionDef == SI_InteractionDefOf.CaughtCheating && Settings.enableDating) return true;
             if (interactionDef == SI_InteractionDefOf.ManualChat && Settings.enableManualChat) return true;
+            if (interactionDef == SI_InteractionDefOf.Badmouthing && Settings.enableDrama) return true;
             return false;
         }
 
@@ -104,6 +105,7 @@ namespace SocialInteractions
             else if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating && Settings.enableLovin) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.CaughtCheating && Settings.enableDating) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.ManualChat && Settings.enableManualChat) isEnabled = true;
+            else if (interactionDef == SI_InteractionDefOf.Badmouthing && Settings.enableDrama) isEnabled = true;
 
             SLog.Message(string.Format("[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for {0}: {1}", interactionDef.defName, isEnabled));
             if (!isEnabled)

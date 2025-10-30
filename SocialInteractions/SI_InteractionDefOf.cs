@@ -18,5 +18,7 @@ namespace SocialInteractions
         public static InteractionDef CaughtCheating;
         public static InteractionDef ManualChat;
         
+        public static InteractionDef Badmouthing;
+        
     }
 }

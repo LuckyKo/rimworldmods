@@ -43,4 +43,37 @@
     </stages>
   </ThoughtDef>
 
+  <!-- Thoughts related to badmouthing interactions -->
+  <ThoughtDef>
+    <defName>HeardBadmouthing</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>2.5</durationDays>
+    <stackLimit>3</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>heard badmouthing</label>
+        <description>Someone spoke negatively about me to another colonist.</description>
+        <baseMoodEffect>-3</baseMoodEffect>
+        <baseOpinionOffset>-5</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+
+  <ThoughtDef>
+    <defName>WasToldNegativeThings</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>2.5</durationDays>
+    <stackLimit>3</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>was told negative things</label>
+        <description>I was told negative things about someone else. It makes me think worse of them.</description>
+        <baseMoodEffect>-2</baseMoodEffect>
+        <baseOpinionOffset>-5</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+
 </Defs>

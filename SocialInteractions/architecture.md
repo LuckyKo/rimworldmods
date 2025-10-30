@@ -80,6 +80,12 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **Message Types**: Supports different message types (LLMChat, GameEvent, DateEvent, CombatEvent) for filtering.
 - **Integration**: Works with SpeechBubbleManager to store all interactions for later review in the chat log window.
 
+### 10. `PlayLogEntry_Badmouthing.cs` (Custom Play Log Entry)
+- **Custom PlayLogEntry** for badmouthing interactions that includes information about the target pawn.
+- **Extended Functionality**: Overrides `ToGameStringFromPOV` to include target pawn information depending on the perspective of the pawn viewing the log.
+- **Perspective Handling**: Formats the log text differently based on whether the viewer is the initiator, recipient, target, or third party.
+- **Serialization Support**: Includes parameterless constructor and proper serialization methods for RimWorld's save/load system.
+
 ## Job Drivers
 
 ### `JobDriver_GoOnDate.cs`
@@ -109,6 +115,7 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **`InteractionWorker_Interacted_Patch.cs`**: Patches `InteractionWorker.Interacted` to call `SocialInteractions.HandleInteraction` for relevant interactions.
 - **`InteractionWorkers.cs`**: Defines custom `InteractionWorker` classes (`InteractionWorker_DateLovin`, `InteractionWorker_CaughtCheating`) that trigger specific LLM interactions or game logic.
 - **`ThoughtHandler_OpinionOffsetOfGroup_Patch.cs`**: Patches `ThoughtHandler.OpinionOffsetOfGroup` to apply opinion modifiers from `Thought_CaughtCheating`.
+- **`BadmouthingPatches.cs`**: Patches `Pawn_InteractionsTracker.TryInteractWith` to potentially initiate badmouthing during social interactions based on pawn traits and settings.
 
 ### Job & JoyGiver Patches/Implementations
 - **`JobDriver_GoOnDate.cs`**: Custom `JobDriver` that initiates the dating sequence (asking, starting joy job, assigning `FollowAndWatch`).
@@ -185,3 +192,16 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **Expanded Taunt System**: Comprehensive combat taunts for melee attacks, ranged attacks, getting hit, and going down.
 - **Configurable Probabilities**: Adjustable probabilities for different types of combat taunts.
 - **Visual Differentiation**: Combat taunts use different visual styles from regular dialogue.
+
+### Badmouthing System
+- **Interaction Definition**: Custom `Badmouthing` interaction defined in `InteractionDefs_Badmouthing.xml` with appropriate worker class and log rules.
+- **Custom Interaction Worker**: `InteractionWorker_Badmouthing.cs` handles the core logic of selecting a target pawn and determining outcomes based on opinion dynamics.
+- **Smart Target Selection**: Uses `GetLeastFavoritePawn` to identify the most disliked pawn in the colony for badmouthing, preventing the recipient from being the target.
+- **Opinion-Based Outcomes**:
+  - If recipient values the target pawn less than the initiator, the recipient is more likely to believe the badmouthing, resulting in reduced opinion of the target.
+  - If recipient values the target pawn more than the initiator, the recipient loses trust in the initiator for speaking negatively about someone they respect more.
+- **Harmony Patch Integration**: `BadmouthingPatches.cs` patches `Pawn_InteractionsTracker.TryInteractWith` to potentially trigger badmouthing during suitable social interactions (Chitchat, Insult).
+- **Trait-Based Triggering**: Considers pawn traits that encourage or prevent badmouthing (e.g., Kind trait prevents it, Jealous/Abrasive traits encourage it).
+- **Global Play Log Enhancement**: `PlayLogEntry_Badmouthing.cs` provides detailed target pawn information in the global play log, accessible through the history tab.
+- **LLM Integration**: Generates appropriate subject text for LLM dialogue based on the specific badmouthing scenario and opinion dynamics.
+- **Drama Event Tracking**: Adds badmouthing events to the chat log for review via `ChatLogManager.AddDramaEvent`.
