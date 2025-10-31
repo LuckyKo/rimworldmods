@@ -1,6 +1,7 @@
 using RimWorld;
 using Verse;
 using Verse.AI;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,11 +11,6 @@ namespace SocialInteractions
     {
         public override void Interacted(Pawn initiator, Pawn recipient, List<RulePackDef> extraSentencePacks, out string letterText, out string letterLabel, out LetterDef letterDef, out LookTargets lookTargets)
         {
-            string initiatorLabel = initiator != null ? initiator.LabelShort : "null";
-            string recipientLabel = recipient != null ? recipient.LabelShort : "null";
-            SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Badmouthing: Badmouthing interaction initiated: {0} -> {1}", 
-                initiatorLabel, recipientLabel));
-
             // Initialize out parameters
             letterText = null;
             letterLabel = null;
@@ -31,25 +27,16 @@ namespace SocialInteractions
 
             // Check if the initiator has traits that would make them avoid this interaction
             bool preventsBadmouthing = HasTraitThatPreventsBadmouthing(initiator);
-            SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Badmouthing: HasTraitThatPreventsBadmouthing({0}) = {1}", 
-                initiatorLabel, preventsBadmouthing));
-                
             if (preventsBadmouthing)
             {
-                SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Badmouthing: {0} has a trait that prevents badmouthing, skipping interaction.", initiatorLabel));
                 base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
                 return;
             }
 
             // Find the least favorite pawn in the colony for the initiator
             Pawn targetPawn = GetLeastFavoritePawn(initiator);
-            string targetLabel = targetPawn != null ? targetPawn.LabelShort : "null";
-            SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Badmouthing: GetLeastFavoritePawn({0}) returned {1}", 
-                initiatorLabel, targetLabel));
-                
             if (targetPawn == null)
             {
-                SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Badmouthing: {0} has no least favorite pawn to badmouth, skipping interaction.", initiatorLabel));
                 base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
                 return;
             }
@@ -57,7 +44,6 @@ namespace SocialInteractions
             // Check that the target pawn is not the same as the recipient
             if (targetPawn == recipient)
             {
-                SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Badmouthing: {0} tried to badmouth {1} to {1}'s face, skipping interaction.", initiatorLabel, targetPawn.LabelShort));
                 base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
                 return;
             }
@@ -65,18 +51,9 @@ namespace SocialInteractions
             // Check recipient's opinions of both the target and the initiator
             int recipientOpinionOfTarget = recipient.relations != null ? recipient.relations.OpinionOf(targetPawn) : 0;
             int recipientOpinionOfInitiator = recipient.relations != null ? recipient.relations.OpinionOf(initiator) : 0;
-            
-            SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Badmouthing: {0}'s opinion of {1} is {2}, {0}'s opinion of {3} is {4}", 
-                recipient.LabelShort, targetLabel, recipientOpinionOfTarget, initiator.LabelShort, recipientOpinionOfInitiator));
 
-            // Determine the outcome based on opinions
-            string outcome;
             if (recipientOpinionOfTarget <= recipientOpinionOfInitiator)
             {
-                // Recipient values the target less than the initiator, so the badmouthing is likely to be believed/reinforce negative opinion
-                SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Badmouthing: {0}'s opinion of {1} ({2}) <= {0}'s opinion of {3} ({4}), so {0} is more likely to believe the badmouthing", 
-                    recipient.LabelShort, targetLabel, recipientOpinionOfTarget, initiator.LabelShort, recipientOpinionOfInitiator));
-                
                 // In this scenario, the recipient was told negative things about someone they already don't like much,
                 // so they form an even worse opinion of that target
                 // Apply the WasToldNegativeThings thought to the recipient about the target
@@ -84,8 +61,6 @@ namespace SocialInteractions
                 if (wasToldNegativeThingsThought != null)
                 {
                     recipient.needs.mood.thoughts.memories.TryGainMemory(wasToldNegativeThingsThought, targetPawn);
-                    SLog.Message(string.Format("[SocialInteractions] WasToldNegativeThings thought applied: {0} for {1} about {2}", 
-                        wasToldNegativeThingsThought.defName, recipient.LabelShort, targetPawn.LabelShort));
                 }
                 else
                 {
@@ -94,34 +69,26 @@ namespace SocialInteractions
                     if (insultedThought != null)
                     {
                         recipient.needs.mood.thoughts.memories.TryGainMemory(insultedThought, targetPawn);
-                        SLog.Message(string.Format("[SocialInteractions] Fallback insult thought applied: {0} for {1} about {2}", 
-                            insultedThought.defName, recipient.LabelShort, targetPawn.LabelShort));
                     }
                     else
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Could not find appropriate thought, badmouthing opinion change may not work correctly for {0} -> {1}", 
-                            recipient.LabelShort, targetPawn.LabelShort));
+                        SLog.Message("[SocialInteractions] Could not find appropriate thought for badmouthing target scenario");
                     }
                 }
                 
                 // Generate appropriate subject text for LLM with more detailed information
-                string subject = string.Format("A badmouthing interraction where {0} speaks negatively about {1} to {2}. {2} values {1} less than {0}, causing {2} to believe the badmouthing and think worse of {1}.",
-                    initiator.LabelShort, targetLabel, recipient.LabelShort, recipientOpinionOfInitiator, recipientOpinionOfTarget);
-                
-                SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Badmouthing: Generated subject: {0}", subject));
+                string targetDescription = SocialInteractions.GetPawnDescription(targetPawn);
+                string subject = string.Format("A badmouthing interaction where {0} speaks negatively about {1} ({2}) to {3}. {3} values {1} less than {0}, causing {3} to believe the badmouthing and think worse of {1}.",
+                    initiator.LabelShort, targetPawn.LabelShort, targetDescription, recipient.LabelShort);
                 
                 // Handle the LLM interaction
                 SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, SI_InteractionDefOf.Badmouthing, subject);
                 
                 // Add the drama event to the chat log
-                ChatLogManager.AddDramaEvent(initiator, recipient, subject, string.Format("{0} spoke negatively about {1}", initiator.LabelShort, targetLabel));
+                // ChatLogManager.AddDramaEvent(initiator, recipient, subject, string.Format("{0} spoke negatively about {1}", initiator.LabelShort, targetPawn.LabelShort));
             }
             else
             {
-                // Recipient values the target more than the initiator, so they lose trust in the initiator for badmouthing someone they respect
-                SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Badmouthing: {0}'s opinion of {1} ({2}) > {0}'s opinion of {3} ({4}), so {0} loses trust in {3} for badmouthing {1}", 
-                    recipient.LabelShort, targetLabel, recipientOpinionOfTarget, initiator.LabelShort, recipientOpinionOfInitiator));
-                
                 // In this scenario, the recipient was told negative things about someone they respect by someone they trust less
                 // This should damage the relationship with the initiator
                 // Apply the HeardBadmouthing thought to the recipient about the initiator
@@ -129,8 +96,6 @@ namespace SocialInteractions
                 if (heardBadmouthingThought != null)
                 {
                     recipient.needs.mood.thoughts.memories.TryGainMemory(heardBadmouthingThought, initiator);
-                    SLog.Message(string.Format("[SocialInteractions] HeardBadmouthing thought applied: {0} for {1} about {2}", 
-                        heardBadmouthingThought.defName, recipient.LabelShort, initiator.LabelShort));
                 }
                 else
                 {
@@ -139,36 +104,50 @@ namespace SocialInteractions
                     if (insultedThought != null)
                     {
                         recipient.needs.mood.thoughts.memories.TryGainMemory(insultedThought, initiator);
-                        SLog.Message(string.Format("[SocialInteractions] Fallback insult thought applied: {0} for {1} about {2}", 
-                            insultedThought.defName, recipient.LabelShort, initiator.LabelShort));
                     }
                     else
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Could not find appropriate thought, badmouthing opinion change may not work correctly for {0} -> {1}", 
-                            recipient.LabelShort, initiator.LabelShort));
+                        SLog.Message("[SocialInteractions] Could not find appropriate thought for badmouthing initiator scenario");
                     }
                 }
                 
                 // Generate appropriate subject text for LLM with more detailed information
-                string subject = string.Format("A badmouthing interraction where {0} speaks negatively about {1} to {2}. However, {2} respects {1} more than {0}, causing {2} to lose respect for {0} instead.",
-                    initiator.LabelShort, targetLabel, recipient.LabelShort, recipientOpinionOfInitiator, recipientOpinionOfTarget);
-                
-                SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Badmouthing: Generated subject: {0}", subject));
+                string targetDescription = SocialInteractions.GetPawnDescription(targetPawn);
+                string subject = string.Format("A badmouthing interaction where {0} speaks negatively about {1} ({2}) to {3}. However, {3} respects {1} more than {0}, causing {3} to lose respect for {0} instead.",
+                    initiator.LabelShort, targetPawn.LabelShort, targetDescription, recipient.LabelShort);
                 
                 // Handle the LLM interaction
                 SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, SI_InteractionDefOf.Badmouthing, subject);
                 
                 // Add the drama event to the chat log
-                ChatLogManager.AddDramaEvent(initiator, recipient, subject, string.Format("{0} spoke negatively about {1}", initiator.LabelShort, targetLabel));
+                // ChatLogManager.AddDramaEvent(initiator, recipient, subject, string.Format("{0} spoke negatively about {1}", initiator.LabelShort, targetPawn.LabelShort));
             }
-
-            // Log outcome after processing
-            outcome = string.Format("[SocialInteractions] InteractionWorker_Badmouthing: Processed badmouthing interaction between {0} and {1} about {2}", 
-                initiator.LabelShort, recipient.LabelShort, targetLabel);
-            SLog.Message(outcome);
 
             // Call the base Interacted method to create the normal log entry
             base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
+            
+            // Create a custom log entry that includes the target pawn information to ensure consistency
+            // This ensures the target shown in the play log matches the one used in the interaction
+            try
+            {
+                // Use the existing targetPawn variable that was already determined in the method
+                // This ensures perfect consistency between the interaction and the log entry
+                if (targetPawn != null && targetPawn != recipient)
+                {
+                    // Create a custom log entry for the badmouthing interaction that includes the target pawn
+                    PlayLogEntry_Badmouthing badmouthingLogEntry = new PlayLogEntry_Badmouthing(SI_InteractionDefOf.Badmouthing, initiator, recipient, extraSentencePacks, targetPawn);
+                    
+                    // Add the entry to the play log to update the social history
+                    if (Find.PlayLog != null)
+                    {
+                        Find.PlayLog.Add(badmouthingLogEntry);
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                SLog.Warning(string.Format("[SocialInteractions] InteractionWorker_Badmouthing: Failed to add badmouthing to play log: {0}", ex.Message));
+            }
         }
 
         private Pawn GetLeastFavoritePawn(Pawn pawn)
@@ -178,26 +157,7 @@ namespace SocialInteractions
                 return null;
             }
 
-            Pawn leastFavoritePawn = null;
-            int lowestOpinion = int.MaxValue;
-
-            foreach (Pawn otherPawn in pawn.Map.mapPawns.FreeColonistsAndPrisoners)
-            {
-                if (otherPawn == pawn)
-                {
-                    continue; // Skip self
-                }
-
-                int opinion = pawn.relations != null ? pawn.relations.OpinionOf(otherPawn) : 0;
-                
-                if (opinion < lowestOpinion)
-                {
-                    lowestOpinion = opinion;
-                    leastFavoritePawn = otherPawn;
-                }
-            }
-
-            return leastFavoritePawn;
+            return SocialInteractions.GetWeightedLeastFavoritePawn(pawn);
         }
 
 

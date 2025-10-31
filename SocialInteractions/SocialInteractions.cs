@@ -275,6 +275,45 @@ namespace SocialInteractions
         }
 
         /// <summary>
+        /// Generates a formatted description of a pawn for use in prompts.
+        /// Includes sex, age, and title information.
+        /// </summary>
+        /// <param name="pawn">The pawn to describe</param>
+        /// <returns>Formatted string with pawn details (e.g., "male, 25 years old, colonist")</returns>
+        public static string GetPawnDescription(Pawn pawn)
+        {
+            if (pawn == null)
+            {
+                return "unknown";
+            }
+
+            // Extract pawn data using the existing helper method
+            var pawnData = ExtractPawnData(pawn, "target");
+            
+            // Get the key information
+            string sex = pawnData.ContainsKey("target_sex") ? pawnData["target_sex"].ToLower() : "unknown";
+            string ageStr = pawnData.ContainsKey("target_age") ? pawnData["target_age"] : "unknown";
+            string title = pawnData.ContainsKey("target_title") ? pawnData["target_title"] : "outsider";
+            
+            // Parse age to get the main age value
+            string age = "unknown age";
+            if (ageStr != "Unknown")
+            {
+                // If it's in format "25 (27)", take the first number
+                if (ageStr.Contains(" "))
+                {
+                    age = ageStr.Split(' ')[0] + " years old";
+                }
+                else
+                {
+                    age = ageStr + " years old";
+                }
+            }
+            
+            return string.Format("{0}, {1}, {2}", sex, age, title);
+        }
+
+        /// <summary>
         /// Extracts pawn data into a dictionary for use in prompt templates.
         /// </summary>
         /// <param name="pawn">The pawn to extract data from.</param>
@@ -1218,9 +1257,25 @@ namespace SocialInteractions
                     SpeechBubbleManager.ShowDefaultBubble(initiator, subject);
                     
                     // Add the event to the chat log with the subject as fallback text
-                    if (interactionDef == SI_InteractionDefOf.DateAccepted || 
-                        interactionDef == SI_InteractionDefOf.DateRejected || 
-                        interactionDef == SI_InteractionDefOf.DateLovin)
+                    // Use appropriate chat log type based on interaction type for proper color coding:
+                    // - Red for drama/insult interactions
+                    // - Pink for dating/romance interactions  
+                    // - White for casual conversations
+                    if (interactionDef.defName == "Badmouthing" || 
+                        interactionDef == SI_InteractionDefOf.Badmouthing ||
+                        interactionDef == SI_InteractionDefOf.CaughtCheating ||
+                        interactionDef == InteractionDefOf.Insult)
+                    {
+                        ChatLogManager.AddDramaEvent(initiator, recipient, subject, subject);
+                    }
+                    else if (interactionDef == SI_InteractionDefOf.DateAccepted || 
+                             interactionDef == SI_InteractionDefOf.DateRejected || 
+                             interactionDef == SI_InteractionDefOf.DateLovin ||
+                             interactionDef.defName == "GoOnDate" ||
+                             interactionDef == SI_InteractionDefOf.DateLovin ||
+                             interactionDef == SI_InteractionDefOf.Lovin ||
+                             interactionDef == InteractionDefOf.RomanceAttempt ||
+                             interactionDef == InteractionDefOf.MarriageProposal)
                     {
                         ChatLogManager.AddDateEvent(initiator, recipient, subject, subject);
                     }
@@ -1323,7 +1378,7 @@ namespace SocialInteractions
                                         // --- Pass conversationId ---
                                         // Capture the loop variable to avoid closure issues
                                         int currentIndex = i;
-                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(speaker, rawMessage, recipient, duration, currentIndex == 0, conversationId, true, true, subject)); // Orange for high priority, pass subject as fallback text
+                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(speaker, rawMessage, recipient, duration, currentIndex == 0, conversationId, true, true, subject, interactionDef)); // Orange for high priority, pass subject as fallback text and interactionDef for proper chat log coloring
                                         // --- End Pass conversationId ---
                                     }
                                 }
@@ -1946,6 +2001,84 @@ namespace SocialInteractions
                 }
             }
             return null;
+        }
+        
+        /// <summary>
+        /// Gets a weighted random selection of the least favorite pawn from the bottom 3 most disliked pawns
+        /// </summary>
+        /// <param name="pawn">The pawn whose least favorite to find</param>
+        /// <returns>The randomly selected least favorite pawn based on weighted selection</returns>
+        public static Pawn GetWeightedLeastFavoritePawn(Pawn pawn)
+        {
+            if (pawn == null || pawn.Map == null || pawn.Map.mapPawns == null)
+            {
+                return null;
+            }
+
+            // Create a list of pawns with their opinion values
+            List<KeyValuePair<Pawn, int>> pawnOpinions = new List<KeyValuePair<Pawn, int>>();
+
+            foreach (Pawn otherPawn in pawn.Map.mapPawns.FreeColonistsAndPrisoners)
+            {
+                if (otherPawn == pawn)
+                {
+                    continue; // Skip self
+                }
+
+                int opinion = pawn.relations != null ? pawn.relations.OpinionOf(otherPawn) : 0;
+                pawnOpinions.Add(new KeyValuePair<Pawn, int>(otherPawn, opinion));
+            }
+
+            if (pawnOpinions.Count == 0)
+            {
+                return null;
+            }
+
+            // Sort by opinion (lowest first)
+            pawnOpinions.Sort((x, y) => x.Value.CompareTo(y.Value));
+
+            // Take the last 3 pawns (the ones with the lowest opinions) or all if fewer than 3
+            int countToConsider = Math.Min(3, pawnOpinions.Count);
+            List<KeyValuePair<Pawn, int>> candidates = new List<KeyValuePair<Pawn, int>>();
+            for (int i = 0; i < countToConsider; i++)
+            {
+                candidates.Add(pawnOpinions[i]);
+            }
+
+            // Weighted random selection where pawns with lower opinions have higher chance
+            // The weight is based on how negative the opinion value is (more negative = higher weight)
+            int totalWeight = 0;
+            foreach (var candidate in candidates)
+            {
+                // Use the negative opinion value as weight (so -20 opinion gets weight 20)
+                int weight = Math.Max(1, -candidate.Value); // Ensure at least weight 1 for neutral opinions
+                totalWeight += weight;
+            }
+
+            if (totalWeight <= 0)
+            {
+                // If all weights are 0 (all positive opinions), just pick randomly
+                int randomIndex = Rand.Range(0, candidates.Count);
+                return candidates[randomIndex].Key;
+            }
+
+            // Select based on weight
+            int randomValue = Rand.Range(0, totalWeight);
+            int currentWeight = 0;
+
+            foreach (var candidate in candidates)
+            {
+                int weight = Math.Max(1, -candidate.Value);
+                currentWeight += weight;
+
+                if (randomValue <= currentWeight)
+                {
+                    return candidate.Key;
+                }
+            }
+
+            // Fallback: return the first (most disliked) if something went wrong
+            return candidates[0].Key;
         }
     }
 }

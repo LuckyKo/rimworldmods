@@ -167,8 +167,9 @@ namespace SocialInteractions
             conversationGroups.Clear();
             
             // Group messages by conversationId
+            // Include LLMChat, DramaEvent, and DateEvent messages in conversation grouping
             var groupedMessages = chatLog
-                .Where(m => m.type == MessageType.LLMChat) // Only group chat messages
+                .Where(m => m.type == MessageType.LLMChat || m.type == MessageType.DramaEvent || m.type == MessageType.DateEvent)
                 .GroupBy(m => m.conversationId)
                 .ToDictionary(g => g.Key, g => g.ToList());
             
@@ -182,7 +183,8 @@ namespace SocialInteractions
             }
             
             // Add non-chat messages as individual groups
-            var nonChatMessages = chatLog.Where(m => m.type != MessageType.LLMChat).ToList();
+            // Exclude LLMChat, DramaEvent, and DateEvent messages from individual grouping since they're conversation-based
+            var nonChatMessages = chatLog.Where(m => m.type != MessageType.LLMChat && m.type != MessageType.DramaEvent && m.type != MessageType.DateEvent).ToList();
             foreach (ChatMessage message in nonChatMessages)
             {
                 List<ChatMessage> singleMessageList = new List<ChatMessage> { message };

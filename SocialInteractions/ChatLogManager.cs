@@ -86,7 +86,7 @@ namespace SocialInteractions
         // Method for adding date events with specific fallback texts
         public static void AddDateEvent(Pawn speaker, Pawn recipient, string message, string fallbackText)
         {
-            ChatMessage chatMessage = new ChatMessage(speaker, recipient, message, MessageType.DateEvent, -1, Color.white, fallbackText);
+            ChatMessage chatMessage = new ChatMessage(speaker, recipient, message, MessageType.DateEvent, -1, new Color(1f, 0.7f, 0.7f), fallbackText); // Using pink color for dating/romance
             AddMessage(chatMessage);
         }
         

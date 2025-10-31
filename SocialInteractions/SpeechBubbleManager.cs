@@ -267,19 +267,44 @@ namespace SocialInteractions
         }
 
         // New overload for LLM messages that handles all formatting internally
-        public static void Enqueue(Verse.Pawn speaker, string rawMessage, Pawn recipient, float duration, bool isFirstMessage, int conversationId, bool isHighPriority = false, bool useCustomMote = true, string fallbackText = null)
+        public static void Enqueue(Verse.Pawn speaker, string rawMessage, Pawn recipient, float duration, bool isFirstMessage, int conversationId, bool isHighPriority = false, bool useCustomMote = true, string fallbackText = null, InteractionDef interactionDef = null)
         {
             // Format the message with speaker name and rich text
             string formattedMessage = FormatLlmMessage(rawMessage, speaker, recipient, isHighPriority);
             string wrappedMessage = SocialInteractions.WrapText(formattedMessage, SocialInteractions.Settings.wordsPerLineLimit);
             
-            // Add to chat log
+            // Determine message type and color based on interaction type for proper chat log coloring
+            MessageType messageType = MessageType.LLMChat; // Default
             Color messageColor = isHighPriority ? new Color(1.0f, 0.6f, 0.2f) : Color.white; // Orange for high priority, white for normal
+            
+            // Override message type and color based on interaction definition
+            if (interactionDef != null)
+            {
+                if (interactionDef.defName == "Badmouthing" || 
+                    interactionDef.defName == "CaughtCheating" ||
+                    interactionDef.defName == "Insult")
+                {
+                    messageType = MessageType.DramaEvent; // Red for drama/insult interactions
+                    messageColor = Color.red;
+                }
+                else if (interactionDef.defName == "DateAccepted" || 
+                         interactionDef.defName == "DateRejected" || 
+                         interactionDef.defName == "DateLovin" ||
+                         interactionDef.defName == "GoOnDate" ||
+                         interactionDef.defName == "Lovin" ||
+                         interactionDef.defName == "RomanceAttempt" ||
+                         interactionDef.defName == "MarriageProposal")
+                {
+                    messageType = MessageType.DateEvent; // Pink for dating/romance interactions
+                    messageColor = new Color(1f, 0.7f, 0.7f); // Pink
+                }
+            }
+            
             if (string.IsNullOrEmpty(fallbackText))
             {
                 fallbackText = string.Format("{0} talks with {1}.", speaker.Name.ToStringShort, recipient.Name.ToStringShort);
             }
-            ChatLogManager.AddMessage(new ChatMessage(speaker, recipient, rawMessage, MessageType.LLMChat, conversationId, messageColor, fallbackText, formattedMessage));
+            ChatLogManager.AddMessage(new ChatMessage(speaker, recipient, rawMessage, messageType, conversationId, messageColor, fallbackText, formattedMessage));
             
             lock (queueLock)
             {
