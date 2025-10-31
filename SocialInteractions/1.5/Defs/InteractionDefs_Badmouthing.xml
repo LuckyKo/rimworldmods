@@ -18,4 +18,21 @@
     </logRulesRecipient>
   </InteractionDef>
 
+  <InteractionDef>
+    <defName>EnhancedInsult</defName>
+    <label>enhanced insult</label>
+    <workerClass>SocialInteractions.InteractionWorker_EnhancedInsult</workerClass>
+    <symbol>Things/Mote/SpeechSymbols/Insult</symbol>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->[INITIATOR_nameDef] insulted [RECIPIENT_nameDef].</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->[RECIPIENT_nameDef] was insulted by [INITIATOR_nameDef].</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
 </Defs>

@@ -140,6 +140,15 @@ Current event: [pawn1] [subject]
         public float traitEncouragedBadmouthingChance = 0.25f; // Chance for pawns with encouraging traits
         public float badOpinionAdditionalChance = 0.15f; // Additional chance when pawn has low opinion of someone else
         
+        // Enhanced Chitchat Insult settings (for debugging/tweaking)
+        public float baseEnhancedChitchatInsultChance = 0.05f; // Base chance (5%)
+        public float enhancedChitchatInsultMoodMultiplierBad = 1.5f; // Multiplier when mood is low (< 40%)
+        public float enhancedChitchatInsultMoodMultiplierGood = 0.7f; // Multiplier when mood is high (> 80%)
+        public float enhancedChitchatInsultOpinionMultiplierVeryNegative = 2.0f; // Multiplier when opinion is very negative (< -20)
+        public float enhancedChitchatInsultOpinionMultiplierVeryPositive = 0.6f; // Multiplier when opinion is very positive (> 30)
+        public float enhancedChitchatInsultTraitMultiplier = 1.8f; // Multiplier for pawns with encouraging traits
+        public float enhancedChitchatInsultOpinionDifferenceMultiplier = 0.5f; // Multiplier scale for opinion differences
+        
         // Badmouthing opinion adjustment settings
         public int badmouthingOpinionReductionForTarget = -5; // How much to reduce recipient's opinion of the target
         public int badmouthingOpinionReductionForInitiator = -8; // How much to reduce recipient's opinion of the initiator when it's inappropriate
@@ -229,6 +238,15 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref badmouthingOpinionReductionForTarget, "badmouthingOpinionReductionForTarget", -5);
             Scribe_Values.Look(ref badmouthingOpinionReductionForInitiator, "badmouthingOpinionReductionForInitiator", -8);
             Scribe_Values.Look(ref badmouthingLowOpinionThreshold, "badmouthingLowOpinionThreshold", 0);
+            
+            // Enhanced Chitchat Insult settings (for debugging/tweaking)
+            Scribe_Values.Look(ref baseEnhancedChitchatInsultChance, "baseEnhancedChitchatInsultChance", 0.05f);
+            Scribe_Values.Look(ref enhancedChitchatInsultMoodMultiplierBad, "enhancedChitchatInsultMoodMultiplierBad", 1.5f);
+            Scribe_Values.Look(ref enhancedChitchatInsultMoodMultiplierGood, "enhancedChitchatInsultMoodMultiplierGood", 0.7f);
+            Scribe_Values.Look(ref enhancedChitchatInsultOpinionMultiplierVeryNegative, "enhancedChitchatInsultOpinionMultiplierVeryNegative", 2.0f);
+            Scribe_Values.Look(ref enhancedChitchatInsultOpinionMultiplierVeryPositive, "enhancedChitchatInsultOpinionMultiplierVeryPositive", 0.6f);
+            Scribe_Values.Look(ref enhancedChitchatInsultTraitMultiplier, "enhancedChitchatInsultTraitMultiplier", 1.8f);
+            Scribe_Values.Look(ref enhancedChitchatInsultOpinionDifferenceMultiplier, "enhancedChitchatInsultOpinionDifferenceMultiplier", 0.5f);
         }
     }
 
@@ -300,6 +318,36 @@ Current event: [pawn1] [subject]
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("Enable Verbose Logging", ref SocialInteractions.Settings.verboseLogging, "If enabled, detailed logs will be written to the Player.log file for debugging purposes.");
+
+            // Badmouthing settings
+            listingStandard.Gap();
+            listingStandard.Label("Badmouthing/gossip Settings:");
+            listingStandard.Label(string.Format("Base chance: {0:F3}", SocialInteractions.Settings.baseBadmouthingChance));
+            SocialInteractions.Settings.baseBadmouthingChance = listingStandard.Slider(SocialInteractions.Settings.baseBadmouthingChance, 0f, 1f);
+
+            // Enhanced Chitchat Insult settings
+            listingStandard.Gap();
+            listingStandard.Label("Enhanced Chitchat Insult Settings:");
+            listingStandard.Label(string.Format("Base chance: {0:F3}", SocialInteractions.Settings.baseEnhancedChitchatInsultChance));
+            SocialInteractions.Settings.baseEnhancedChitchatInsultChance = listingStandard.Slider(SocialInteractions.Settings.baseEnhancedChitchatInsultChance, 0f, 1f);
+            
+            listingStandard.Label(string.Format("Mood multiplier (bad mood): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierBad));
+            SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierBad = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierBad, 0.1f, 5f);
+            
+            listingStandard.Label(string.Format("Mood multiplier (good mood): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierGood));
+            SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierGood = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierGood, 0.1f, 1f);
+            
+            listingStandard.Label(string.Format("Opinion multiplier (very negative): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryNegative));
+            SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryNegative = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryNegative, 0.5f, 5f);
+            
+            listingStandard.Label(string.Format("Opinion multiplier (very positive): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryPositive));
+            SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryPositive = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryPositive, 0.1f, 1f);
+            
+            listingStandard.Label(string.Format("Trait multiplier: {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultTraitMultiplier));
+            SocialInteractions.Settings.enhancedChitchatInsultTraitMultiplier = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultTraitMultiplier, 0.5f, 5f);
+            
+            listingStandard.Label(string.Format("Opinion difference impact: {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultOpinionDifferenceMultiplier));
+            SocialInteractions.Settings.enhancedChitchatInsultOpinionDifferenceMultiplier = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultOpinionDifferenceMultiplier, 0f, 2f);
 
             listingStandard.Gap();
             listingStandard.Label("LLM API Configuration");

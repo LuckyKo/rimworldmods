@@ -98,7 +98,7 @@ namespace SocialInteractions
                 SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, SI_InteractionDefOf.Badmouthing, subject);
             }
 
-            // Call the base Interacted method to create the normal log entry
+            // Call the base Interacted method to create the normal log entry using XML rules
             base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
             
             // Create a custom log entry that includes the target pawn information to ensure consistency

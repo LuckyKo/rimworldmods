@@ -19,6 +19,7 @@ namespace SocialInteractions
         public static InteractionDef ManualChat;
         
         public static InteractionDef Badmouthing;
+        public static InteractionDef EnhancedInsult;
         
     }
 }

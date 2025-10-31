@@ -73,5 +73,7 @@ TaleRecorder_Patch.cs
 JobDriver_HaveChatWith.cs
 Pawn_GetGizmos_Patch.cs
 InteractionWorker_Badmouthing.cs
-BadmouthingPatches.cs
+DramaInteractionPatches.cs
+InteractionWorker_EnhancedInsult.cs
 PlayLogEntry_Badmouthing.cs
+PlayLogEntry_EnhancedInsult.cs
