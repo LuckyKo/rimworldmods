@@ -1266,7 +1266,15 @@ namespace SocialInteractions
                         interactionDef == SI_InteractionDefOf.CaughtCheating ||
                         interactionDef == InteractionDefOf.Insult)
                     {
-                        ChatLogManager.AddDramaEvent(initiator, recipient, subject, subject);
+                        // Determine if this is gossip (positive bonding) vs badmouthing (negative)
+                        if (subject.Contains("bond over") || subject.Contains("gossip") || subject.Contains("shared negative opinions"))
+                        {
+                            ChatLogManager.AddDateEvent(initiator, recipient, subject, subject); // Use pink for bonding events
+                        }
+                        else
+                        {
+                            ChatLogManager.AddDramaEvent(initiator, recipient, subject, subject); // Use red for conflict events
+                        }
                     }
                     else if (interactionDef == SI_InteractionDefOf.DateAccepted || 
                              interactionDef == SI_InteractionDefOf.DateRejected || 

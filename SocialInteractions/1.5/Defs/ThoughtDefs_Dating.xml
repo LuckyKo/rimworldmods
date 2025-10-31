@@ -76,4 +76,37 @@
     </stages>
   </ThoughtDef>
 
+  <!-- Thoughts related to gossip and shared opinions -->
+  <ThoughtDef>
+    <defName>BondedOverSharedDislike</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>2</durationDays>
+    <stackLimit>3</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>bonded over shared dislike</label>
+        <description>I've connected with someone over our shared negative feelings about another colonist. It's nice to know I'm not alone in my opinions.</description>
+        <baseMoodEffect>5</baseMoodEffect>
+        <baseOpinionOffset>5</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+  
+  <ThoughtDef>
+    <defName>FoundCommonGround</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>1.5</durationDays>
+    <stackLimit>3</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>found common ground</label>
+        <description>I connected with someone by discovering we have similar feelings about others in the colony.</description>
+        <baseMoodEffect>3</baseMoodEffect>
+        <baseOpinionOffset>3</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+
 </Defs>

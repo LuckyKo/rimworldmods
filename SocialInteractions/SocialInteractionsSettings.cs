@@ -143,7 +143,7 @@ Current event: [pawn1] [subject]
         // Badmouthing opinion adjustment settings
         public int badmouthingOpinionReductionForTarget = -5; // How much to reduce recipient's opinion of the target
         public int badmouthingOpinionReductionForInitiator = -8; // How much to reduce recipient's opinion of the initiator when it's inappropriate
-        public int badmouthingLowOpinionThreshold = 50; // Threshold for considering an opinion "low"
+        public int badmouthingLowOpinionThreshold = 0; // Threshold for considering an opinion "low"
 
 
         public override void ExposeData()
@@ -223,12 +223,12 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref opinionDifferenceThreshold, "opinionDifferenceThreshold", 20f);
             
             // Badmouthing interaction settings (for debugging/tweaking)
-            Scribe_Values.Look(ref baseBadmouthingChance, "baseBadmouthingChance", 0.55f);
+            Scribe_Values.Look(ref baseBadmouthingChance, "baseBadmouthingChance", 0.05f);
             Scribe_Values.Look(ref traitEncouragedBadmouthingChance, "traitEncouragedBadmouthingChance", 0.25f);
             Scribe_Values.Look(ref badOpinionAdditionalChance, "badOpinionAdditionalChance", 0.15f);
             Scribe_Values.Look(ref badmouthingOpinionReductionForTarget, "badmouthingOpinionReductionForTarget", -5);
             Scribe_Values.Look(ref badmouthingOpinionReductionForInitiator, "badmouthingOpinionReductionForInitiator", -8);
-            Scribe_Values.Look(ref badmouthingLowOpinionThreshold, "badmouthingLowOpinionThreshold", 50);
+            Scribe_Values.Look(ref badmouthingLowOpinionThreshold, "badmouthingLowOpinionThreshold", 0);
         }
     }
 

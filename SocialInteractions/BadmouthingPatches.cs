@@ -46,11 +46,13 @@ namespace SocialInteractions
                 // The original interaction already succeeded, so we'll trigger the badmouthing directly
                 // through the InteractionWorker_Badmouthing system by calling the interaction worker directly
                 
-                // Directly call the interaction worker method to trigger the badmouthing interaction
+                // Directly call the interaction worker method to trigger the badmouthing/gossip interaction
                 InteractionDef badmouthingDef = DefDatabase<InteractionDef>.GetNamedSilentFail("Badmouthing");
                 if (badmouthingDef != null)
                 {
                     // Create a new instance of the InteractionWorker_Badmouthing and call Interacted directly
+                    // The interaction worker will now determine if this is gossip (shared negative opinions) 
+                    // or badmouthing (one-sided negative opinions) based on the pawns' opinions of the target
                     InteractionWorker_Badmouthing badmouthingWorker = new InteractionWorker_Badmouthing();
                     
                     string letterText, letterLabel;

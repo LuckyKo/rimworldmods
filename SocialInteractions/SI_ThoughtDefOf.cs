@@ -9,5 +9,9 @@ namespace SocialInteractions
         public static ThoughtDef CaughtCheating;
         public static ThoughtDef GotCaughtCheating;
         public static ThoughtDef WasCheatedOn;
+        
+        // Badmouthing/gossip thoughts
+        public static ThoughtDef BondedOverSharedDislike;
+        public static ThoughtDef FoundCommonGround;
     }
 }
