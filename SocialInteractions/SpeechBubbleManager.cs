@@ -283,6 +283,7 @@ namespace SocialInteractions
                 if (interactionDef.defName == "Badmouthing" || 
                     interactionDef.defName == "CaughtCheating" ||
                     interactionDef.defName == "EnhancedInsult" ||
+                    interactionDef.defName == "Admiration" ||
                     interactionDef.defName == "Insult")
                 {
                     messageType = MessageType.DramaEvent; // Red for drama/insult interactions

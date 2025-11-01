@@ -86,6 +86,37 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **Perspective Handling**: Formats the log text differently based on whether the viewer is the initiator, recipient, target, or third party.
 - **Serialization Support**: Includes parameterless constructor and proper serialization methods for RimWorld's save/load system.
 
+### 11. `1.5/Defs/InteractionDefs_Badmouthing.xml` (Interaction Definitions)
+- **XML Definition File** containing the definitions for both badmouthing and enhanced insult interactions.
+- **Badmouthing Definition**: Defines the Badmouthing interaction type with custom worker class and log rules.
+- **EnhancedInsult Definition**: Defines the EnhancedInsult interaction type with severity-based worker class and log rules.
+- **Visual Elements**: Specifies appropriate symbols and labels for the interactions in the game UI.
+- **Log Rules**: Provides basic log entry templates that are enhanced by custom PlayLogEntry classes.
+
+### 12. `DramaInteractionPatches.cs` (Drama System Patch Controller)
+- **Harmony Patch System**: Patches `Pawn_InteractionsTracker.TryInteractWith` to intercept social interactions and potentially replace them with drama interactions.
+- **Priority Management**: Implements a priority-based system where badmouthing/gossip has higher priority than enhanced chitchat insults.
+- **Conditional Triggers**: Only triggers on suitable interactions (Chitchat, DisturbingChat, Insult) when drama features are enabled.
+- **Badmouthing Trigger Logic**: Checks for trait-based encouragement/prevention, mood, and opinion dynamics to determine if badmouthing should occur.
+- **Enhanced Chitchat Insult Trigger Logic**: Evaluates mood, opinion of recipient, traits, and opinion differences to determine if enhanced insults should occur.
+- **Trait Integration**: Considers traits that prevent negative interactions (Kind, etc.) or encourage them (Jealous, Abrasive, etc.).
+- **Prevention Mechanisms**: Ensures that drama interactions only occur when appropriate based on pawn relationships and settings.
+
+### 14. `InteractionWorker_EnhancedInsult.cs` (Enhanced Insult System)
+- **Severity-Based Interaction**: Implements insult severity levels (Mild, Moderate, Severe, Violent) based on initiator's opinion of recipient.
+- **Social Fight Escalation**: Can escalate insults to physical social fights based on severity, mood, and recipient traits.
+- **Thought Application**: Applies different thoughts based on insult severity (e.g., WasToldNegativeThings, HeardBadmouthing).
+- **Trait Recognition**: Identifies pawns that enjoy negative interactions or are likely to fight back.
+- **LLM Integration**: Generates detailed subject text for LLM dialogue based on severity and whether fights occurred.
+- **Custom Play Log Entry**: Uses `PlayLogEntry_EnhancedInsult` for proper logging with severity information.
+
+### 15. `PlayLogEntry_EnhancedInsult.cs` (Custom Play Log Entry for Enhanced Insults)
+- **Custom PlayLogEntry** for EnhancedInsult interactions that includes severity and fight escalation information.
+- **Severity-Based Descriptions**: Provides different action descriptions based on the severity level of the insult.
+- **Fight Outcome Tracking**: Records whether the insult led to a physical confrontation.
+- **Perspective Handling**: Formats the log text differently based on the viewer's relationship to the interaction (initiator, recipient, or third party).
+- **Serialization Support**: Includes parameterless constructor and proper serialization methods for RimWorld's save/load system.
+
 ## Job Drivers
 
 ### `JobDriver_GoOnDate.cs`
@@ -114,8 +145,10 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 ### Interaction & Thought Patches
 - **`InteractionWorker_Interacted_Patch.cs`**: Patches `InteractionWorker.Interacted` to call `SocialInteractions.HandleInteraction` for relevant interactions.
 - **`InteractionWorkers.cs`**: Defines custom `InteractionWorker` classes (`InteractionWorker_DateLovin`, `InteractionWorker_CaughtCheating`) that trigger specific LLM interactions or game logic.
+- **`InteractionWorker_Badmouthing.cs`**: Custom interaction worker for badmouthing interactions that handles target selection, opinion dynamics, and gossip scenarios.
+- **`InteractionWorker_EnhancedInsult.cs`**: Custom interaction worker for enhanced insults with severity levels based on opinion, including social fight escalation logic.
 - **`ThoughtHandler_OpinionOffsetOfGroup_Patch.cs`**: Patches `ThoughtHandler.OpinionOffsetOfGroup` to apply opinion modifiers from `Thought_CaughtCheating`.
-- **`BadmouthingPatches.cs`**: Patches `Pawn_InteractionsTracker.TryInteractWith` to potentially initiate badmouthing during social interactions based on pawn traits and settings.
+- **`DramaInteractionPatches.cs`**: Patches `Pawn_InteractionsTracker.TryInteractWith` to potentially initiate drama interactions (badmouthing/gossip and enhanced insults) during social interactions based on pawn traits and settings.
 
 ### Job & JoyGiver Patches/Implementations
 - **`JobDriver_GoOnDate.cs`**: Custom `JobDriver` that initiates the dating sequence (asking, starting joy job, assigning `FollowAndWatch`).
@@ -193,15 +226,27 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **Configurable Probabilities**: Adjustable probabilities for different types of combat taunts.
 - **Visual Differentiation**: Combat taunts use different visual styles from regular dialogue.
 
-### Badmouthing System
+### Drama Systems
+#### Badmouthing System
 - **Interaction Definition**: Custom `Badmouthing` interaction defined in `InteractionDefs_Badmouthing.xml` with appropriate worker class and log rules.
 - **Custom Interaction Worker**: `InteractionWorker_Badmouthing.cs` handles the core logic of selecting a target pawn and determining outcomes based on opinion dynamics.
 - **Smart Target Selection**: Uses `GetLeastFavoritePawn` to identify the most disliked pawn in the colony for badmouthing, preventing the recipient from being the target.
+- **Gossip Scenario**: When both initiator and recipient share negative opinions about the target, they bond over shared dislike with positive thoughts.
 - **Opinion-Based Outcomes**:
   - If recipient values the target pawn less than the initiator, the recipient is more likely to believe the badmouthing, resulting in reduced opinion of the target.
   - If recipient values the target pawn more than the initiator, the recipient loses trust in the initiator for speaking negatively about someone they respect more.
-- **Harmony Patch Integration**: `BadmouthingPatches.cs` patches `Pawn_InteractionsTracker.TryInteractWith` to potentially trigger badmouthing during suitable social interactions (Chitchat, Insult).
+- **Harmony Patch Integration**: `DramaInteractionPatches.cs` patches `Pawn_InteractionsTracker.TryInteractWith` to potentially trigger badmouthing during suitable social interactions (Chitchat, DisturbingChat, Insult).
 - **Trait-Based Triggering**: Considers pawn traits that encourage or prevent badmouthing (e.g., Kind trait prevents it, Jealous/Abrasive traits encourage it).
 - **Global Play Log Enhancement**: `PlayLogEntry_Badmouthing.cs` provides detailed target pawn information in the global play log, accessible through the history tab.
 - **LLM Integration**: Generates appropriate subject text for LLM dialogue based on the specific badmouthing scenario and opinion dynamics.
 - **Drama Event Tracking**: Adds badmouthing events to the chat log for review via `ChatLogManager.AddDramaEvent`.
+
+#### Enhanced Insult System
+- **Interaction Definition**: Custom `EnhancedInsult` interaction defined in `InteractionDefs_Badmouthing.xml` with severity-based worker class and log rules.
+- **Severity-Based Mechanics**: Determines insult severity (Mild, Moderate, Severe, Violent) based on initiator's opinion of recipient.
+- **Social Fight Escalation**: Can escalate to physical social fights based on severity, mood, and recipient traits.
+- **Thought Application**: Applies different thoughts based on insult severity.
+- **Harmony Patch Integration**: `DramaInteractionPatches.cs` patches `Pawn_InteractionsTracker.TryInteractWith` to potentially trigger enhanced insults during suitable social interactions (Chitchat, DisturbingChat).
+- **Trait Recognition**: Identifies pawns that enjoy negative interactions or are likely to fight back.
+- **Custom Play Log Entry**: `PlayLogEntry_EnhancedInsult.cs` provides detailed severity and outcome information in the global play log.
+- **LLM Integration**: Generates appropriate subject text for LLM dialogue based on severity and fight outcomes.

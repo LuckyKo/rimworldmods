@@ -54,7 +54,294 @@ namespace SocialInteractions
                 return;
             }
             
+            // Finally, check for admiration interactions (lowest priority)
+            // This is for pawns with low social influence to admire/push their favorite influencers
+            if (TryProcessAdmiration(initiator, recipient, intDef))
+            {
+                // Admiration was triggered, exit to prevent other drama interactions
+                return;
+            }
+            
             // Additional drama interaction checks would go here as needed
+        }
+
+        /// <summary>
+        /// Attempts to process admiration interaction where pawns with low social influence
+        /// praise or promote those they view as leaders based on shared interests/traits
+        /// Lowest priority interaction
+        /// </summary>
+        private static bool TryProcessAdmiration(Pawn initiator, Pawn recipient, InteractionDef intDef)
+        {
+            // Check if we should potentially initiate an admiration interaction
+            // based on the initiator's low social influence and the recipient's appeal
+            bool shouldInitiate = ShouldInitiateAdmiration(initiator, recipient);
+            
+            if (shouldInitiate)
+            {
+                // Check if this interaction type is appropriate for admiration
+                if (intDef == InteractionDefOf.Chitchat || intDef == InteractionDefOf.DisturbingChat)
+                {
+                    // Check if LLM interactions are enabled for Admiration
+                    if (SocialInteractions.IsLlmInteractionEnabled(SI_InteractionDefOf.Admiration))
+                    {
+                        // Let the Admiration interaction worker handle the interaction
+                        InteractionDef admirationDef = DefDatabase<InteractionDef>.GetNamedSilentFail("Admiration");
+                        if (admirationDef != null)
+                        {
+                            InteractionWorker_Admiration admirationWorker = new InteractionWorker_Admiration();
+                            
+                            string letterText, letterLabel;
+                            LetterDef letterDef;
+                            LookTargets lookTargets;
+                            
+                            // Call the interaction worker's Interacted method directly
+                            admirationWorker.Interacted(initiator, recipient, null, out letterText, out letterLabel, out letterDef, out lookTargets);
+                            
+                            // The interaction worker will handle logging the interaction properly
+                            return true; // Indicate that we processed this interaction
+                        }
+                    }
+                    else
+                    {
+                        // If LLM is not enabled for Admiration, show a default bubble with a generic subject
+                        string subject = string.Format("{0} expressed admiration for {1}", initiator.LabelShort, recipient.LabelShort);
+                        SocialInteractions.HandleInteraction(initiator, recipient, intDef, subject);
+                        
+                        return true; // Indicate that we processed this interaction
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// Determines if an admiration interaction should be initiated based on shared interests/traits
+        /// and social influence levels
+        /// </summary>
+        private static bool ShouldInitiateAdmiration(Pawn initiator, Pawn recipient)
+        {
+            if (initiator == null || recipient == null)
+            {
+                return false;
+            }
+            
+            // Check if the initiator has traits that prevent positive admiration (unlikely, but possible)
+            if (HasTraitThatPreventsAdmiration(initiator))
+            {
+                return false;
+            }
+            
+            // Calculate the social influence of the initiator
+            float initiatorInfluence = CalculateSocialInfluence(initiator);
+            
+            // Only initiators with low social influence should seek to admire others
+            if (initiatorInfluence > 10f) // Adjust this threshold as needed
+            {
+                return false; // High-influence pawns don't need to suck up to others
+            }
+            
+            // Check if the recipient has traits that the initiator shares or admires
+            bool hasAttractionToRecipient = HasAttractionToTarget(initiator, recipient);
+            
+            // Base chance for admiration from settings
+            float admirationChance = SocialInteractions.Settings.baseAdmirationChance;
+            
+            // Increase chance if there's a strong attraction (shared traits, valued skills, etc.)
+            if (hasAttractionToRecipient)
+            {
+                admirationChance *= SocialInteractions.Settings.admirationAttractionMultiplier;
+            }
+            
+            // Consider the relationship between initiator and recipient
+            if (initiator.relations != null)
+            {
+                int opinionOfRecipient = initiator.relations.OpinionOf(recipient);
+                
+                // Higher opinion increases chance of admiration
+                if (opinionOfRecipient > 20) // Positive opinion above threshold
+                {
+                    admirationChance *= SocialInteractions.Settings.admirationPositiveOpinionMultiplier;
+                }
+            }
+            
+            float randValue = Rand.Value;
+            return randValue < admirationChance;
+        }
+        
+        /// <summary>
+        /// Checks if the initiator has traits that would prevent admiration
+        /// </summary>
+        private static bool HasTraitThatPreventsAdmiration(Pawn pawn)
+        {
+            if (pawn == null || pawn.story == null || pawn.story.traits == null)
+            {
+                return false;
+            }
+            
+            // For now, assume no traits prevent admiration
+            // In the future, we might add traits like "arrogant" that prevent admiration
+            return false;
+        }
+        
+        /// <summary>
+        /// Checks if the initiator has attraction to the recipient based on
+        /// shared traits, skills, or roles
+        /// </summary>
+        private static bool HasAttractionToTarget(Pawn initiator, Pawn recipient)
+        {
+            // Check for shared traits
+            bool hasSharedTrait = HasSharedTrait(initiator, recipient);
+            
+            // Check if initiator values recipient's skills
+            bool valuesRecipientsSkills = ValuesSkillsOfRecipient(initiator, recipient);
+            
+            // Check if recipient has a role/initiator admires
+            bool recipientIsAdmirable = IsAdmirableToInitiator(initiator, recipient);
+            
+            return hasSharedTrait || valuesRecipientsSkills || recipientIsAdmirable;
+        }
+        
+        /// <summary>
+        /// Checks if two pawns share significant traits
+        /// </summary>
+        private static bool HasSharedTrait(Pawn initiator, Pawn recipient)
+        {
+            if (initiator.story == null || initiator.story.traits == null || 
+                recipient.story == null || recipient.story.traits == null)
+            {
+                return false;
+            }
+            
+            var initiatorTraits = initiator.story.traits.allTraits;
+            var recipientTraits = recipient.story.traits.allTraits;
+            
+            foreach (var initTrait in initiatorTraits)
+            {
+                if (initTrait == null || initTrait.def == null) continue;
+                
+                foreach (var recTrait in recipientTraits)
+                {
+                    if (recTrait == null || recTrait.def == null) continue;
+                    
+                    // Check for matching or compatible traits
+                    if (initTrait.def.defName == recTrait.def.defName)
+                    {
+                        return true; // Same trait
+                    }
+                    
+                    // Check for compatible traits based on social groupings
+                    string initLabel = initTrait.def.defName.ToLower();
+                    string recLabel = recTrait.def.defName.ToLower();
+                    
+                    // Examples of compatible pairs (expand as needed)
+                    if ((initLabel.Contains("optimist") && recLabel.Contains("optimist")) ||
+                        (initLabel.Contains("pessimist") && recLabel.Contains("pessimist")) ||
+                        (initLabel.Contains("kind") && recLabel.Contains("kind")) ||
+                        (initLabel.Contains("abrasive") && recLabel.Contains("abrasive")))
+                    {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// Checks if the initiator values the recipient's skills
+        /// (initiator has low skill in area where recipient excels)
+        /// </summary>
+        private static bool ValuesSkillsOfRecipient(Pawn initiator, Pawn recipient)
+        {
+            if (initiator.skills == null || recipient.skills == null)
+            {
+                return false;
+            }
+            
+            // Check if the initiator has low skill in an area where the recipient excels
+            // This would make the initiator more likely to admire the recipient's skill
+            foreach (var skill in recipient.skills.skills)
+            {
+                if (skill.Level >= 8) // High skill level
+                {
+                    var initiatorSkill = initiator.skills.GetSkill(skill.def);
+                    if (initiatorSkill != null && initiatorSkill.Level < 5) // Low skill in same area
+                    {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// Checks if the recipient has qualities that make them admirable to the initiator
+        /// </summary>
+        private static bool IsAdmirableToInitiator(Pawn initiator, Pawn recipient)
+        {
+            // Check for specific roles or statuses that the initiator might admire
+            // For example, if initiator lacks a skill that recipient has in abundance
+            
+            // Check if recipient has high social skill (potential social leader)
+            if (recipient.skills != null)
+            {
+                var socialSkill = recipient.skills.GetSkill(SkillDefOf.Social);
+                if (socialSkill != null && socialSkill.Level >= 8)
+                {
+                    // If initiator has low social skill, they might admire this
+                    var initiatorSocialSkill = initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Social) : null;
+                    if (initiatorSocialSkill != null && initiatorSocialSkill.Level < 5)
+                    {
+                        return true;
+                    }
+                }
+            }
+            
+            // Check for other admirable roles like medical, combat, etc.
+            if (recipient.skills != null)
+            {
+                // Check medical skill
+                var medicalSkill = recipient.skills.GetSkill(SkillDefOf.Medicine);
+                if (medicalSkill != null && medicalSkill.Level >= 12) // Very high medical skill
+                {
+                    // If initiator has low medical skill or has medical needs, they might admire this
+                    var initiatorMedicalSkill = initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Medicine) : null;
+                    if (initiatorMedicalSkill != null && initiatorMedicalSkill.Level < 5)
+                    {
+                        return true;
+                    }
+                }
+                
+                // Check shooting or melee skills (combat leaders)
+                var shootingSkill = recipient.skills.GetSkill(SkillDefOf.Shooting);
+                var meleeSkill = recipient.skills.GetSkill(SkillDefOf.Melee);
+                if ((shootingSkill != null && shootingSkill.Level >= 10) || 
+                    (meleeSkill != null && meleeSkill.Level >= 10)) // High combat skill
+                {
+                    // If initiator has low combat skill, they might admire this
+                    var initiatorShootingSkill = initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Shooting) : null;
+                    var initiatorMeleeSkill = initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Melee) : null;
+                    if ((initiatorShootingSkill != null && initiatorShootingSkill.Level < 5) ||
+                        (initiatorMeleeSkill != null && initiatorMeleeSkill.Level < 5))
+                    {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// Calculate social influence using the utility class
+        /// </summary>
+        private static float CalculateSocialInfluence(Pawn target)
+        {
+            if (target == null || target.Map == null || target.Map.mapPawns == null) return 0f;
+            
+            return SocialInfluenceUtility.CalculateSocialInfluence(target, target.Map.mapPawns.FreeColonistsAndPrisoners);
         }
 
         private static bool ShouldInitiateBadmouthing(Pawn initiator, Pawn recipient)

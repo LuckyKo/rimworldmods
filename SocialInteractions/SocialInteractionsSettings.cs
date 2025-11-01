@@ -153,6 +153,16 @@ Current event: [pawn1] [subject]
         public int badmouthingOpinionReductionForTarget = -5; // How much to reduce recipient's opinion of the target
         public int badmouthingOpinionReductionForInitiator = -8; // How much to reduce recipient's opinion of the initiator when it's inappropriate
         public int badmouthingLowOpinionThreshold = 0; // Threshold for considering an opinion "low"
+        
+        // Admiration interaction settings (for debugging/tweaking)
+        public float baseAdmirationChance = 0.03f; // Base chance for admiration interactions
+        public float admirationAttractionMultiplier = 2.0f; // Multiplier when initiator shares traits/skills with recipient
+        public float admirationPositiveOpinionMultiplier = 1.5f; // Multiplier when opinion is positive
+        
+        // Admiration opinion impact settings
+        public float admirationOpinionIncreaseOnSuccess = 3f; // Opinion increase when admiration successfully boosts standing
+        public float admirationOpinionDecreaseOnFail = -1f; // Opinion change when admiration fails poorly
+        public float admirationNegativeImpactChance = 0.1f; // Chance of slight negative impact when admiration fails
 
 
         public override void ExposeData()
@@ -247,6 +257,16 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref enhancedChitchatInsultOpinionMultiplierVeryPositive, "enhancedChitchatInsultOpinionMultiplierVeryPositive", 0.6f);
             Scribe_Values.Look(ref enhancedChitchatInsultTraitMultiplier, "enhancedChitchatInsultTraitMultiplier", 1.8f);
             Scribe_Values.Look(ref enhancedChitchatInsultOpinionDifferenceMultiplier, "enhancedChitchatInsultOpinionDifferenceMultiplier", 0.5f);
+            
+            // Admiration interaction settings (for debugging/tweaking)
+            Scribe_Values.Look(ref baseAdmirationChance, "baseAdmirationChance", 0.03f);
+            Scribe_Values.Look(ref admirationAttractionMultiplier, "admirationAttractionMultiplier", 2.0f);
+            Scribe_Values.Look(ref admirationPositiveOpinionMultiplier, "admirationPositiveOpinionMultiplier", 1.5f);
+            
+            // Admiration opinion impact settings
+            Scribe_Values.Look(ref admirationOpinionIncreaseOnSuccess, "admirationOpinionIncreaseOnSuccess", 3f);
+            Scribe_Values.Look(ref admirationOpinionDecreaseOnFail, "admirationOpinionDecreaseOnFail", -1f);
+            Scribe_Values.Look(ref admirationNegativeImpactChance, "admirationNegativeImpactChance", 0.1f);
         }
     }
 
@@ -331,23 +351,47 @@ Current event: [pawn1] [subject]
             listingStandard.Label(string.Format("Base chance: {0:F3}", SocialInteractions.Settings.baseEnhancedChitchatInsultChance));
             SocialInteractions.Settings.baseEnhancedChitchatInsultChance = listingStandard.Slider(SocialInteractions.Settings.baseEnhancedChitchatInsultChance, 0f, 1f);
             
-            listingStandard.Label(string.Format("Mood multiplier (bad mood): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierBad));
-            SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierBad = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierBad, 0.1f, 5f);
+            // listingStandard.Label(string.Format("Mood multiplier (bad mood): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierBad));
+            // SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierBad = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierBad, 0.1f, 5f);
             
-            listingStandard.Label(string.Format("Mood multiplier (good mood): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierGood));
-            SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierGood = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierGood, 0.1f, 1f);
+            // listingStandard.Label(string.Format("Mood multiplier (good mood): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierGood));
+            // SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierGood = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierGood, 0.1f, 1f);
             
-            listingStandard.Label(string.Format("Opinion multiplier (very negative): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryNegative));
-            SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryNegative = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryNegative, 0.5f, 5f);
+            // listingStandard.Label(string.Format("Opinion multiplier (very negative): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryNegative));
+            // SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryNegative = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryNegative, 0.5f, 5f);
             
-            listingStandard.Label(string.Format("Opinion multiplier (very positive): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryPositive));
-            SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryPositive = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryPositive, 0.1f, 1f);
+            // listingStandard.Label(string.Format("Opinion multiplier (very positive): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryPositive));
+            // SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryPositive = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultOpinionMultiplierVeryPositive, 0.1f, 1f);
             
-            listingStandard.Label(string.Format("Trait multiplier: {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultTraitMultiplier));
-            SocialInteractions.Settings.enhancedChitchatInsultTraitMultiplier = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultTraitMultiplier, 0.5f, 5f);
+            // listingStandard.Label(string.Format("Trait multiplier: {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultTraitMultiplier));
+            // SocialInteractions.Settings.enhancedChitchatInsultTraitMultiplier = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultTraitMultiplier, 0.5f, 5f);
             
-            listingStandard.Label(string.Format("Opinion difference impact: {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultOpinionDifferenceMultiplier));
-            SocialInteractions.Settings.enhancedChitchatInsultOpinionDifferenceMultiplier = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultOpinionDifferenceMultiplier, 0f, 2f);
+            // listingStandard.Label(string.Format("Opinion difference impact: {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultOpinionDifferenceMultiplier));
+            // SocialInteractions.Settings.enhancedChitchatInsultOpinionDifferenceMultiplier = listingStandard.Slider(SocialInteractions.Settings.enhancedChitchatInsultOpinionDifferenceMultiplier, 0f, 2f);
+
+            // Admiration settings
+            listingStandard.Gap();
+            listingStandard.Label("Admiration Settings:");
+            listingStandard.Label(string.Format("Base chance: {0:F3}", SocialInteractions.Settings.baseAdmirationChance));
+            SocialInteractions.Settings.baseAdmirationChance = listingStandard.Slider(SocialInteractions.Settings.baseAdmirationChance, 0f, 1f);
+            
+            // listingStandard.Label(string.Format("Attraction multiplier: {0:F2}", SocialInteractions.Settings.admirationAttractionMultiplier));
+            // SocialInteractions.Settings.admirationAttractionMultiplier = listingStandard.Slider(SocialInteractions.Settings.admirationAttractionMultiplier, 0.5f, 5f);
+            
+            // listingStandard.Label(string.Format("Positive opinion multiplier: {0:F2}", SocialInteractions.Settings.admirationPositiveOpinionMultiplier));
+            // SocialInteractions.Settings.admirationPositiveOpinionMultiplier = listingStandard.Slider(SocialInteractions.Settings.admirationPositiveOpinionMultiplier, 0.5f, 3f);
+
+            // Admiration opinion impact settings
+            // listingStandard.Gap();
+            // listingStandard.Label("Admiration Opinion Impact:");
+            // listingStandard.Label(string.Format("Opinion increase on success: {0:F1}", SocialInteractions.Settings.admirationOpinionIncreaseOnSuccess));
+            // SocialInteractions.Settings.admirationOpinionIncreaseOnSuccess = listingStandard.Slider(SocialInteractions.Settings.admirationOpinionIncreaseOnSuccess, 0f, 10f);
+            
+            // listingStandard.Label(string.Format("Negative impact chance: {0:F2}", SocialInteractions.Settings.admirationNegativeImpactChance));
+            // SocialInteractions.Settings.admirationNegativeImpactChance = listingStandard.Slider(SocialInteractions.Settings.admirationNegativeImpactChance, 0f, 0.5f);
+            
+            // listingStandard.Label(string.Format("Opinion change on failure: {0:F1}", SocialInteractions.Settings.admirationOpinionDecreaseOnFail));
+            // SocialInteractions.Settings.admirationOpinionDecreaseOnFail = listingStandard.Slider(SocialInteractions.Settings.admirationOpinionDecreaseOnFail, -5f, 0f);
 
             listingStandard.Gap();
             listingStandard.Label("LLM API Configuration");

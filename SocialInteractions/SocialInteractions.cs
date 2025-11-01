@@ -59,6 +59,7 @@ namespace SocialInteractions
             if (interactionDef == SI_InteractionDefOf.ManualChat && Settings.enableManualChat) return true;
             if (interactionDef == SI_InteractionDefOf.Badmouthing && Settings.enableDrama) return true;
             if (interactionDef == SI_InteractionDefOf.EnhancedInsult && Settings.enableDrama) return true;
+            if (interactionDef == SI_InteractionDefOf.Admiration && Settings.enableDrama) return true;
             return false;
         }
 
@@ -108,6 +109,7 @@ namespace SocialInteractions
             else if (interactionDef == SI_InteractionDefOf.ManualChat && Settings.enableManualChat) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.Badmouthing && Settings.enableDrama) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.EnhancedInsult && Settings.enableDrama) isEnabled = true;
+            else if (interactionDef == SI_InteractionDefOf.Admiration && Settings.enableDrama) isEnabled = true;
 
             SLog.Message(string.Format("[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for {0}: {1}", interactionDef.defName, isEnabled));
             if (!isEnabled)
@@ -2015,7 +2017,8 @@ namespace SocialInteractions
         }
         
         /// <summary>
-        /// Gets a weighted random selection of the least favorite pawn from the bottom 3 most disliked pawns
+        /// Gets a random selection of the least favorite pawn from the bottom 5 most disliked pawns
+        /// Enhanced to consider social power dynamics to promote natural group formation
         /// </summary>
         /// <param name="pawn">The pawn whose least favorite to find</param>
         /// <returns>The randomly selected least favorite pawn based on weighted selection</returns>
@@ -2026,70 +2029,92 @@ namespace SocialInteractions
                 return null;
             }
 
-            // Create a list of pawns with their opinion values
-            List<KeyValuePair<Pawn, int>> pawnOpinions = new List<KeyValuePair<Pawn, int>>();
+            // Create a list of pawns with combined scores based on opinion and social factors
+            List<KeyValuePair<Pawn, float>> pawnScores = new List<KeyValuePair<Pawn, float>>();
 
-            foreach (Pawn otherPawn in pawn.Map.mapPawns.FreeColonistsAndPrisoners)
+            // Create a snapshot of the pawns list to avoid "collection was modified" errors
+            List<Pawn> pawnsSnapshot = new List<Pawn>(pawn.Map.mapPawns.FreeColonistsAndPrisoners);
+
+            // SLog.Message(string.Format("[SocialInteractions] GetWeightedLeastFavoritePawn: {0} considering {1} pawns", 
+                // pawn.LabelShort, pawnsSnapshot.Count));
+
+            foreach (Pawn otherPawn in pawnsSnapshot)
             {
                 if (otherPawn == pawn)
                 {
                     continue; // Skip self
                 }
 
+                // Get raw opinion value (negative is worse for the target)
                 int opinion = pawn.relations != null ? pawn.relations.OpinionOf(otherPawn) : 0;
-                pawnOpinions.Add(new KeyValuePair<Pawn, int>(otherPawn, opinion));
+                
+                // Calculate social influence of this pawn (how well-regarded they are by others) -  0-1
+                // This replicates the logic from DramaInteractionPatches.cs for use here
+                float SocialInfluence = SocialInfluenceUtility.CalculateSocialInfluence(otherPawn, pawnsSnapshot);
+                
+                // Calculate integration with initiator's social network ( 0-1) - similar to method in DramaInteractionPatches.cs
+                float Integration = SocialInfluenceUtility.CalculateSocialIntegration(pawn, otherPawn, pawnsSnapshot);
+                
+                // Create a base score (lower = more likely to be targeted initially based on negative opinion)
+                // Negative opinion = better target for badmouthing
+                float baseScore = -opinion; // Invert so that negative opinions (disliked) result in positive scores (higher = more targeted)
+
+                // Calculate vulnerability factors where higher = more vulnerable (more likely to be targeted)
+                // Pawns with low social influence are more vulnerable (1.0 - Influence)
+                float socialVulnerability = 1.0f - SocialInfluence; // 0.0 = high influence, 1.0 = no influence
+                // Pawns with low integration are more vulnerable (1.0 - Integration)
+                float integrationVulnerability = 1.0f - Integration; // 0.0 = high integration, 1.0 = no integration
+                
+                // Calculate combined vulnerability where higher values = more vulnerable
+                float combinedVulnerability = (socialVulnerability + integrationVulnerability) / 2f;
+                
+                // Calculate final score: base score (based on negative opinion) + vulnerability component
+                // More negative opinions and higher vulnerability = higher final score = more likely to be targeted
+                float finalScore = baseScore + (combinedVulnerability * 100f); // Scale vulnerability to match opinion scale
+
+                // SLog.Message(string.Format("[SocialInteractions] GetWeightedLeastFavoritePawn: {0} -> opinion: {1}, baseScore: {2}, SocialInfluence: {3}, Integration: {4}, socialVulnerability: {5}, integrationVulnerability: {6}, combinedVulnerability: {7}, finalScore: {8}", 
+                    // otherPawn.LabelShort, opinion, baseScore, SocialInfluence, Integration, socialVulnerability, integrationVulnerability, combinedVulnerability, finalScore));
+
+                pawnScores.Add(new KeyValuePair<Pawn, float>(otherPawn, finalScore));
             }
 
-            if (pawnOpinions.Count == 0)
+            if (pawnScores.Count == 0)
             {
+                SLog.Message("[SocialInteractions] GetWeightedLeastFavoritePawn: No pawns found to consider");
                 return null;
             }
 
-            // Sort by opinion (lowest first)
-            pawnOpinions.Sort((x, y) => x.Value.CompareTo(y.Value));
+            // Sort by adjusted score (HIGHEST first - most likely to be targeted)
+            pawnScores.Sort((x, y) => y.Value.CompareTo(x.Value)); // Descending order: highest scores first
 
-            // Take the last 3 pawns (the ones with the lowest opinions) or all if fewer than 3
-            int countToConsider = Math.Min(3, pawnOpinions.Count);
-            List<KeyValuePair<Pawn, int>> candidates = new List<KeyValuePair<Pawn, int>>();
+            // Take the top 5 with the highest scores (most likely to be targeted based on all factors)
+            int countToConsider = Math.Min(5, pawnScores.Count);
+            List<Pawn> candidates = new List<Pawn>();
             for (int i = 0; i < countToConsider; i++)
             {
-                candidates.Add(pawnOpinions[i]);
+                candidates.Add(pawnScores[i].Key);
             }
 
-            // Weighted random selection where pawns with lower opinions have higher chance
-            // The weight is based on how negative the opinion value is (more negative = higher weight)
-            int totalWeight = 0;
-            foreach (var candidate in candidates)
+            // SLog.Message(string.Format("[SocialInteractions] GetWeightedLeastFavoritePawn: Top {0} candidates after sorting:", countToConsider));
+            // for (int i = 0; i < candidates.Count; i++)
+            // {
+                // float score = pawnScores[i].Value;
+                // SLog.Message(string.Format("  {0}. {1} (score: {2})", i + 1, candidates[i].LabelShort, score));
+            // }
+
+            if (candidates.Count == 0)
             {
-                // Use the negative opinion value as weight (so -20 opinion gets weight 20)
-                int weight = Math.Max(1, -candidate.Value); // Ensure at least weight 1 for neutral opinions
-                totalWeight += weight;
+                SLog.Message("[SocialInteractions] GetWeightedLeastFavoritePawn: No candidates available");
+                return null;
             }
 
-            if (totalWeight <= 0)
-            {
-                // If all weights are 0 (all positive opinions), just pick randomly
-                int randomIndex = Rand.Range(0, candidates.Count);
-                return candidates[randomIndex].Key;
-            }
+            // Simply pick randomly from the top 5 most deserving candidates to avoid statistical focusing
+            int randomIndex = Rand.Range(0, candidates.Count);
+            Pawn selected = candidates[randomIndex];
+            // SLog.Message(string.Format("[SocialInteractions] GetWeightedLeastFavoritePawn: Selected {0} (index {1}) from {2} candidates", 
+                // selected.LabelShort, randomIndex, candidates.Count));
 
-            // Select based on weight
-            int randomValue = Rand.Range(0, totalWeight);
-            int currentWeight = 0;
-
-            foreach (var candidate in candidates)
-            {
-                int weight = Math.Max(1, -candidate.Value);
-                currentWeight += weight;
-
-                if (randomValue <= currentWeight)
-                {
-                    return candidate.Key;
-                }
-            }
-
-            // Fallback: return the first (most disliked) if something went wrong
-            return candidates[0].Key;
+            return selected;
         }
     }
 }

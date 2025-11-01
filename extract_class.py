@@ -1,92 +1,66 @@
-import sys
-import re
+#!/usr/bin/env python3
+"""
+Script to extract a specific class definition from a large decompiled C# file.
+"""
 
-def extract_class(input_file, output_file, class_name):
-    try:
-        with open(input_file, 'r', encoding='utf-8') as f_in:
-            lines = f_in.readlines()
-    except FileNotFoundError:
-        print(f"Error: Input file not found at {input_file}")
-        return
-
-    class_start_line = -1
-    # Regex to find the exact class name, allowing for inheritance or generics
-    class_regex = re.compile(r'\b(class|interface)\s+' + re.escape(class_name) + r'\b(?:\s*[:<]|$)')
-
-    # Find the class definition
-    for i, line in enumerate(lines):
-        if class_regex.search(line):
-            class_start_line = i
-            break
-
-    if class_start_line == -1:
-        print(f"Error: Class '{class_name}' not found.")
-        return
-
-    print(f"Found class at line: {class_start_line}")
-
-    # Find the namespace by searching backwards
-    namespace = ""
-    namespace_line = -1
-    for i in range(class_start_line, -1, -1):
-        if lines[i].strip().startswith('namespace '):
-            namespace = lines[i].strip()
-            namespace_line = i
-            break
-
-    # Find the opening brace of the class
-    class_open_brace_line = -1
-    for i in range(class_start_line, min(class_start_line + 100, len(lines))):
-        if '{' in lines[i]:
-            class_open_brace_line = i
-            break
-
-    if class_open_brace_line == -1:
-        print("Error: Could not find opening brace of class.")
-        return
-
-    # Count braces to find the end of the class
-    brace_level = 0
-    in_class = False
-    start_extracting = False
+def extract_class_from_file(filename, class_name, output_file):
+    with open(filename, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
     
-    with open(output_file, 'w', encoding='utf-8') as f_out:
-        for i in range(namespace_line if namespace_line != -1 else class_start_line, len(lines)):
-            line = lines[i]
+    # Find the start of the class
+    start_line = -1
+    for i, line in enumerate(lines):
+        if f"public class {class_name}" in line or f"class {class_name}" in line:
+            start_line = i
+            print(f"Found class {class_name} at line {i+1}")
+            break
+    
+    if start_line == -1:
+        print(f"Class {class_name} not found in the file")
+        return
+    
+    # Find the end of the class by counting braces
+    brace_count = 0
+    end_line = -1
+    
+    # Find the opening brace of the class
+    for i in range(start_line, len(lines)):
+        line = lines[i]
+        # Count opening and closing braces
+        brace_count += line.count('{') - line.count('}')
+        
+        if '{' in line and brace_count == 1:  # This is the opening brace of the class
+            brace_count = 1  # Reset to 1 since we found the opening brace
+            continue
             
-            # Write namespace if we have one
-            if not start_extracting and namespace_line != -1 and i == namespace_line:
-                f_out.write(line)
-                continue
-                
-            if not start_extracting and i == class_start_line:
-                if namespace_line != -1:
-                    f_out.write('\t' + line)
-                else:
-                    f_out.write(line)
-                start_extracting = True
-                # Count braces in the class declaration line
-                brace_level += line.count('{')
-                brace_level -= line.count('}')
-                continue
-                
-            if start_extracting:
-                if namespace_line != -1:
-                    f_out.write('\t' + line)
-                else:
-                    f_out.write(line)
-                
-                brace_level += line.count('{')
-                brace_level -= line.count('}')
-                
-                # Check if we've closed all braces (end of class)
-                if brace_level <= 0:
-                    if namespace_line != -1:
-                        f_out.write('}')
-                    break
+        if brace_count == 0 and '}' in line:
+            end_line = i
+            break
+    
+    if end_line == -1:
+        print("Could not find end of class")
+        return
+    
+    # Extract the class definition
+    class_lines = lines[start_line:end_line+1]
+    
+    # Write to output file
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.writelines(class_lines)
+    
+    print(f"Class {class_name} extracted to {output_file}")
+    print(f"Lines {start_line+1} to {end_line+1} ({end_line - start_line + 1} lines)")
 
-if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        print("Usage: python extract_class_better.py <input_file> <output_file> <class_name>")
-    else:
-        extract_class(sys.argv[1], sys.argv[2], sys.argv[3])
+
+if __name__ == "__main__":
+    import sys
+    
+    if len(sys.argv) < 2:
+        print("Usage: python extract_class.py <class_name> [output_file]")
+        print("Example: python extract_class.py InteractionWorker_Insult")
+        sys.exit(1)
+    
+    class_name = sys.argv[1]
+    output_file = sys.argv[2] if len(sys.argv) > 2 else f"{class_name}.cs"
+    
+    extract_class_from_file("decompiled/Assembly-CSharp.decompiled.cs", class_name, output_file)

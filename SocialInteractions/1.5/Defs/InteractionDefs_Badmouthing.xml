@@ -35,4 +35,21 @@
     </logRulesRecipient>
   </InteractionDef>
 
+  <InteractionDef>
+    <defName>Admiration</defName>
+    <label>admiration</label>
+    <workerClass>SocialInteractions.InteractionWorker_Admiration</workerClass>
+    <symbol>Things/Mote/SpeechSymbols/Speech</symbol>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->[INITIATOR_nameDef] expressed admiration for [RECIPIENT_nameDef].</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->[RECIPIENT_nameDef] received admiration from [INITIATOR_nameDef].</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
 </Defs>

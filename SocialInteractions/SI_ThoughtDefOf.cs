@@ -13,5 +13,9 @@ namespace SocialInteractions
         // Badmouthing/gossip thoughts
         public static ThoughtDef BondedOverSharedDislike;
         public static ThoughtDef FoundCommonGround;
+        
+        // Admiration thoughts
+        public static ThoughtDef SeekingApproval;
+        public static ThoughtDef AdmiredBySomeone;
     }
 }

@@ -35,8 +35,12 @@ namespace SocialInteractions
 
             // Find the least favorite pawn in the colony for the initiator
             Pawn targetPawn = GetLeastFavoritePawn(initiator);
+            SLog.Message(string.Format("[SocialInteractions] Badmouthing: {0} selected {1} as target for badmouthing", 
+                initiator.LabelShort, targetPawn != null ? targetPawn.LabelShort : "null"));
+                
             if (targetPawn == null)
             {
+                SLog.Message("[SocialInteractions] Badmouthing: No target selected, skipping interaction");
                 base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
                 return;
             }
@@ -44,6 +48,8 @@ namespace SocialInteractions
             // Check that the target pawn is not the same as the recipient
             if (targetPawn == recipient)
             {
+                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Target {0} is same as recipient {1}, skipping interaction", 
+                    targetPawn.LabelShort, recipient.LabelShort));
                 base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
                 return;
             }
@@ -52,8 +58,13 @@ namespace SocialInteractions
             int recipientOpinionOfTarget = recipient.relations != null ? recipient.relations.OpinionOf(targetPawn) : 0;
             int recipientOpinionOfInitiator = recipient.relations != null ? recipient.relations.OpinionOf(initiator) : 0;
             
-            // Check if both initiator and recipient share a negative opinion of the target (gossip scenario)
+            // Get initiator's opinion of the target for logging
             int initiatorOpinionOfTarget = initiator.relations != null ? initiator.relations.OpinionOf(targetPawn) : 0;
+            
+            SLog.Message(string.Format("[SocialInteractions] Badmouthing: Opinions - {0} vs Target {1}: {2}, Recipient vs Target {1}: {3}, Recipient vs Initiator: {4}", 
+                initiator.LabelShort, targetPawn.LabelShort, initiatorOpinionOfTarget, recipientOpinionOfTarget, recipientOpinionOfInitiator));
+            
+            // Check if both initiator and recipient share a negative opinion of the target (gossip scenario)
             bool sharedNegativeOpinion = initiatorOpinionOfTarget <= SocialInteractions.Settings.badmouthingLowOpinionThreshold && 
                                         recipientOpinionOfTarget <= SocialInteractions.Settings.badmouthingLowOpinionThreshold;
 

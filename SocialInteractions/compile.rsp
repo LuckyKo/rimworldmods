@@ -77,3 +77,6 @@ DramaInteractionPatches.cs
 InteractionWorker_EnhancedInsult.cs
 PlayLogEntry_Badmouthing.cs
 PlayLogEntry_EnhancedInsult.cs
+InteractionWorker_Admiration.cs
+PlayLogEntry_Admiration.cs
+SocialInfluenceUtility.cs
