@@ -144,6 +144,14 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **Game Loading Support**: Guarantees the GameComponent exists when loading an existing game.
 - **Persistence Coordination**: Works with `PawnFlavorText_GameComponent` to maintain proper data flow.
 
+### 20. Localization System
+- **Translation Framework**: Implements RimWorld's standard keyed translation system with `Languages/English/Keyed/Keyed.xml` structure.
+- **Multi-Language Support**: Includes full Chinese Simplified localization in `Languages/ChineseSimplified/Keyed/Keyed.xml`.
+- **Comprehensive Coverage**: Translates all mod settings, UI elements, dialog text, and descriptions using translation keys.
+- **Settings Integration**: Updates `SocialInteractionsSettings.cs` to use `.Translate()` method calls for all user-facing text.
+- **File Structure**: Proper RimWorld localization structure with separate language folders and keyed XML files.
+- **UI Elements Translated**: Includes settings labels, descriptions, bio editor dialog elements, and all other user-facing strings.
+
 ## Job Drivers
 
 ### `JobDriver_GoOnDate.cs`
