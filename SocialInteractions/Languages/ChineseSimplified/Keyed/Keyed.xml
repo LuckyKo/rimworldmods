@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <!-- General -->
+  <SocialInteractions_SettingsCategory>社交互动</SocialInteractions_SettingsCategory>
+  <SocialInteractions_SettingsTitle>社交互动设置 v1.1.0</SocialInteractions_SettingsTitle>
+  <SocialInteractions_SettingsDesc>启用后，角色在社交互动期间会停止当前活动。</SocialInteractions_SettingsDesc>
+  
+  <!-- Feature Toggle Labels -->
+  <SocialInteractions_PawnsStopOnInteraction>角色在互动时停止活动</SocialInteractions_PawnsStopOnInteraction>
+  <SocialInteractions_PawnsStopOnInteractionDesc>启用后，角色在社交互动期间会停止当前活动。</SocialInteractions_PawnsStopOnInteractionDesc>
+  <SocialInteractions_EnableCombatTaunts>启用战斗嘲讽</SocialInteractions_EnableCombatTaunts>
+  <SocialInteractions_EnableCombatTauntsDesc>启用后，角色在战斗中会互相嘲讽。</SocialInteractions_EnableCombatTauntsDesc>
+  <SocialInteractions_EnableDrama>戏剧互动</SocialInteractions_EnableDrama>
+  <SocialInteractions_EnableDramaDesc>启用后，角色可能会进行制造事端的互动，如背后议论。</SocialInteractions_EnableDramaDesc>
+  <SocialInteractions_EnableDatingFeature>启用约会功能</SocialInteractions_EnableDatingFeature>
+  <SocialInteractions_EnableDatingFeatureDesc>启用后，角色将能够进行约会。</SocialInteractions_EnableDatingFeatureDesc>
+  <SocialInteractions_OpenChatLogWindow>打开聊天记录窗口</SocialInteractions_OpenChatLogWindow>
+  <SocialInteractions_EnableLLMInteractions>启用LLM互动</SocialInteractions_EnableLLMInteractions>
+  <SocialInteractions_EnableLLMInteractionsDesc>启用后，深度谈话互动将使用配置的LLM API。</SocialInteractions_EnableLLMInteractionsDesc>
+  <SocialInteractions_PreventSpam>防止刷屏</SocialInteractions_PreventSpam>
+  <SocialInteractions_PreventSpamDesc>启用后，新的LLM互动要等前一个互动显示完对话气泡后才能开始。</SocialInteractions_PreventSpamDesc>
+  <SocialInteractions_UseTextBackground>使用文本背景</SocialInteractions_UseTextBackground>
+  <SocialInteractions_UseTextBackgroundDesc>启用后，LLM生成的文本将显示背景而不是阴影效果。</SocialInteractions_UseTextBackgroundDesc>
+  <SocialInteractions_EnableVerboseLogging>启用详细日志</SocialInteractions_EnableVerboseLogging>
+  <SocialInteractions_EnableVerboseLoggingDesc>启用后，详细日志将写入Player.log文件用于调试。</SocialInteractions_EnableVerboseLoggingDesc>
+  
+  <!-- Badmouthing Settings -->
+  <SocialInteractions_BadmouthingSettings>背后议论/八卦设置：</SocialInteractions_BadmouthingSettings>
+  <SocialInteractions_BaseChance>基础概率</SocialInteractions_BaseChance>
+  
+  <!-- Enhanced Chitchat Insult Settings -->
+  <SocialInteractions_EnhancedChitchatInsultSettings>增强聊天侮辱设置：</SocialInteractions_EnhancedChitchatInsultSettings>
+  
+  <!-- Admiration Settings -->
+  <SocialInteractions_AdmirationSettings>钦佩设置：</SocialInteractions_AdmirationSettings>
+  
+  <!-- LLM API Configuration -->
+  <SocialInteractions_LLMConfiguration>LLM API配置</SocialInteractions_LLMConfiguration>
+  <SocialInteractions_LLMType>LLM API类型：</SocialInteractions_LLMType>
+  <SocialInteractions_APIURL>API地址：</SocialInteractions_APIURL>
+  <SocialInteractions_APIKey>API密钥（明文存储）：</SocialInteractions_APIKey>
+  
+  <!-- API Type Labels -->
+  <SocialInteractions_KoboldCpp>KoboldCpp</SocialInteractions_KoboldCpp>
+  <SocialInteractions_Ollama>Ollama</SocialInteractions_Ollama>
+  <SocialInteractions_LMStudio>LM Studio</SocialInteractions_LMStudio>
+  <SocialInteractions_OpenAI>OpenAI</SocialInteractions_OpenAI>
+  <SocialInteractions_Gemini>Gemini</SocialInteractions_Gemini>
+  <SocialInteractions_Qwen>通义千问</SocialInteractions_Qwen>
+  <SocialInteractions_Deepseek>Deepseek</SocialInteractions_Deepseek>
+  <SocialInteractions_Grok>Grok</SocialInteractions_Grok>
+  <SocialInteractions_Claude>Claude</SocialInteractions_Claude>
+  
+  <!-- Model Name Labels -->
+  <SocialInteractions_OllamaModelName>Ollama模型名称：</SocialInteractions_OllamaModelName>
+  <SocialInteractions_LMStudioModelName>LM Studio模型名称：</SocialInteractions_LMStudioModelName>
+  <SocialInteractions_OpenAIModelName>OpenAI模型名称：</SocialInteractions_OpenAIModelName>
+  <SocialInteractions_GeminiModelName>Gemini模型名称：</SocialInteractions_GeminiModelName>
+  <SocialInteractions_QwenModelName>通义千问模型名称：</SocialInteractions_QwenModelName>
+  <SocialInteractions_DeepseekModelName>Deepseek模型名称：</SocialInteractions_DeepseekModelName>
+  <SocialInteractions_GrokModelName>Grok模型名称：</SocialInteractions_GrokModelName>
+  <SocialInteractions_ClaudeModelName>Claude模型名称：</SocialInteractions_ClaudeModelName>
+  
+  <!-- Prompt Templates -->
+  <SocialInteractions_PromptTemplate>提示模板：</SocialInteractions_PromptTemplate>
+  <SocialInteractions_MonologueTemplate>独白提示模板：</SocialInteractions_MonologueTemplate>
+  <SocialInteractions_ResetTemplates>重置模板为默认值</SocialInteractions_ResetTemplates>
+  
+  <!-- Stopping Strings -->
+  <SocialInteractions_StoppingStrings>LLM停止字符串（每行一个）：</SocialInteractions_StoppingStrings>
+  
+  <!-- Display Settings -->
+  <SocialInteractions_WordsPerLine>每行单词限制（用于对话气泡）：</SocialInteractions_WordsPerLine>
+  <SocialInteractions_WordsPerSecond>每秒单词数（用于对话气泡持续时间）：</SocialInteractions_WordsPerSecond>
+  
+  <!-- LLM Parameters -->
+  <SocialInteractions_MaxTokens>最大输出标记数（1 - 2000）：</SocialInteractions_MaxTokens>
+  <SocialInteractions_Temperature>温度（0.1 - 2.0）：</SocialInteractions_Temperature>
+  <SocialInteractions_TopK>Top K（0 = 禁用，1-100 = 启用）：</SocialInteractions_TopK>
+  <SocialInteractions_TopP>Top P（0.0 - 1.0，1.0 = 禁用）：</SocialInteractions_TopP>
+  <SocialInteractions_MinP>Min P（0.0 - 1.0，0.0 = 禁用）：</SocialInteractions_MinP>
+  <SocialInteractions_XTCSampling>XTC采样</SocialInteractions_XTCSampling>
+  <SocialInteractions_XTCSamplingDesc>启用后，XTC（排除顶部选择）采样将用于LLM请求以鼓励更多创意回应。</SocialInteractions_XTCSamplingDesc>
+  
+  <!-- Interaction Type Labels -->
+  <SocialInteractions_EnableChitchat>闲聊</SocialInteractions_EnableChitchat>
+  <SocialInteractions_EnableManualChat>手动聊天</SocialInteractions_EnableManualChat>
+  <SocialInteractions_EnableDeepTalk>深度谈话</SocialInteractions_EnableDeepTalk>
+  <SocialInteractions_EnableInsult>侮辱</SocialInteractions_EnableInsult>
+  <SocialInteractions_EnableRomanceAttempt>求爱尝试</SocialInteractions_EnableRomanceAttempt>
+  <SocialInteractions_EnableMarriageProposal>求婚</SocialInteractions_EnableMarriageProposal>
+  <SocialInteractions_EnableReassure>安慰</SocialInteractions_EnableReassure>
+  <SocialInteractions_EnableDisturbingChat>令人不安的对话</SocialInteractions_EnableDisturbingChat>
+  <SocialInteractions_EnableTendPatient>照料病人</SocialInteractions_EnableTendPatient>
+  <SocialInteractions_EnableRescue>救援</SocialInteractions_EnableRescue>
+  <SocialInteractions_EnableVisitSickPawn>探望病人</SocialInteractions_EnableVisitSickPawn>
+  <SocialInteractions_EnableLovin>求爱</SocialInteractions_EnableLovin>
+  <SocialInteractions_EnableDating>约会</SocialInteractions_EnableDating>
+  
+  <!-- Date Settings -->
+  <SocialInteractions_JoyThresholdForDate>约会的快乐阈值（0.0 - 1.0）：</SocialInteractions_JoyThresholdForDate>
+  <SocialInteractions_BaseLovinChance>约会后求爱的基础概率（0.0 - 1.0）：</SocialInteractions_BaseLovinChance>
+  
+  <!-- Social Log Tab -->
+  <SocialInteractions_SocialLogLabel>社交日志</SocialInteractions_SocialLogLabel>
+  <SocialInteractions_SocialLogDescription>查看社交互动的聊天记录。</SocialInteractions_SocialLogDescription>
+  
+  <!-- Interaction Types Label -->
+  <SocialInteractions_EnabledLLMInteractions>启用的LLM互动类型：</SocialInteractions_EnabledLLMInteractions>
+  
+  <!-- Bio Editor Dialog -->
+  <SocialInteractions_EditBioFor>编辑{0}的个人资料</SocialInteractions_EditBioFor>
+  <SocialInteractions_Save>保存</SocialInteractions_Save>
+  <SocialInteractions_Cancel>取消</SocialInteractions_Cancel>
+  <SocialInteractions_Clear>清空</SocialInteractions_Clear>
+  
+  <!-- Character Card Button -->
+  <SocialInteractions_EditBioButtonLabel>个人资料</SocialInteractions_EditBioButtonLabel>
+  <SocialInteractions_EditBioButtonTooltip>编辑此殖民者的自定义个人资料</SocialInteractions_EditBioButtonTooltip>
+  
+  <!-- UI Buttons -->
+  <SocialInteractions_Done>完成</SocialInteractions_Done>
+  
+  <!-- Additional keys that might be missing -->
+  <SocialInteractions_PawnsStopOnInteraction>角色在互动时停止活动</SocialInteractions_PawnsStopOnInteraction>
+  <SocialInteractions_EnabledLLMInteractions>启用的LLM互动类型：</SocialInteractions_EnabledLLMInteractions>
+</LanguageData>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <!-- General -->
+  <SocialInteractions_SettingsCategory>Social Interactions</SocialInteractions_SettingsCategory>
+  <SocialInteractions_SettingsTitle>Social Interactions Settings v1.1.0</SocialInteractions_SettingsTitle>
+  <SocialInteractions_SettingsDesc>If enabled, pawns will stop their current activities during social interactions.</SocialInteractions_SettingsDesc>
+  
+  <!-- Feature Toggle Labels -->
+  <SocialInteractions_PawnsStopOnInteraction>Pawns stop on interaction</SocialInteractions_PawnsStopOnInteraction>
+  <SocialInteractions_PawnsStopOnInteractionDesc>If enabled, pawns will stop their current activities during social interactions.</SocialInteractions_PawnsStopOnInteractionDesc>
+  <SocialInteractions_EnableCombatTaunts>Enable Combat Taunts</SocialInteractions_EnableCombatTaunts>
+  <SocialInteractions_EnableCombatTauntsDesc>If enabled, pawns will taunt each other in combat.</SocialInteractions_EnableCombatTauntsDesc>
+  <SocialInteractions_EnableDrama>Drama Interactions</SocialInteractions_EnableDrama>
+  <SocialInteractions_EnableDramaDesc>If enabled, pawns may engage in drama-causing interactions like badmouthing.</SocialInteractions_EnableDramaDesc>
+  <SocialInteractions_EnableDatingFeature>Enable Dating Feature</SocialInteractions_EnableDatingFeature>
+  <SocialInteractions_EnableDatingFeatureDesc>If enabled, pawns will be able to go on dates.</SocialInteractions_EnableDatingFeatureDesc>
+  <SocialInteractions_OpenChatLogWindow>Open Chat Log Window</SocialInteractions_OpenChatLogWindow>
+  <SocialInteractions_EnableLLMInteractions>Enable LLM Interactions</SocialInteractions_EnableLLMInteractions>
+  <SocialInteractions_EnableLLMInteractionsDesc>If enabled, Deep Talk interactions will use the configured LLM API.</SocialInteractions_EnableLLMInteractionsDesc>
+  <SocialInteractions_PreventSpam>Prevent Spam</SocialInteractions_PreventSpam>
+  <SocialInteractions_PreventSpamDesc>If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.</SocialInteractions_PreventSpamDesc>
+  <SocialInteractions_UseTextBackground>Use Text Background</SocialInteractions_UseTextBackground>
+  <SocialInteractions_UseTextBackgroundDesc>If enabled, LLM-generated text will be displayed with a background instead of a drop shadow.</SocialInteractions_UseTextBackgroundDesc>
+  <SocialInteractions_EnableVerboseLogging>Enable Verbose Logging</SocialInteractions_EnableVerboseLogging>
+  <SocialInteractions_EnableVerboseLoggingDesc>If enabled, detailed logs will be written to the Player.log file for debugging purposes.</SocialInteractions_EnableVerboseLoggingDesc>
+  
+  <!-- Badmouthing Settings -->
+  <SocialInteractions_BadmouthingSettings>Badmouthing/gossip Settings:</SocialInteractions_BadmouthingSettings>
+  <SocialInteractions_BaseChance>Base chance</SocialInteractions_BaseChance>
+  
+  <!-- Enhanced Chitchat Insult Settings -->
+  <SocialInteractions_EnhancedChitchatInsultSettings>Enhanced Chitchat Insult Settings:</SocialInteractions_EnhancedChitchatInsultSettings>
+  
+  <!-- Admiration Settings -->
+  <SocialInteractions_AdmirationSettings>Admiration Settings:</SocialInteractions_AdmirationSettings>
+  
+  <!-- LLM API Configuration -->
+  <SocialInteractions_LLMConfiguration>LLM API Configuration</SocialInteractions_LLMConfiguration>
+  <SocialInteractions_LLMType>LLM API Type:</SocialInteractions_LLMType>
+  <SocialInteractions_APIURL>API URL:</SocialInteractions_APIURL>
+  <SocialInteractions_APIKey>API Key (stored in plain text):</SocialInteractions_APIKey>
+  
+  <!-- API Type Labels -->
+  <SocialInteractions_KoboldCpp>KoboldCpp</SocialInteractions_KoboldCpp>
+  <SocialInteractions_Ollama>Ollama</SocialInteractions_Ollama>
+  <SocialInteractions_LMStudio>LM Studio</SocialInteractions_LMStudio>
+  <SocialInteractions_OpenAI>OpenAI</SocialInteractions_OpenAI>
+  <SocialInteractions_Gemini>Gemini</SocialInteractions_Gemini>
+  <SocialInteractions_Qwen>Qwen</SocialInteractions_Qwen>
+  <SocialInteractions_Deepseek>Deepseek</SocialInteractions_Deepseek>
+  <SocialInteractions_Grok>Grok</SocialInteractions_Grok>
+  <SocialInteractions_Claude>Claude</SocialInteractions_Claude>
+  
+  <!-- Model Name Labels -->
+  <SocialInteractions_OllamaModelName>Ollama Model Name:</SocialInteractions_OllamaModelName>
+  <SocialInteractions_LMStudioModelName>LM Studio Model Name:</SocialInteractions_LMStudioModelName>
+  <SocialInteractions_OpenAIModelName>OpenAI Model Name:</SocialInteractions_OpenAIModelName>
+  <SocialInteractions_GeminiModelName>Gemini Model Name:</SocialInteractions_GeminiModelName>
+  <SocialInteractions_QwenModelName>Qwen Model Name:</SocialInteractions_QwenModelName>
+  <SocialInteractions_DeepseekModelName>Deepseek Model Name:</SocialInteractions_DeepseekModelName>
+  <SocialInteractions_GrokModelName>Grok Model Name:</SocialInteractions_GrokModelName>
+  <SocialInteractions_ClaudeModelName>Claude Model Name:</SocialInteractions_ClaudeModelName>
+  
+  <!-- Prompt Templates -->
+  <SocialInteractions_PromptTemplate>Prompt Template:</SocialInteractions_PromptTemplate>
+  <SocialInteractions_MonologueTemplate>Monologue Prompt Template:</SocialInteractions_MonologueTemplate>
+  <SocialInteractions_ResetTemplates>Reset Templates to Default</SocialInteractions_ResetTemplates>
+  
+  <!-- Stopping Strings -->
+  <SocialInteractions_StoppingStrings>LLM Stopping Strings (one per line):</SocialInteractions_StoppingStrings>
+  
+  <!-- Display Settings -->
+  <SocialInteractions_WordsPerLine>Words per line limit (for speech bubbles):</SocialInteractions_WordsPerLine>
+  <SocialInteractions_WordsPerSecond>Words per second (for speech bubble duration):</SocialInteractions_WordsPerSecond>
+  
+  <!-- LLM Parameters -->
+  <SocialInteractions_MaxTokens>Max Output Tokens (1 - 2000):</SocialInteractions_MaxTokens>
+  <SocialInteractions_Temperature>Temperature (0.1 - 2.0):</SocialInteractions_Temperature>
+  <SocialInteractions_TopK>Top K (0 = disabled, 1-100 = enabled):</SocialInteractions_TopK>
+  <SocialInteractions_TopP>Top P (0.0 - 1.0, 1.0 = disabled):</SocialInteractions_TopP>
+  <SocialInteractions_MinP>Min P (0.0 - 1.0, 0.0 = disabled):</SocialInteractions_MinP>
+  <SocialInteractions_XTCSampling>XTC Sampling</SocialInteractions_XTCSampling>
+  <SocialInteractions_XTCSamplingDesc>If enabled, XTC (Exclude Top Choices) sampling will be used for LLM requests to encourage more creative responses.</SocialInteractions_XTCSamplingDesc>
+  
+  <!-- Interaction Type Labels -->
+  <SocialInteractions_EnableChitchat>Chitchat</SocialInteractions_EnableChitchat>
+  <SocialInteractions_EnableManualChat>Manual Chat</SocialInteractions_EnableManualChat>
+  <SocialInteractions_EnableDeepTalk>DeepTalk</SocialInteractions_EnableDeepTalk>
+  <SocialInteractions_EnableInsult>Insult</SocialInteractions_EnableInsult>
+  <SocialInteractions_EnableRomanceAttempt>RomanceAttempt</SocialInteractions_EnableRomanceAttempt>
+  <SocialInteractions_EnableMarriageProposal>MarriageProposal</SocialInteractions_EnableMarriageProposal>
+  <SocialInteractions_EnableReassure>Reassure</SocialInteractions_EnableReassure>
+  <SocialInteractions_EnableDisturbingChat>DisturbingChat</SocialInteractions_EnableDisturbingChat>
+  <SocialInteractions_EnableTendPatient>TendPatient</SocialInteractions_EnableTendPatient>
+  <SocialInteractions_EnableRescue>Rescue</SocialInteractions_EnableRescue>
+  <SocialInteractions_EnableVisitSickPawn>VisitSickPawn</SocialInteractions_EnableVisitSickPawn>
+  <SocialInteractions_EnableLovin>Lovin</SocialInteractions_EnableLovin>
+  <SocialInteractions_EnableDating>Dating</SocialInteractions_EnableDating>
+  
+  <!-- Date Settings -->
+  <SocialInteractions_JoyThresholdForDate>Joy threshold for date (0.0 - 1.0):</SocialInteractions_JoyThresholdForDate>
+  <SocialInteractions_BaseLovinChance>Base lovin' chance after a date (0.0 - 1.0):</SocialInteractions_BaseLovinChance>
+  
+  <!-- Social Log Tab -->
+  <SocialInteractions_SocialLogLabel>Social Log</SocialInteractions_SocialLogLabel>
+  <SocialInteractions_SocialLogDescription>View the chat log of social interactions.</SocialInteractions_SocialLogDescription>
+  
+  <!-- Interaction Types Label -->
+  <SocialInteractions_EnabledLLMInteractions>Enabled LLM Interaction Types:</SocialInteractions_EnabledLLMInteractions>
+  
+  <!-- Bio Editor Dialog -->
+  <SocialInteractions_EditBioFor>Edit Bio for {0}</SocialInteractions_EditBioFor>
+  <SocialInteractions_Save>Save</SocialInteractions_Save>
+  <SocialInteractions_Cancel>Cancel</SocialInteractions_Cancel>
+  <SocialInteractions_Clear>Clear</SocialInteractions_Clear>
+  
+  <!-- Character Card Button -->
+  <SocialInteractions_EditBioButtonLabel>Bio</SocialInteractions_EditBioButtonLabel>
+  <SocialInteractions_EditBioButtonTooltip>Edit custom bio text for this colonist</SocialInteractions_EditBioButtonTooltip>
+  
+  <!-- UI Buttons -->
+  <SocialInteractions_Done>Done</SocialInteractions_Done>
+</LanguageData>

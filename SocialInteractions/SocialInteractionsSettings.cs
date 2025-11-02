@@ -21,11 +21,13 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Default templates
-        public const string DEFAULT_DIALOGUE_TEMPLATE = @"The following is an interraction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
+        public const string DEFAULT_DIALOGUE_TEMPLATE = @"The following is an interaction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
 
-[pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1]'s family: [pawn1_family]. [pawn1] is currently [pawn1_action].
+[pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1]'s family: [pawn1_family]. [pawn1_bio] 
+[pawn1] is currently [pawn1_action]
 
-[pawn2] is a [pawn2_sex], age [pawn2_age], a [pawn2_title] following the [pawn2_ideology] ideology, has the following traits: [pawn2_traits]; Xenotype: [pawn2_genes]; [pawn2] is proficient in: [pawn2_proficiencies]; [pawn2]'s mood is [pawn2_mood], positives: [pawn2_likes] / negatives: [pawn2_dislikes]; Medical status: [pawn2_afflictions]. [pawn2]'s family: [pawn2_family]. [pawn2] is currently [pawn2_action].
+[pawn2] is a [pawn2_sex], age [pawn2_age], a [pawn2_title] following the [pawn2_ideology] ideology, has the following traits: [pawn2_traits]; Xenotype: [pawn2_genes]; [pawn2] is proficient in: [pawn2_proficiencies]; [pawn2]'s mood is [pawn2_mood], positives: [pawn2_likes] / negatives: [pawn2_dislikes]; Medical status: [pawn2_afflictions]. [pawn2]'s family: [pawn2_family]. [pawn2_bio]
+[pawn2] is currently [pawn2_action]
 
 [pawn2] is [pawn1]'s [relation].
 Last time they spoke: [pawn1_journal]
@@ -39,7 +41,8 @@ Current event: [subject]
         
         public const string DEFAULT_MONOLOGUE_TEMPLATE = @"The following is a [topic] by a RimWorld character, [pawn1]. It's a brutal world out there so use swearing, explicit or rough language freely.
 
-[pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1] is currently [pawn1_action].
+[pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1_bio]
+[pawn1] is currently [pawn1_action]
 
 It's currently [time], on [date] and the weather is [weather].
 
@@ -292,7 +295,7 @@ Current event: [pawn1] [subject]
 
         public override string SettingsCategory()
         {
-            return "Social Interactions";
+            return "SocialInteractions_SettingsCategory".Translate();
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
@@ -302,27 +305,27 @@ Current event: [pawn1] [subject]
 
             Listing_Standard listingStandard = new Listing_Standard();
             listingStandard.Begin(viewRect);
-            listingStandard.Label("Social Interractions Settings v1.1.0");
+            listingStandard.Label("SocialInteractions_SettingsTitle".Translate());
             
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Pawns stop on interaction", ref SocialInteractions.Settings.pawnsStopOnInteraction, "If enabled, pawns will stop their current activities during social interactions.");
+            listingStandard.CheckboxLabeled("SocialInteractions_PawnsStopOnInteraction".Translate(), ref SocialInteractions.Settings.pawnsStopOnInteraction, "SocialInteractions_PawnsStopOnInteractionDesc".Translate());
 
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Enable Combat Taunts", ref SocialInteractions.Settings.enableCombatTaunts, "If enabled, pawns will taunt each other in combat.");
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableCombatTaunts".Translate(), ref SocialInteractions.Settings.enableCombatTaunts, "SocialInteractions_EnableCombatTauntsDesc".Translate());
 
             // Drama interactions setting
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Enable Drama Interactions", ref SocialInteractions.Settings.enableDrama, "If enabled, pawns may engage in drama-causing interactions like badmouthing.");
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableDrama".Translate(), ref SocialInteractions.Settings.enableDrama, "SocialInteractions_EnableDramaDesc".Translate());
 
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Enable Dating Feature", ref SocialInteractions.Settings.enableDatingFeature, "If enabled, pawns will be able to go on dates.");
-            listingStandard.Label(string.Format("Joy threshold for date (0.0 - 1.0): {0}", SocialInteractions.Settings.joyThresholdForDate.ToString("F2")));
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableDatingFeature".Translate(), ref SocialInteractions.Settings.enableDatingFeature, "SocialInteractions_EnableDatingFeatureDesc".Translate());
+            listingStandard.Label(string.Format("SocialInteractions_JoyThresholdForDate".Translate() + " {0}", SocialInteractions.Settings.joyThresholdForDate.ToString("F2")));
             SocialInteractions.Settings.joyThresholdForDate = listingStandard.Slider(SocialInteractions.Settings.joyThresholdForDate, 0f, 1f);
-            listingStandard.Label(string.Format("Base lovin' chance after a date (0.0 - 1.0): {0}", SocialInteractions.Settings.baseLovinChance.ToString("F2")));
+            listingStandard.Label(string.Format("SocialInteractions_BaseLovinChance".Translate() + " {0}", SocialInteractions.Settings.baseLovinChance.ToString("F2")));
             SocialInteractions.Settings.baseLovinChance = listingStandard.Slider(SocialInteractions.Settings.baseLovinChance, 0f, 1f);
             
             // Add a button to open the chat log window
-            if (listingStandard.ButtonText("Open Chat Log Window"))
+            if (listingStandard.ButtonText("SocialInteractions_OpenChatLogWindow".Translate()))
             {
                 // Open the chat log tab
                 Find.MainTabsRoot.SetCurrentTab(DefDatabase<RimWorld.MainButtonDef>.GetNamed("SocialInteractions_ChatLog"));
@@ -330,25 +333,25 @@ Current event: [pawn1] [subject]
 
 
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Enable LLM Interactions", ref SocialInteractions.Settings.llmInteractionsEnabled, "If enabled, Deep Talk interactions will use the configured LLM API.");
-            listingStandard.CheckboxLabeled("Prevent Spam", ref SocialInteractions.Settings.preventSpam, "If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.");
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableLLMInteractions".Translate(), ref SocialInteractions.Settings.llmInteractionsEnabled, "SocialInteractions_EnableLLMInteractionsDesc".Translate());
+            listingStandard.CheckboxLabeled("SocialInteractions_PreventSpam".Translate(), ref SocialInteractions.Settings.preventSpam, "SocialInteractions_PreventSpamDesc".Translate());
 
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Use Text Background", ref SocialInteractions.Settings.useBackgroundTextRendering, "If enabled, LLM-generated text will be displayed with a background instead of a drop shadow.");
+            listingStandard.CheckboxLabeled("SocialInteractions_UseTextBackground".Translate(), ref SocialInteractions.Settings.useBackgroundTextRendering, "SocialInteractions_UseTextBackgroundDesc".Translate());
 
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Enable Verbose Logging", ref SocialInteractions.Settings.verboseLogging, "If enabled, detailed logs will be written to the Player.log file for debugging purposes.");
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableVerboseLogging".Translate(), ref SocialInteractions.Settings.verboseLogging, "SocialInteractions_EnableVerboseLoggingDesc".Translate());
 
             // Badmouthing settings
             listingStandard.Gap();
-            listingStandard.Label("Badmouthing/gossip Settings:");
-            listingStandard.Label(string.Format("Base chance: {0:F3}", SocialInteractions.Settings.baseBadmouthingChance));
+            listingStandard.Label("SocialInteractions_BadmouthingSettings".Translate());
+            listingStandard.Label(string.Format("SocialInteractions_BaseChance".Translate() + ": {0:F3}", SocialInteractions.Settings.baseBadmouthingChance));
             SocialInteractions.Settings.baseBadmouthingChance = listingStandard.Slider(SocialInteractions.Settings.baseBadmouthingChance, 0f, 1f);
 
             // Enhanced Chitchat Insult settings
             listingStandard.Gap();
-            listingStandard.Label("Enhanced Chitchat Insult Settings:");
-            listingStandard.Label(string.Format("Base chance: {0:F3}", SocialInteractions.Settings.baseEnhancedChitchatInsultChance));
+            listingStandard.Label("SocialInteractions_EnhancedChitchatInsultSettings".Translate());
+            listingStandard.Label(string.Format("SocialInteractions_BaseChance".Translate() + ": {0:F3}", SocialInteractions.Settings.baseEnhancedChitchatInsultChance));
             SocialInteractions.Settings.baseEnhancedChitchatInsultChance = listingStandard.Slider(SocialInteractions.Settings.baseEnhancedChitchatInsultChance, 0f, 1f);
             
             // listingStandard.Label(string.Format("Mood multiplier (bad mood): {0:F2}", SocialInteractions.Settings.enhancedChitchatInsultMoodMultiplierBad));
@@ -371,8 +374,8 @@ Current event: [pawn1] [subject]
 
             // Admiration settings
             listingStandard.Gap();
-            listingStandard.Label("Admiration Settings:");
-            listingStandard.Label(string.Format("Base chance: {0:F3}", SocialInteractions.Settings.baseAdmirationChance));
+            listingStandard.Label("SocialInteractions_AdmirationSettings".Translate());
+            listingStandard.Label(string.Format("SocialInteractions_BaseChance".Translate() + ": {0:F3}", SocialInteractions.Settings.baseAdmirationChance));
             SocialInteractions.Settings.baseAdmirationChance = listingStandard.Slider(SocialInteractions.Settings.baseAdmirationChance, 0f, 1f);
             
             // listingStandard.Label(string.Format("Attraction multiplier: {0:F2}", SocialInteractions.Settings.admirationAttractionMultiplier));
@@ -394,12 +397,22 @@ Current event: [pawn1] [subject]
             // SocialInteractions.Settings.admirationOpinionDecreaseOnFail = listingStandard.Slider(SocialInteractions.Settings.admirationOpinionDecreaseOnFail, -5f, 0f);
 
             listingStandard.Gap();
-            listingStandard.Label("LLM API Configuration");
+            listingStandard.Label("SocialInteractions_LLMConfiguration".Translate());
 
             // API Type Selection
             listingStandard.Gap();
-            listingStandard.Label("LLM API Type:");
-            string[] apiTypeNames = System.Enum.GetNames(typeof(LlmApiType));
+            listingStandard.Label("SocialInteractions_LLMType".Translate());
+            string[] apiTypeNames = new string[] {
+                "SocialInteractions_KoboldCpp".Translate(),
+                "SocialInteractions_Ollama".Translate(),
+                "SocialInteractions_LMStudio".Translate(),
+                "SocialInteractions_OpenAI".Translate(),
+                "SocialInteractions_Gemini".Translate(),
+                "SocialInteractions_Qwen".Translate(),
+                "SocialInteractions_Deepseek".Translate(),
+                "SocialInteractions_Grok".Translate(),
+                "SocialInteractions_Claude".Translate()
+            };
             LlmApiType[] apiTypeValues = (LlmApiType[])System.Enum.GetValues(typeof(LlmApiType));
             int currentApiTypeIndex = System.Array.IndexOf(apiTypeValues, SocialInteractions.Settings.llmApiType);
             
@@ -456,7 +469,7 @@ Current event: [pawn1] [subject]
                 }
             }
 
-            listingStandard.Label("API URL:");
+            listingStandard.Label("SocialInteractions_APIURL".Translate());
             string newApiUrl = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), llmApiUrlBuffer);
             if (newApiUrl != llmApiUrlBuffer)
             {
@@ -464,7 +477,7 @@ Current event: [pawn1] [subject]
                 SocialInteractions.Settings.llmApiUrl = newApiUrl;
             }
 
-            listingStandard.Label("API Key (stored in plain text):");
+            listingStandard.Label("SocialInteractions_APIKey".Translate());
             string newApiKey = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), llmApiKeyBuffer);
             if (newApiKey != llmApiKeyBuffer)
             {
@@ -476,7 +489,7 @@ Current event: [pawn1] [subject]
             if (SocialInteractions.Settings.llmApiType == LlmApiType.Ollama)
             {
                 listingStandard.Gap();
-                listingStandard.Label("Ollama Model Name:");
+                listingStandard.Label("SocialInteractions_OllamaModelName".Translate());
                 string newOllamaModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.ollamaModelName);
                 if (!string.IsNullOrEmpty(newOllamaModel))
                 {
@@ -488,7 +501,7 @@ Current event: [pawn1] [subject]
             if (SocialInteractions.Settings.llmApiType == LlmApiType.LMStudio)
             {
                 listingStandard.Gap();
-                listingStandard.Label("LM Studio Model Name:");
+                listingStandard.Label("SocialInteractions_LMStudioModelName".Translate());
                 string newLMStudioModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.lmStudioModelName);
                 if (!string.IsNullOrEmpty(newLMStudioModel))
                 {
@@ -500,7 +513,7 @@ Current event: [pawn1] [subject]
             if (SocialInteractions.Settings.llmApiType == LlmApiType.OpenAI)
             {
                 listingStandard.Gap();
-                listingStandard.Label("OpenAI Model Name:");
+                listingStandard.Label("SocialInteractions_OpenAIModelName".Translate());
                 string newOpenAiModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), openAiModelNameBuffer);
                 if (!string.IsNullOrEmpty(newOpenAiModel))
                 {
@@ -513,7 +526,7 @@ Current event: [pawn1] [subject]
             if (SocialInteractions.Settings.llmApiType == LlmApiType.Gemini)
             {
                 listingStandard.Gap();
-                listingStandard.Label("Gemini Model Name:");
+                listingStandard.Label("SocialInteractions_GeminiModelName".Translate());
                 string newGeminiModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.geminiModelName);
                 if (!string.IsNullOrEmpty(newGeminiModel))
                 {
@@ -525,7 +538,7 @@ Current event: [pawn1] [subject]
             if (SocialInteractions.Settings.llmApiType == LlmApiType.Qwen)
             {
                 listingStandard.Gap();
-                listingStandard.Label("Qwen Model Name:");
+                listingStandard.Label("SocialInteractions_QwenModelName".Translate());
                 string newQwenModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.qwenModelName);
                 if (!string.IsNullOrEmpty(newQwenModel))
                 {
@@ -537,7 +550,7 @@ Current event: [pawn1] [subject]
             if (SocialInteractions.Settings.llmApiType == LlmApiType.Deepseek)
             {
                 listingStandard.Gap();
-                listingStandard.Label("Deepseek Model Name:");
+                listingStandard.Label("SocialInteractions_DeepseekModelName".Translate());
                 string newDeepseekModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.deepseekModelName);
                 if (!string.IsNullOrEmpty(newDeepseekModel))
                 {
@@ -549,7 +562,7 @@ Current event: [pawn1] [subject]
             if (SocialInteractions.Settings.llmApiType == LlmApiType.Grok)
             {
                 listingStandard.Gap();
-                listingStandard.Label("Grok Model Name:");
+                listingStandard.Label("SocialInteractions_GrokModelName".Translate());
                 string newGrokModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.grokModelName);
                 if (!string.IsNullOrEmpty(newGrokModel))
                 {
@@ -561,7 +574,7 @@ Current event: [pawn1] [subject]
             if (SocialInteractions.Settings.llmApiType == LlmApiType.Claude)
             {
                 listingStandard.Gap();
-                listingStandard.Label("Claude Model Name:");
+                listingStandard.Label("SocialInteractions_ClaudeModelName".Translate());
                 string newClaudeModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.claudeModelName);
                 if (!string.IsNullOrEmpty(newClaudeModel))
                 {
@@ -569,7 +582,7 @@ Current event: [pawn1] [subject]
                 }
             }
 
-            listingStandard.Label("Prompt Template:");
+            listingStandard.Label("SocialInteractions_PromptTemplate".Translate());
             string newPromptTemplate = Widgets.TextArea(listingStandard.GetRect(200f), llmPromptTemplateBuffer);
             if (newPromptTemplate != llmPromptTemplateBuffer)
             {
@@ -578,7 +591,7 @@ Current event: [pawn1] [subject]
             }
 
             listingStandard.Gap();
-            listingStandard.Label("Monologue Prompt Template:");
+            listingStandard.Label("SocialInteractions_MonologueTemplate".Translate());
             string newMonologuePromptTemplate = Widgets.TextArea(listingStandard.GetRect(200f), llmMonologuePromptTemplateBuffer);
             if (newMonologuePromptTemplate != llmMonologuePromptTemplateBuffer)
             {
@@ -588,8 +601,8 @@ Current event: [pawn1] [subject]
 
             // Add Reset Templates button
             listingStandard.Gap();
-            listingStandard.Label("Reset Templates:");
-            if (listingStandard.ButtonText("Reset Templates to Default"))
+            listingStandard.Label("SocialInteractions_ResetTemplates".Translate());
+            if (listingStandard.ButtonText("SocialInteractions_ResetTemplates".Translate()))
             {
                 SocialInteractions.Settings.llmPromptTemplate = SocialInteractionsModSettings.DEFAULT_DIALOGUE_TEMPLATE;
                 SocialInteractions.Settings.llmMonologuePromptTemplate = SocialInteractionsModSettings.DEFAULT_MONOLOGUE_TEMPLATE;
@@ -598,62 +611,62 @@ Current event: [pawn1] [subject]
             }
 
             listingStandard.Gap();
-            listingStandard.Label("LLM Stopping Strings (one per line):");
+            listingStandard.Label("SocialInteractions_StoppingStrings".Translate());
             SocialInteractions.Settings.llmStoppingStrings = Widgets.TextArea(listingStandard.GetRect(100f), SocialInteractions.Settings.llmStoppingStrings);
 
             listingStandard.Gap();
-            listingStandard.Label("Words per line limit (for speech bubbles):");
+            listingStandard.Label("SocialInteractions_WordsPerLine".Translate());
             string wordsPerLineBuffer = SocialInteractions.Settings.wordsPerLineLimit.ToString();
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.wordsPerLineLimit, ref wordsPerLineBuffer, 1, 50);
 
             listingStandard.Gap();
-            listingStandard.Label("Words per second (for speech bubble duration):");
+            listingStandard.Label("SocialInteractions_WordsPerSecond".Translate());
             string wordsPerSecondBuffer = SocialInteractions.Settings.wordsPerSecond.ToString();
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.wordsPerSecond, ref wordsPerSecondBuffer, 1.0f, 20.0f);
 
             listingStandard.Gap();
-            listingStandard.Label("Max Output Tokens (1 - 2000):");
+            listingStandard.Label("SocialInteractions_MaxTokens".Translate());
             string maxTokensBuffer = SocialInteractions.Settings.llmMaxTokens.ToString();
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmMaxTokens, ref maxTokensBuffer, 1, 2000);
 
             listingStandard.Gap();
-            listingStandard.Label("Temperature (0.1 - 2.0):");
+            listingStandard.Label("SocialInteractions_Temperature".Translate());
             string temperatureBuffer = SocialInteractions.Settings.llmTemperature.ToString();
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmTemperature, ref temperatureBuffer, 0.1f, 2.0f);
 
             listingStandard.Gap();
-            listingStandard.Label("Top K (0 = disabled, 1-100 = enabled):");
+            listingStandard.Label("SocialInteractions_TopK".Translate());
             string topKBuffer = SocialInteractions.Settings.llmTopK.ToString();
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmTopK, ref topKBuffer, 0, 100);
 
             listingStandard.Gap();
-            listingStandard.Label("Top P (0.0 - 1.0, 1.0 = disabled):");
+            listingStandard.Label("SocialInteractions_TopP".Translate());
             string topPBuffer = SocialInteractions.Settings.llmTopP.ToString();
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmTopP, ref topPBuffer, 0.0f, 1.0f);
 
             listingStandard.Gap();
-            listingStandard.Label("Min P (0.0 - 1.0, 0.0 = disabled):");
+            listingStandard.Label("SocialInteractions_MinP".Translate());
             string minPBuffer = SocialInteractions.Settings.llmMinP.ToString();
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmMinP, ref minPBuffer, 0.0f, 1.0f);
 
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("XTC Sampling", ref SocialInteractions.Settings.enableXtcSampling, "If enabled, XTC (Exclude Top Choices) sampling will be used for LLM requests to encourage more creative responses.");
+            listingStandard.CheckboxLabeled("SocialInteractions_XTCSampling".Translate(), ref SocialInteractions.Settings.enableXtcSampling, "SocialInteractions_XTCSamplingDesc".Translate());
 
             listingStandard.Gap();
-            listingStandard.Label("Enabled LLM Interaction Types:");
-            listingStandard.CheckboxLabeled("Chitchat", ref SocialInteractions.Settings.enableChitchat);
-            listingStandard.CheckboxLabeled("Manual Chat", ref SocialInteractions.Settings.enableManualChat); // New setting for manual chat
-            listingStandard.CheckboxLabeled("DeepTalk", ref SocialInteractions.Settings.enableDeepTalk);
-            listingStandard.CheckboxLabeled("Insult", ref SocialInteractions.Settings.enableInsult);
-            listingStandard.CheckboxLabeled("RomanceAttempt", ref SocialInteractions.Settings.enableRomanceAttempt);
-            listingStandard.CheckboxLabeled("MarriageProposal", ref SocialInteractions.Settings.enableMarriageProposal);
-            listingStandard.CheckboxLabeled("Reassure", ref SocialInteractions.Settings.enableReassure);
-            listingStandard.CheckboxLabeled("DisturbingChat", ref SocialInteractions.Settings.enableDisturbingChat);
-            listingStandard.CheckboxLabeled("TendPatient", ref SocialInteractions.Settings.enableTendPatient);
-            listingStandard.CheckboxLabeled("Rescue", ref SocialInteractions.Settings.enableRescue);
-            listingStandard.CheckboxLabeled("VisitSickPawn", ref SocialInteractions.Settings.enableVisitSickPawn);
-            listingStandard.CheckboxLabeled("Lovin", ref SocialInteractions.Settings.enableLovin);
-            listingStandard.CheckboxLabeled("Dating", ref SocialInteractions.Settings.enableDating);
+            listingStandard.Label("SocialInteractions_EnabledLLMInteractions".Translate());
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableChitchat".Translate(), ref SocialInteractions.Settings.enableChitchat);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableManualChat".Translate(), ref SocialInteractions.Settings.enableManualChat); // New setting for manual chat
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableDeepTalk".Translate(), ref SocialInteractions.Settings.enableDeepTalk);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableInsult".Translate(), ref SocialInteractions.Settings.enableInsult);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableRomanceAttempt".Translate(), ref SocialInteractions.Settings.enableRomanceAttempt);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableMarriageProposal".Translate(), ref SocialInteractions.Settings.enableMarriageProposal);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableReassure".Translate(), ref SocialInteractions.Settings.enableReassure);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableDisturbingChat".Translate(), ref SocialInteractions.Settings.enableDisturbingChat);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableTendPatient".Translate(), ref SocialInteractions.Settings.enableTendPatient);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableRescue".Translate(), ref SocialInteractions.Settings.enableRescue);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableVisitSickPawn".Translate(), ref SocialInteractions.Settings.enableVisitSickPawn);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableLovin".Translate(), ref SocialInteractions.Settings.enableLovin);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableDating".Translate(), ref SocialInteractions.Settings.enableDating);
 
             listingStandard.End();
 
