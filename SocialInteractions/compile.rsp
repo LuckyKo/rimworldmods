@@ -80,3 +80,7 @@ PlayLogEntry_EnhancedInsult.cs
 InteractionWorker_Admiration.cs
 PlayLogEntry_Admiration.cs
 SocialInfluenceUtility.cs
+PawnFlavorText_GameComponent.cs
+Dialog_EditPawnFlavorText.cs
+CharacterCardUtility_AddFlavorTextButton_Patch.cs
+Game_FlavorTextComponent_Patch.cs

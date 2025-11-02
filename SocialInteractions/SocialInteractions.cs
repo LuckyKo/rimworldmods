@@ -25,6 +25,9 @@ namespace SocialInteractions
         // Static field to store the conversation ID for the last cheating interaction
         public static int lastCheatingInteractionConversationId = -1;
         
+        // Static dictionary to store custom flavor text for each pawn
+        public static Dictionary<int, string> PawnFlavorTexts = new Dictionary<int, string>();
+        
         // --- For LLM Efficiency ---
         private static float lastResponseTimeSeconds = 1.0f; // Initial estimate
         // --- End For LLM Efficiency ---
@@ -36,6 +39,79 @@ namespace SocialInteractions
             
             // Log that patches were applied
             SLog.Message("[SocialInteractions] Harmony patches applied");
+        }
+
+        /// <summary>
+        /// Gets the custom flavor text for a pawn
+        /// </summary>
+        /// <param name="pawn">The pawn to get the flavor text for</param>
+        /// <returns>The custom flavor text, or an empty string if none exists</returns>
+        public static string GetPawnFlavorText(Pawn pawn)
+        {
+            if (pawn == null)
+            {
+                return string.Empty;
+            }
+            
+            // Try to get from the game component first, fall back to static dictionary
+            PawnFlavorText_GameComponent gameComp = null;
+            if (Current.Game != null)
+            {
+                gameComp = Current.Game.GetComponent<PawnFlavorText_GameComponent>();
+            }
+            
+            if (gameComp != null)
+            {
+                return gameComp.GetFlavorText(pawn.thingIDNumber);
+            }
+            else
+            {
+                // Fallback to static dictionary if game component is not available
+                if (PawnFlavorTexts.ContainsKey(pawn.thingIDNumber))
+                {
+                    return PawnFlavorTexts[pawn.thingIDNumber];
+                }
+            }
+            
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Sets the custom flavor text for a pawn
+        /// </summary>
+        /// <param name="pawn">The pawn to set the flavor text for</param>
+        /// <param name="flavorText">The flavor text to set</param>
+        public static void SetPawnFlavorText(Pawn pawn, string flavorText)
+        {
+            if (pawn == null)
+            {
+                return;
+            }
+            
+            // Update the game component if available, otherwise update the static dictionary
+            PawnFlavorText_GameComponent gameComp = null;
+            if (Current.Game != null)
+            {
+                gameComp = Current.Game.GetComponent<PawnFlavorText_GameComponent>();
+            }
+            
+            if (gameComp != null)
+            {
+                gameComp.SetFlavorText(pawn.thingIDNumber, flavorText);
+            }
+            else
+            {
+                // Update static dictionary as fallback
+                if (string.IsNullOrEmpty(flavorText))
+                {
+                    // Remove the entry if flavor text is empty
+                    PawnFlavorTexts.Remove(pawn.thingIDNumber);
+                }
+                else
+                {
+                    PawnFlavorTexts[pawn.thingIDNumber] = flavorText;
+                }
+            }
         }
 
         public static bool IsLlmInteractionEnabled(InteractionDef interactionDef)
@@ -596,6 +672,9 @@ namespace SocialInteractions
             
             // Add attire information (what they're wearing on chest/body)
             data[prefix + "_attire"] = GetAttire(pawn);
+            
+            // Add custom flavor text (bio) for the pawn
+            data[prefix + "_bio"] = GetPawnFlavorText(pawn);
 
             return data;
         }
@@ -1581,10 +1660,10 @@ namespace SocialInteractions
         }
 
         /// <summary>
-        /// Gets the first-degree relatives of a pawn as a formatted string.
+        /// Gets the first-degree relatives and ex-lovers of a pawn as a formatted string.
         /// </summary>
         /// <param name="pawn">The pawn to get relatives for</param>
-        /// <returns>A formatted string listing the pawn's first-degree relatives, or "None" if none exist</returns>
+        /// <returns>A formatted string listing the pawn's first-degree relatives and ex-lovers, or "None" if none exist</returns>
         private static string GetFamily(Pawn pawn)
         {
             if (pawn == null || pawn.relations == null)
@@ -1611,7 +1690,7 @@ namespace SocialInteractions
                     PawnRelationDef relationDef = pawn.GetMostImportantRelation(relation);
                     if (relationDef != null)
                     {
-                        // Only include first-degree relatives: parents/children/siblings/spouse/fiance/lover
+                        // Include first-degree relatives: parents/children/siblings/spouse/fiance/lover
                         if (relationDef == PawnRelationDefOf.Parent || 
                             relationDef == PawnRelationDefOf.Child ||
                             relationDef == PawnRelationDefOf.Sibling ||
@@ -1622,6 +1701,44 @@ namespace SocialInteractions
                             string relationLabel = relationDef.GetGenderSpecificLabelCap(relation);
                             relatives.Add(string.Format("{0} ({1})", relation.Name.ToStringShort, relationLabel));
                             addedRelativeIds.Add(relation.thingIDNumber); // Mark this pawn as added
+                        }
+                    }
+                }
+                
+                // Add ex-relations (ex-lovers, ex-spouses, etc.) to the list by finding all direct relations of ex-types
+                if (pawn.relations != null && pawn.relations.DirectRelations != null)
+                {
+                    foreach (DirectPawnRelation relation in pawn.relations.DirectRelations)
+                    {
+                        if (relation == null || relation.otherPawn == null) continue;
+                        
+                        // Check if this relation is an ex-relation type
+                        if (relation.def == PawnRelationDefOf.ExLover || relation.def == PawnRelationDefOf.ExSpouse)
+                        {
+                            // Only include living ex-relations
+                            if (relation.otherPawn.Dead || !relation.otherPawn.Spawned) continue;
+                            
+                            // Skip if already added
+                            if (addedRelativeIds.Contains(relation.otherPawn.thingIDNumber)) continue;
+                            
+                            // Get the appropriate label for the relation type
+                            string relationLabel = relation.def.GetGenderSpecificLabelCap(relation.otherPawn);
+                            if (relationLabel == null || relationLabel.ToString().ToLower() == "null") // Check if label is not properly formatted
+                            {
+                                // Use specific label based on relation type
+                                if (relation.def == PawnRelationDefOf.ExLover)
+                                {
+                                    relationLabel = "ex-lover";
+                                }
+                                else if (relation.def == PawnRelationDefOf.ExSpouse)
+                                {
+                                    relationLabel = "ex-spouse";
+                                }
+                            }
+                            
+                            // Add ex-relation to the list
+                            relatives.Add(string.Format("{0} ({1})", relation.otherPawn.Name.ToStringShort, relationLabel));
+                            addedRelativeIds.Add(relation.otherPawn.thingIDNumber); // Mark this pawn as added
                         }
                     }
                 }

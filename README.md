@@ -32,6 +32,7 @@ Enhance your RimWorld experience with dynamic, AI-generated social interactions,
 - **Chat Log**: Review all interactions in a dedicated chat log window
 - **Color Coding**: Different colors for different interaction types (orange for high priority)
 - **Text Formatting**: Rich text formatting with colored names and emphasis markers
+- **Custom Pawn Bios**: Add personalized text descriptions to pawns accessible via the character card
 
 ## Supported APIs
 
@@ -69,6 +70,7 @@ Enhance your RimWorld experience with dynamic, AI-generated social interactions,
 - Control which interaction types use LLM
 - Adjust dating probabilities and cooldowns
 - Configure visual settings for speech bubbles
+- Customize prompt templates to include custom pawn bios
 
 ### Performance Options
 - Prevent spam mode to avoid overlapping dialogues
@@ -77,13 +79,19 @@ Enhance your RimWorld experience with dynamic, AI-generated social interactions,
 
 ## How to Use
 
-### Social Interactions
+### Enhanced Social Interactions
 Pawns will automatically engage in LLM-generated conversations during:
 - Chitchat and Deep Talk
 - Insults and Romance Attempts
 - Marriage Proposals and Reassurance
 - Disturbing Conversations
 - Medical interactions (Tend Patient, Visit Sick Pawn)
+
+### Additional Drama Interactions
+Pawns can engage in new interactions that promote the formation of cliques and group leaders
+- Gossip/badmouth about other pawns that they dislike
+- Enhanced Insults that have a more in-depth awareness of inner/outer social circles
+- Praising/Admiring pawns that they see as leaders to raise through the social ranks
 
 ### Dating System
 1. Pawns will naturally attempt to go on dates with others
@@ -98,6 +106,15 @@ Pawns will automatically shout during combat situations:
 - When attacking enemies
 - When taking damage
 - When going down in battle
+
+### Custom Pawn Bios
+Add personalized flavor text to individual pawns to enhance AI interactions:
+- Click the "Bio" button on any colonist's character card to open the bio editor
+- Add custom descriptive text about the pawn (appearance, personality, backstory, etc.)
+- Text is saved and persists between game sessions
+- Edit or clear existing bio text at any time
+- Use the `[pawn1_bio]`, `[pawn2_bio]`, etc. placeholders in prompt templates to include this custom text in LLM interactions
+- Alternatively, the "Reset Templates" button in settings will reset the default prompt templates that include the new character bio fields
 
 ### Chat Log
 Access all generated conversations through the dedicated chat log window:
@@ -177,6 +194,6 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and updates.
 
 ---
 
-**Note**: This mod requires an LLM API to function. For local use, we recommend LM Studio or KoboldCpp for the best experience. Make sure to use a model that can fit your GPU VRAM together with the game. My preffered model to use is L3-8B-Stheno-v3.2 but any of the gemma-3-4B or qwen3-4B work just as well.
+**Note**: This mod requires an LLM API to function. For local use, we recommend LM Studio or KoboldCpp for the best experience. Make sure to use a model that can fit your GPU VRAM together with the game. My preferred model to use is L3-8B-Stheno-v3.2 but any of the gemma-3-4B or qwen3-4B work just as well. A context window size of 2k is usually enough for this mod.
 
 ---

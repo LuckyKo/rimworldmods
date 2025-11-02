@@ -16,7 +16,8 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
   - `HandleCaughtCheatingInteraction`: A special handler that holds the cheating pawn in place, triggers a specific LLM interaction, and schedules a delayed fight between the pawns.
   - `HandleThreewayLovinInteraction`: Handles special 3p action scenarios with LLM dialogue.
   - Text utility methods (`WrapText`, `EstimateReadingTime`, `RemoveRichTextTags`, `FormatLlmText`).
-- **Pawn Data Helpers**: Private methods (`GetRelationship`, `GetDislikes`, `GetAfflictions`, etc.) to extract relevant pawn information for prompts. Includes `GetLastSocialLogEntry` to extract recent conversation history between pawns.
+- **Pawn Data Helpers**: Private methods (`GetRelationship`, `GetDislikes`, `GetAfflictions`, etc.) to extract relevant pawn information for prompts. Includes `GetLastSocialLogEntry` to extract recent conversation history between pawns. Also includes `GetPawnFlavorText` and `SetPawnFlavorText` for custom bio text management. The custom bio text is integrated into the prompt system through the `[pawn#_bio]` placeholder in the `ExtractPawnData` method.
+- **Custom Pawn Bio System**: Static dictionary `PawnFlavorTexts` for storing bio text, with `GetPawnFlavorText` and `SetPawnFlavorText` methods for retrieval and storage using pawn IDs as keys.
 - **Multi-API Support**: Added support for multiple LLM API types (KoboldCpp, Ollama, LMStudio, OpenAI) with `GenerateTextWithApiClient` method.
 
 ### 2. `SpeechBubbleManager.cs` (UI/Display)
@@ -116,6 +117,32 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **Fight Outcome Tracking**: Records whether the insult led to a physical confrontation.
 - **Perspective Handling**: Formats the log text differently based on the viewer's relationship to the interaction (initiator, recipient, or third party).
 - **Serialization Support**: Includes parameterless constructor and proper serialization methods for RimWorld's save/load system.
+
+### 16. `PawnFlavorText_GameComponent.cs` (Pawn Bio Storage)
+- **GameComponent** for saving and loading custom pawn bio text with the entire game state.
+- **Persistence**: Uses `Scribe_Collections.Look` to save the `pawnFlavorTexts` dictionary across game sessions, ensuring data persists between different maps and game restarts.
+- **Sync Method**: `SyncWithStaticDictionary` method to synchronize data between the component and static dictionary in `SocialInteractions`.
+- **Data Management**: Efficiently stores bio text using pawn `thingIDNumber` as the key, working across all maps in the game.
+- **Initialization Methods**: `FinalizeInit` and `LoadedGame` methods to ensure proper data synchronization when the game starts or loads.
+
+### 17. `Dialog_EditPawnFlavorText.cs` (Bio Editor UI)
+- **Window** providing a user interface for editing custom pawn bio text.
+- **Text Input**: Clean multi-line text input field for entering bio information.
+- **Action Buttons**: "Save", "Cancel", and "Clear" buttons for managing bio text changes.
+- **Character-Specific**: Associates bio text directly with the pawn being edited.
+- **User Experience**: Simple and intuitive interface accessible from the character card.
+
+### 18. `CharacterCardUtility_AddFlavorTextButton_Patch.cs` (Character Card Integration)
+- **Harmony Patch** that adds a "Bio" button to the character card for accessing the bio editor.
+- **Positioning**: Places the button one row down from the standard character card buttons.
+- **UI Integration**: Seamlessly integrates with the existing character card UI.
+- **Action Handling**: Triggers the `Dialog_EditPawnFlavorText` when clicked.
+
+### 19. `Game_FlavorTextComponent_Patch.cs` (Game Initialization)
+- **Harmony Patches** for `Game.InitNewGame` and `Game.LoadGame` to properly initialize the `PawnFlavorText_GameComponent`.
+- **New Game Initialization**: Ensures the GameComponent is created when starting a new game.
+- **Game Loading Support**: Guarantees the GameComponent exists when loading an existing game.
+- **Persistence Coordination**: Works with `PawnFlavorText_GameComponent` to maintain proper data flow.
 
 ## Job Drivers
 
