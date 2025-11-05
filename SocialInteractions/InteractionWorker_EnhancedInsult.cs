@@ -24,7 +24,11 @@ namespace SocialInteractions
             if (initiator == null || recipient == null)
             {
                 SLog.Warning("[SocialInteractions] InteractionWorker_EnhancedInsult: Initiator or recipient is null, skipping interaction.");
-                base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
+                // Initialize output parameters and return early
+                letterText = null;
+                letterLabel = null;
+                letterDef = null;
+                lookTargets = LookTargets.Invalid;
                 return;
             }
 

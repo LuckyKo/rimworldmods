@@ -136,6 +136,7 @@ namespace SocialInteractions
             if (interactionDef == SI_InteractionDefOf.Badmouthing && Settings.enableDrama) return true;
             if (interactionDef == SI_InteractionDefOf.EnhancedInsult && Settings.enableDrama) return true;
             if (interactionDef == SI_InteractionDefOf.Admiration && Settings.enableDrama) return true;
+            if (interactionDef == SI_InteractionDefOf.Backstabbing && Settings.enableDrama) return true;
             return false;
         }
 
@@ -186,6 +187,7 @@ namespace SocialInteractions
             else if (interactionDef == SI_InteractionDefOf.Badmouthing && Settings.enableDrama) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.EnhancedInsult && Settings.enableDrama) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.Admiration && Settings.enableDrama) isEnabled = true;
+            else if (interactionDef == SI_InteractionDefOf.Backstabbing && Settings.enableDrama) isEnabled = true;
 
             SLog.Message(string.Format("[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for {0}: {1}", interactionDef.defName, isEnabled));
             if (!isEnabled)

@@ -17,5 +17,12 @@ namespace SocialInteractions
         // Admiration thoughts
         public static ThoughtDef SeekingApproval;
         public static ThoughtDef AdmiredBySomeone;
+        
+        // Backstabbing thoughts
+        public static ThoughtDef WasBackstabbed;
+        public static ThoughtDef SuccessfullyBackstabbedSomeone;
+        public static ThoughtDef WasManipulatedAgainstSomeone;
+        public static ThoughtDef WasTargetOfFailedManipulation;
+        public static ThoughtDef FailedBackstabAttempt;
     }
 }

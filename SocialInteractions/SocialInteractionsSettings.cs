@@ -167,6 +167,10 @@ Current event: [pawn1] [subject]
         public float admirationOpinionDecreaseOnFail = -1f; // Opinion change when admiration fails poorly
         public float admirationNegativeImpactChance = 0.1f; // Chance of slight negative impact when admiration fails
 
+        // Backstabbing interaction settings 
+        public bool enableBackstabbing = true; // Whether backstabbing interactions are enabled
+        public float baseBackstabbingChance = 0.02f; // Base chance for backstabbing attempts
+
 
         public override void ExposeData()
         {
@@ -262,7 +266,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref enhancedChitchatInsultOpinionDifferenceMultiplier, "enhancedChitchatInsultOpinionDifferenceMultiplier", 0.5f);
             
             // Admiration interaction settings (for debugging/tweaking)
-            Scribe_Values.Look(ref baseAdmirationChance, "baseAdmirationChance", 0.03f);
+            Scribe_Values.Look(ref baseAdmirationChance, "baseAdmirationChance", 0.05f);
             Scribe_Values.Look(ref admirationAttractionMultiplier, "admirationAttractionMultiplier", 2.0f);
             Scribe_Values.Look(ref admirationPositiveOpinionMultiplier, "admirationPositiveOpinionMultiplier", 1.5f);
             
@@ -270,6 +274,10 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref admirationOpinionIncreaseOnSuccess, "admirationOpinionIncreaseOnSuccess", 3f);
             Scribe_Values.Look(ref admirationOpinionDecreaseOnFail, "admirationOpinionDecreaseOnFail", -1f);
             Scribe_Values.Look(ref admirationNegativeImpactChance, "admirationNegativeImpactChance", 0.1f);
+            
+            // Backstabbing interaction settings
+            Scribe_Values.Look(ref enableBackstabbing, "enableBackstabbing", true);
+            Scribe_Values.Look(ref baseBackstabbingChance, "baseBackstabbingChance", 0.02f);
         }
     }
 
@@ -395,6 +403,12 @@ Current event: [pawn1] [subject]
             
             // listingStandard.Label(string.Format("Opinion change on failure: {0:F1}", SocialInteractions.Settings.admirationOpinionDecreaseOnFail));
             // SocialInteractions.Settings.admirationOpinionDecreaseOnFail = listingStandard.Slider(SocialInteractions.Settings.admirationOpinionDecreaseOnFail, -5f, 0f);
+
+            // Backstabbing settings
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableBackstabbing".Translate(), ref SocialInteractions.Settings.enableBackstabbing, "SocialInteractions_EnableBackstabbingDesc".Translate());
+            listingStandard.Label(string.Format("SocialInteractions_BaseChance".Translate() + ": {0:F3}", SocialInteractions.Settings.baseBackstabbingChance));
+            SocialInteractions.Settings.baseBackstabbingChance = listingStandard.Slider(SocialInteractions.Settings.baseBackstabbingChance, 0f, 1f);
 
             listingStandard.Gap();
             listingStandard.Label("SocialInteractions_LLMConfiguration".Translate());

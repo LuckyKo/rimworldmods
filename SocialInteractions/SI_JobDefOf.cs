@@ -11,5 +11,7 @@ namespace SocialInteractions
         public static JobDef FollowAndWatchInitiator;
         public static JobDef CaughtCheatingInteraction;
         public static JobDef HaveChatWith;
+        public static JobDef BackstabbingApproachTarget;
+        public static JobDef BackstabbingGatherInfo;
     }
 }

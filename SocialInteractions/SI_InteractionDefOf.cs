@@ -21,6 +21,7 @@ namespace SocialInteractions
         public static InteractionDef Badmouthing;
         public static InteractionDef EnhancedInsult;
         public static InteractionDef Admiration;
+        public static InteractionDef Backstabbing;
         
     }
 }

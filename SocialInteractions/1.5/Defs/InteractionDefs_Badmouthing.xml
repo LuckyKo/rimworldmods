@@ -52,4 +52,21 @@
     </logRulesRecipient>
   </InteractionDef>
 
+  <InteractionDef>
+    <defName>Backstabbing</defName>
+    <label>strategic backstabbing</label>
+    <workerClass>SocialInteractions.InteractionWorker_Backstabbing</workerClass>
+    <symbol>Things/Mote/SpeechSymbols/Insult</symbol>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->[INITIATOR_nameDef] attempted to manipulate [RECIPIENT_nameDef] about [RECIPIENT_nameDef].</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->[RECIPIENT_nameDef] was approached by [INITIATOR_nameDef] with information about [RECIPIENT_nameDef].</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
 </Defs>

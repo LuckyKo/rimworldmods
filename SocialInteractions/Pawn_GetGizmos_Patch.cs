@@ -59,7 +59,7 @@ namespace SocialInteractions
             };
 
             // Try to load the attack icon specifically
-            Texture2D icon = ContentFinder<Texture2D>.Get("UI/Commands/ForColonists", false);
+            Texture2D icon = ContentFinder<Texture2D>.Get("Things/Mote/SpeechSymbols/Speech", false);
             if (icon != null)
             {
                 chatCommand.icon = icon;

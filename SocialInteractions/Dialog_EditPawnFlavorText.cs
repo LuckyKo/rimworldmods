@@ -38,7 +38,7 @@ namespace SocialInteractions
         {
             Text.Font = GameFont.Medium;
             Widgets.Label(new Rect(MyMargin, MyMargin, inRect.width - 2 * MyMargin, 30f), 
-                string.Format("Edit Bio for {0}", pawn.Name.ToStringShort));
+                string.Format("SocialInteractions_EditBioFor".Translate(), pawn.Name.ToStringShort));
             
             // Text area for editing the flavor text
             Rect textAreaRect = new Rect(MyMargin, MyMargin + 40f, inRect.width - 2 * MyMargin, 
@@ -61,7 +61,7 @@ namespace SocialInteractions
                 ButtonHeight
             );
             
-            if (Widgets.ButtonText(doneButtonRect, "Save"))
+            if (Widgets.ButtonText(doneButtonRect, "SocialInteractions_Save".Translate()))
             {
                 // Save the flavor text
                 SocialInteractions.SetPawnFlavorText(pawn, flavorText);
@@ -76,7 +76,7 @@ namespace SocialInteractions
                 ButtonHeight
             );
             
-            if (Widgets.ButtonText(cancelButtonRect, "Cancel"))
+            if (Widgets.ButtonText(cancelButtonRect, "SocialInteractions_Cancel".Translate()))
             {
                 Close();
             }
@@ -89,7 +89,7 @@ namespace SocialInteractions
                 ButtonHeight
             );
             
-            if (Widgets.ButtonText(clearButtonRect, "Clear"))
+            if (Widgets.ButtonText(clearButtonRect, "SocialInteractions_Clear".Translate()))
             {
                 flavorText = string.Empty;
                 SocialInteractions.SetPawnFlavorText(pawn, string.Empty);

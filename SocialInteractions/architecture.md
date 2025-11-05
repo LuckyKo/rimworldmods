@@ -4,6 +4,18 @@
 
 The SocialInteractions mod enhances RimWorld's social dynamics by integrating LLM-generated dialogue, adding a complex dating and cheating system, and implementing combat taunts. It uses Harmony patches to intercept and modify vanilla game behavior.
 
+## Notes
+When debugging RimWorld Harmony patches, if a patch isn't applying, follow these steps:
+1.  Verify the target method signature in the `[HarmonyPatch]` attribute is perfect. Use a decompiler to get the exact signature from the game's assembly.
+2.  The decompiled file very large, use a helper script (like `extract_class.py`) to extract just the class definition needed, or use read_chunk.py to read a portion of it
+3.  If patching a method directly fails, try patching a higher-level method that calls it.
+4.  For private methods, use `AccessTools.Method` to get the `MethodInfo` for the patch attribute.
+5.  To access private fields within a patch, use `Traverse.Create(__instance).Field("fieldName").GetValue<FieldType>()`.
+6.  Ensure the C# language version used in the mod code is compatible with the compiler version being used (the compiler only supports C# 5).
+7.  Crucially, always add any new `.cs` source files to the `compile.rsp` response file so they are included in the compilation.
+8.  Going forward, for all logging in the SocialInteractions mod, use the custom SLog class (SLog.Message, SLog.Warning, SLog.Error) instead of Verse.Log. This is to ensure consistency and allow for verbose logging control via mod settings.
+9.  Freely generate and use helper python scrips if the basic CLI tools fail
+
 ## Core Components
 
 ### 1. `SocialInteractions.cs` (Core Logic)
@@ -285,3 +297,30 @@ The SocialInteractions mod enhances RimWorld's social dynamics by integrating LL
 - **Trait Recognition**: Identifies pawns that enjoy negative interactions or are likely to fight back.
 - **Custom Play Log Entry**: `PlayLogEntry_EnhancedInsult.cs` provides detailed severity and outcome information in the global play log.
 - **LLM Integration**: Generates appropriate subject text for LLM dialogue based on severity and fight outcomes.
+
+#### Strategic Backstabbing System
+- **Interaction Definition**: Custom `Backstabbing` interaction defined in `InteractionDefs_Badmouthing.xml` with strategic worker class and log rules.
+- **Follow-up Mechanism**: Triggered as a strategic follow-up to successful badmouthing/gossip interactions when the instigator identifies valuable targets (high-trust allies of the original target).
+- **Social Skill-Based Success**: Success rate depends on the difference between the instigator's and target's social skills, making the system skill-based rather than random.
+- **Catastrophic Betrayal**: Successful backstabbing causes massive opinion reversal based on original trust level - the more trusted the target was, the more devastating the betrayal (opinion can go from +80 to -100).
+- **Target Selection Logic**: Identifies the original target's "best friends" or highest-opinion allies for the strategic backstabbing attempt. When triggered from badmouthing, preserves the original target information to prevent confusion.
+- **Trait Integration**: Pawns with manipulation-related traits (manipulative, deceptive, calculating, psychopath) are more likely to attempt or succeed at backstabbing.
+- **Custom Interaction Worker**: `InteractionWorker_Backstabbing.cs` handles the core logic of strategic betrayal with social skill comparisons and opinion reversal mechanics.
+- **Custom Play Log Entry**: `PlayLogEntry_Backstabbing.cs` provides detailed information about the betrayal in the global play log.
+- **Integration with Existing Systems**: Builds on the existing badmouthing system, checking for backstabbing opportunities after successful drama interactions.
+- **LLM Integration**: Generates appropriate subject text for LLM dialogue based on the strategic nature of the betrayal and its success/failure.
+- **Settings Integration**: Includes toggle to enable/disable backstabbing and configure base chance for backstabbing attempts.
+- **Job System Integration**: Uses custom job drivers (`JobDriver_BackstabbingApproachTarget.cs`, `JobDriver_BackstabbingGatherInfo.cs`) for physical pawn movement and interaction scheduling.
+- **Target Preservation**: When backstabbing is scheduled from badmouthing, the original target information is preserved through the job system using `job.targetB` and accessed via `ScheduledTargetPawn` property to prevent target confusion.
+
+#### Backstabbing Settings
+- **Enable Backstabbing**: Toggle to enable or disable the entire backstabbing system
+- **Base Backstabbing Chance**: Configurable base chance for backstabbing attempts that can be adjusted in the mod settings
+
+#### Backstabbing Job System
+- **Custom Job Drivers**: Two specialized job drivers handle the physical aspects of backstabbing:
+  - `JobDriver_BackstabbingApproachTarget.cs`: Handles direct backstabbing attempts where the instigator approaches an ally to manipulate them against a mutual acquaintance
+  - `JobDriver_BackstabbingGatherInfo.cs`: Handles information gathering phases where the instigator gathers relationship intelligence before attempting manipulation
+- **Physical Movement**: Pawns physically move to their targets and maintain interaction even when targets move, using continuous path updating
+- **State Validation**: Comprehensive validation system ensures targets are in appropriate states for interaction (alive, conscious, not in mental states) while allowing strategic interruptions of regular activities
+- **Target Preservation**: Critical target information is preserved through the job system to prevent the "wrong target" issue where backstabbing would target the wrong pawn

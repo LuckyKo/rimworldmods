@@ -50,10 +50,10 @@ namespace SocialInteractions
                 Rect bioButtonRect = new Rect(num, 45f, 30f, 30f);
                 
                 // Tooltip for the bio button
-                TooltipHandler.TipRegion(bioButtonRect, "Edit custom bio text for this colonist");
+                TooltipHandler.TipRegion(bioButtonRect, "SocialInteractions_EditBioButtonTooltip".Translate());
 
                 // Draw the button with "Bio" text
-                if (Widgets.ButtonText(bioButtonRect, "Bio"))
+                if (Widgets.ButtonText(bioButtonRect, "SocialInteractions_EditBioButtonLabel".Translate()))
                 {
                     Find.WindowStack.Add(new Dialog_EditPawnFlavorText(pawn));
                 }

@@ -34,6 +34,10 @@
   <!-- Admiration Settings -->
   <SocialInteractions_AdmirationSettings>钦佩设置：</SocialInteractions_AdmirationSettings>
   
+  <!-- Backstabbing Settings -->
+  <SocialInteractions_EnableBackstabbing>启用策略性背后捅刀</SocialInteractions_EnableBackstabbing>
+  <SocialInteractions_EnableBackstabbingDesc>启用后，角色在成功背后议论后可能会进行策略性背后捅刀，设法让目标的盟友反对他们。</SocialInteractions_EnableBackstabbingDesc>
+  
   <!-- LLM API Configuration -->
   <SocialInteractions_LLMConfiguration>LLM API配置</SocialInteractions_LLMConfiguration>
   <SocialInteractions_LLMType>LLM API类型：</SocialInteractions_LLMType>

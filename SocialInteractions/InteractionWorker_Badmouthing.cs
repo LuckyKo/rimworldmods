@@ -21,7 +21,11 @@ namespace SocialInteractions
             if (initiator == null || recipient == null)
             {
                 SLog.Warning("[SocialInteractions] InteractionWorker_Badmouthing: Initiator or recipient is null, skipping interaction.");
-                base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
+                // Initialize output parameters and return early
+                letterText = null;
+                letterLabel = null;
+                letterDef = null;
+                lookTargets = LookTargets.Invalid;
                 return;
             }
 
@@ -128,6 +132,10 @@ namespace SocialInteractions
                     {
                         Find.PlayLog.Add(badmouthingLogEntry);
                     }
+                    
+                    // Check if this successful badmouthing creates an opportunity for backstabbing
+                    // This would happen when the instigator has sufficient motivation and opportunity
+                    TryTriggerBackstabbingOpportunity(initiator, recipient, targetPawn);
                 }
             }
             catch (System.Exception ex)
@@ -369,6 +377,279 @@ namespace SocialInteractions
                         trait.Label.ToLower().Contains("jealous") ||
                         trait.Label.ToLower().Contains("mean") ||
                         trait.Label.ToLower().Contains("cold"))
+                    {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// Checks if the successful badmouthing creates an opportunity for strategic backstabbing
+        /// where the instigator might approach the target's allies to turn them against the target
+        /// </summary>
+        private void TryTriggerBackstabbingOpportunity(Pawn initiator, Pawn recipient, Pawn targetPawn)
+        {
+            SLog.Message(string.Format("[SocialInteractions] Badmouthing: Checking for backstabbing opportunity after successful badmouthing - {0} to {1} about {2}", 
+                initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort));
+                
+            // Check if backstabbing is enabled in settings
+            if (!SocialInteractions.Settings.enableBackstabbing)
+            {
+                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Backstabbing is disabled in settings, skipping opportunity"));
+                return;
+            }
+            
+            if (initiator == null || recipient == null || targetPawn == null)
+            {
+                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Null reference detected, skipping backstabbing opportunity"));
+                return;
+            }
+            
+            // // Check if the instigator has traits that encourage manipulation/backstabbing
+            // bool encouragesManipulation = HasTraitThatEncouragesManipulation(initiator);
+            // if (!encouragesManipulation)
+            // {
+                // // Only pawns with manipulation traits attempt strategic backstabbing
+                // return;
+            // }
+            
+            // Check the instigator's social skill level - higher skill allows more complex maneuvers
+            int socialSkill = initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Social).Level : 0;
+            if (socialSkill < 4) // Set threshold for strategic manipulation
+            {
+                // Not skilled enough for complex backstabbing plans
+                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Social skill too low to attempt backstabbing. Exiting."));
+                return;
+            }
+            
+            // Check if the target has highly trusted allies worth targeting
+            Pawn bestTargetForBackstab = FindMostTrustedAllyOfTarget(targetPawn, recipient);
+            if (bestTargetForBackstab == null)
+            {
+                // No suitable target for backstabbing found
+                return;
+            }
+            
+            // Calculate the backstabbing opportunity chance based on various factors
+            float backstabChance = CalculateBackstabbingChance(initiator, bestTargetForBackstab, targetPawn);
+            
+            SLog.Message(string.Format("[SocialInteractions] Badmouthing: Backstabbing chance calculated as {0:F3} for {1} against {2}'s ally {3}", 
+                backstabChance, initiator.LabelShort, targetPawn.LabelShort, bestTargetForBackstab.LabelShort));
+                
+            // Roll for the backstabbing opportunity
+            float roll = Rand.Value;
+            SLog.Message(string.Format("[SocialInteractions] Badmouthing: Backstabbing roll was {0:F3} (needed < {1:F3}) - {2}", 
+                roll, backstabChance, roll < backstabChance ? "SUCCESS" : "FAILED"));
+                
+            if (roll < backstabChance)
+            {
+                // Schedule a strategic backstabbing interaction
+                // For now, we'll create a simple delay mechanism to simulate planning
+                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Scheduling backstabbing attempt - {0} will attempt to manipulate {1} against {2}", 
+                    initiator.LabelShort, bestTargetForBackstab.LabelShort, targetPawn.LabelShort));
+                    
+                ScheduleBackstabbingAttempt(initiator, bestTargetForBackstab, targetPawn);
+            }
+            else
+            {
+                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Backstabbing opportunity failed for {0}", initiator.LabelShort));
+            }
+        }
+        
+        /// <summary>
+        /// Find the pawn that the target has the highest opinion of (the best target for backstabbing)
+        /// </summary>
+        private Pawn FindMostTrustedAllyOfTarget(Pawn targetPawn, Pawn excludedPawn = null)
+        {
+            if (targetPawn.Map == null || targetPawn.Map.mapPawns.FreeColonistsAndPrisoners.Count == 0)
+            {
+                return null;
+            }
+            
+            Pawn highestOpinionOwner = null;
+            int highestOpinion = int.MinValue;
+            
+            foreach (Pawn possibleAlly in targetPawn.Map.mapPawns.FreeColonistsAndPrisoners)
+            {
+                if (possibleAlly == targetPawn || possibleAlly == excludedPawn)
+                    continue; // Skip the target themselves and any excluded pawn
+                
+                if (targetPawn.relations != null)
+                {
+                    int opinion = targetPawn.relations.OpinionOf(possibleAlly);
+                    if (opinion > highestOpinion)
+                    {
+                        highestOpinion = opinion;
+                        highestOpinionOwner = possibleAlly;
+                    }
+                }
+            }
+            
+            // Only return if the opinion is significantly positive
+            return highestOpinion >= 30 ? highestOpinionOwner : null; // Threshold for "truly trusted"
+        }
+        
+        /// <summary>
+        /// Calculate the chance for a backstabbing opportunity based on various factors
+        /// </summary>
+        private float CalculateBackstabbingChance(Pawn initiator, Pawn targetAlly, Pawn originalTarget)
+        {
+            float baseChance = SocialInteractions.Settings.baseBackstabbingChance; // Base chance from settings
+            
+            // Increase chance if the target ally has very high opinion of the original target
+            int allyOpinionOfTarget = targetAlly.relations != null ? targetAlly.relations.OpinionOf(originalTarget) : 0;
+            if (allyOpinionOfTarget > 50)
+            {
+                baseChance += 0.2f; // 20% bonus for high-trust relationships
+            }
+            else if (allyOpinionOfTarget > 30)
+            {
+                baseChance += 0.1f; // 10% bonus for moderately high trust
+            }
+            
+            // Increase chance if the instigator has high social skill
+            int socialSkill = initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Social).Level : 0;
+            if (socialSkill >= 10)
+            {
+                baseChance += 0.2f; // 20% bonus for high social skill
+            }
+            else if (socialSkill >= 7)
+            {
+                baseChance += 0.1f; // 10% bonus for decent social skill
+            }
+            
+            // Increase chance if the instigator has traits that encourage manipulation
+            if (HasTraitThatEncouragesManipulation(initiator))
+            {
+                baseChance += 0.3f; // 30% bonus for manipulative traits
+            }
+            
+            // Cap at a reasonable maximum
+            baseChance = Math.Min(0.8f, baseChance);
+            
+            return baseChance;
+        }
+        
+        /// <summary>
+        /// Schedule a backstabbing attempt at a future time
+        /// </summary>
+        private void ScheduleBackstabbingAttempt(Pawn initiator, Pawn targetAlly, Pawn originalTarget)
+        {
+            SLog.Message(string.Format("[SocialInteractions] Badmouthing: Scheduling backstabbing attempt - {0} will approach {1} to manipulate them against {2}", 
+                initiator.LabelShort, targetAlly.LabelShort, originalTarget.LabelShort));
+                
+            // Decide whether to do information gathering first
+            if (ShouldDoInfoGatheringFirst(initiator, targetAlly, originalTarget))
+            {
+                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Scheduling info gathering job first - {0} will gather info from {1}", 
+                    initiator.LabelShort, originalTarget.LabelShort));
+                    
+                // Schedule an information gathering attempt first
+                Job infoGatherJob = new Job(SI_JobDefOf.BackstabbingGatherInfo, originalTarget);
+                infoGatherJob.count = 1; // Just execute once
+                
+                if (initiator.jobs != null)
+                {
+                    initiator.jobs.TryTakeOrderedJob(infoGatherJob);
+                    SLog.Message(string.Format("[SocialInteractions] Badmouthing: Info gathering job scheduled for {0} to approach {1}", 
+                        initiator.LabelShort, originalTarget.LabelShort));
+                }
+                else
+                {
+                    SLog.Message(string.Format("[SocialInteractions] Badmouthing: Could not schedule info gathering job - {0} has no job system", 
+                        initiator.LabelShort));
+                }
+            }
+            else
+            {
+                // Create a job for the backstabbing approach
+                // This will make the pawn physically move to the target and perform the interaction
+                Job backstabJob = new Job(SI_JobDefOf.BackstabbingApproachTarget, targetAlly);
+                // Also pass the original target (the person being backstabbed/about whom negative things are being said)
+                backstabJob.SetTarget(TargetIndex.B, originalTarget);
+                backstabJob.count = 1; // Just execute once
+                
+                // Add the job to the initiator's queue
+                if (initiator.jobs != null)
+                {
+                    initiator.jobs.TryTakeOrderedJob(backstabJob);
+                    SLog.Message(string.Format("[SocialInteractions] Badmouthing: Backstabbing job scheduled for {0} to approach {1} (target: {2})", 
+                        initiator.LabelShort, targetAlly.LabelShort, originalTarget.LabelShort));
+                }
+                else
+                {
+                    SLog.Message(string.Format("[SocialInteractions] Badmouthing: Could not schedule backstabbing job - {0} has no job system", 
+                        initiator.LabelShort));
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Determines if the initiator should gather information first before attempting backstabbing
+        /// </summary>
+        private bool ShouldDoInfoGatheringFirst(Pawn initiator, Pawn targetAlly, Pawn originalTarget)
+        {
+            // Check if the initiator has high social skill and manipulation traits that would make info gathering worthwhile
+            int initiatorSocialSkill = initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Social).Level : 0;
+            bool hasManipulationTrait = HasTraitThatEncouragesManipulation(initiator);
+            
+            // Only do info gathering if the pawn has the right traits and skills
+            return hasManipulationTrait && initiatorSocialSkill >= 8;
+        }
+        
+        /// <summary>
+        /// Check if the conditions are right for attempting backstabbing
+        /// </summary>
+        private bool CanAttemptBackstabbing(Pawn initiator, Pawn targetAlly)
+        {
+            // Check if both pawns are conscious and in a good mental state
+            if (initiator.Downed || targetAlly.Downed || initiator.InMentalState || targetAlly.InMentalState)
+            {
+                return false;
+            }
+            
+            // Check if they're in a private enough location for a conversation
+            // (This is a simplification - we could add more complex social location logic)
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// Checks if a pawn has traits that encourage manipulation and strategic backstabbing
+        /// </summary>
+        private bool HasTraitThatEncouragesManipulation(Pawn pawn)
+        {
+            if (pawn == null || pawn.story == null || pawn.story.traits == null)
+            {
+                return false;
+            }
+            
+            // Check for traits that make backstabbing more likely
+            foreach (Trait trait in pawn.story.traits.allTraits)
+            {
+                if (trait != null && trait.def != null)
+                {
+                    string traitLabel = trait.def.defName.ToLower();
+                    string traitLabelDisplay = trait.Label.ToLower();
+                    
+                    // Check for manipulative, strategic, or deceptive traits
+                    if (traitLabel.Contains("manipulative") || 
+                        traitLabel.Contains("deceptive") || 
+                        traitLabel.Contains("calculating") ||
+                        traitLabel.Contains("strategic") ||
+                        traitLabel.Contains("psychopath") ||
+                        traitLabel.Contains("liar") ||
+                        traitLabel.Contains("smooth") ||
+                        traitLabelDisplay.Contains("manipulative") || 
+                        traitLabelDisplay.Contains("deceptive") || 
+                        traitLabelDisplay.Contains("calculating") ||
+                        traitLabelDisplay.Contains("strategic") ||
+                        traitLabelDisplay.Contains("psychopath") ||
+                        traitLabelDisplay.Contains("liar") ||
+                        traitLabelDisplay.Contains("smooth talker"))
                     {
                         return true;
                     }

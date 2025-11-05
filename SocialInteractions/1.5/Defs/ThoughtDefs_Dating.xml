@@ -142,4 +142,84 @@
     </stages>
   </ThoughtDef>
 
+  <!-- Thoughts related to strategic backstabbing -->
+  <ThoughtDef>
+    <defName>WasBackstabbed</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>5</durationDays>
+    <stackLimit>1</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>was the victim of strategic backstabbing</label>
+        <description>Someone I trusted used deception to turn others against me. The betrayal cuts deep, especially given how much trust I had placed in them.</description>
+        <baseMoodEffect>-15</baseMoodEffect>
+        <baseOpinionOffset>-20</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+  
+  <ThoughtDef>
+    <defName>SuccessfullyBackstabbedSomeone</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>3</durationDays>
+    <stackLimit>1</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>successfully manipulated someone</label>
+        <description>I successfully used deception to turn someone against a mutual acquaintance. The manipulation was flawless.</description>
+        <baseMoodEffect>8</baseMoodEffect>
+      </li>
+    </stages>
+  </ThoughtDef>
+  
+  <ThoughtDef>
+    <defName>WasManipulatedAgainstSomeone</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>10</durationDays>
+    <stackLimit>1</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>was manipulated against someone</label>
+        <description>I was deceived into thinking negatively about someone I previously trusted. My opinion of them has been completely reversed due to this manipulation.</description>
+        <baseMoodEffect>-10</baseMoodEffect>
+        <baseOpinionOffset>-100</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+  
+  <ThoughtDef>
+    <defName>WasTargetOfFailedManipulation</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>5</durationDays>
+    <stackLimit>1</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>was target of failed manipulation</label>
+        <description>Someone attempted to manipulate me into thinking negatively about another colonist. I saw through their deception, but I'm still annoyed they tried to trick me.</description>
+        <baseMoodEffect>-5</baseMoodEffect>
+        <baseOpinionOffset>-50</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+  
+  <ThoughtDef>
+    <defName>FailedBackstabAttempt</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>3</durationDays>
+    <stackLimit>1</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>failed backstab attempt</label>
+        <description>My attempt to manipulate someone against another colonist was discovered. They saw right through my deception, which is embarrassing.</description>
+        <baseMoodEffect>-8</baseMoodEffect>
+        <baseOpinionOffset>-30</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+
 </Defs>

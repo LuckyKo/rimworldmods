@@ -84,3 +84,7 @@ PawnFlavorText_GameComponent.cs
 Dialog_EditPawnFlavorText.cs
 CharacterCardUtility_AddFlavorTextButton_Patch.cs
 Game_FlavorTextComponent_Patch.cs
+InteractionWorker_Backstabbing.cs
+PlayLogEntry_Backstabbing.cs
+JobDriver_BackstabbingApproachTarget.cs
+JobDriver_BackstabbingGatherInfo.cs

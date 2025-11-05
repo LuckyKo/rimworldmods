@@ -34,6 +34,10 @@
   <!-- Admiration Settings -->
   <SocialInteractions_AdmirationSettings>Admiration Settings:</SocialInteractions_AdmirationSettings>
   
+  <!-- Backstabbing Settings -->
+  <SocialInteractions_EnableBackstabbing>Enable Strategic Backstabbing</SocialInteractions_EnableBackstabbing>
+  <SocialInteractions_EnableBackstabbingDesc>If enabled, pawns may engage in strategic backstabbing after successful badmouthing, where they attempt to turn the target's allies against them.</SocialInteractions_EnableBackstabbingDesc>
+  
   <!-- LLM API Configuration -->
   <SocialInteractions_LLMConfiguration>LLM API Configuration</SocialInteractions_LLMConfiguration>
   <SocialInteractions_LLMType>LLM API Type:</SocialInteractions_LLMType>
