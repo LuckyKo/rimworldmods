@@ -50,7 +50,6 @@ namespace SocialInteractions
                         initiator.InMentalState || partner.InMentalState ||
                         !IsPawnHealthyForDating(initiator) || !IsPawnHealthyForDating(partner))
                     {
-                        SLog.Message(string.Format("[SocialInteractions] DateTracker: Ending date between {0} and {1} due to health/mental state issues.", initiator.LabelShort, partner.LabelShort));
                         DatingManager.EndDate(date);
                         continue;
                     }
@@ -67,8 +66,6 @@ namespace SocialInteractions
                             if (dateStatus != null && dateStatus.Stage < DateStage.Lovin)
                             {
                                 // Initiator's joy need is satisfied, advance to Lovin stage
-                                SLog.Message(string.Format("[SocialInteractions] DateTracker: Initiator {0} joy need is satisfied ({1:P}), advancing to Lovin stage.", 
-                                    initiator.LabelShort, initiator.needs.joy.CurLevelPercentage));
                                 DatingManager.AdvanceDateStage(initiator);
                             }
                         }
@@ -142,8 +139,6 @@ namespace SocialInteractions
             // Additional validation to ensure both pawns are still valid for dating
             if (!IsPawnHealthyForDating(initiator) || !IsPawnHealthyForDating(partner))
             {
-                SLog.Message(string.Format("[SocialInteractions] DateTracker: One or both pawns are no longer healthy for dating. Initiator: {0}, Partner: {1}", 
-                    initiator.LabelShort, partner.LabelShort));
                 return;
             }
             
@@ -156,8 +151,6 @@ namespace SocialInteractions
                     partner.needs.joy.CurLevelPercentage >= 0.99f)
                 {
                     // Partner's joy need is satisfied, interrupt their joy job to go back to following
-                    SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0} joy need is satisfied ({1:P}), going back to following {2}.", 
-                        partner.LabelShort, partner.needs.joy.CurLevelPercentage, initiator.LabelShort));
                     partner.jobs.EndCurrentJob(JobCondition.InterruptForced);
                     
                     // Start the FollowAndWatch job for the partner
@@ -181,8 +174,6 @@ namespace SocialInteractions
                 if (partner.needs != null && partner.needs.joy != null && 
                     partner.needs.joy.CurLevelPercentage >= 0.95f)
                 {
-                    //SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0}'s joy level is too high to join activity", 
-                    //    partner.LabelShort));
                     return;
                 }
                 
@@ -193,8 +184,6 @@ namespace SocialInteractions
             
             // If the partner is doing some other job, we'll assume they're not part of the date anymore
             // This could happen if they were interrupted by something else
-            SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0} is doing an unexpected job {1}, restarting FollowAndWatch job.", 
-                partner.LabelShort, partner.CurJobDef != null ? partner.CurJobDef.defName : "NULL"));
             
             // Start the FollowAndWatch job for the partner
             Job followJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, initiator);
@@ -222,8 +211,6 @@ namespace SocialInteractions
             
             if (initiatorJoyGiver == null)
             {
-                SLog.Message(string.Format("[SocialInteractions] DateTracker: Could not find joy giver for job def {0}", 
-                    joyJobDef.defName));
                 return;
             }
             
@@ -231,8 +218,6 @@ namespace SocialInteractions
             Job partnerJoyJob = initiatorJoyGiver.Worker.TryGiveJob(partner);
             if (partnerJoyJob == null)
             {
-                //SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0} cannot do the same joy activity as initiator {1}", 
-                //    partner.LabelShort, initiator.LabelShort));
                 return;
             }
             
@@ -258,17 +243,9 @@ namespace SocialInteractions
             
             if (targetsMatch)
             {
-                SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0} is joining initiator {1} in joy activity {2}.", 
-                    partner.LabelShort, initiator.LabelShort, partnerJoyJob.def.defName));
-                
                 // Enqueue the joy job and then interrupt the current job for a smooth transition
                 partner.jobs.jobQueue.EnqueueFirst(partnerJoyJob);
                 partner.jobs.EndCurrentJob(JobCondition.InterruptForced);
-            }
-            else
-            {
-                //SLog.Message(string.Format("[SocialInteractions] DateTracker: Target locations don't match for partner {0} and initiator {1}, partner will continue following.", 
-                //    partner.LabelShort, initiator.LabelShort));
             }
         }
     }

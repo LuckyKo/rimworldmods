@@ -57,35 +57,20 @@ namespace SocialInteractions
             int initiatorSocialSkill = initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Social).Level : 0;
             bool hasManipulationTrait = HasTraitThatEncouragesManipulation(initiator);
             
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: Checking approach for {0} (Social Skill: {1}, Manipulation Trait: {2})", 
-                initiator.LabelShort, initiatorSocialSkill, hasManipulationTrait));
-            
             // If the initiator has high social skill and manipulation traits, attempt information gathering
             if (hasManipulationTrait && initiatorSocialSkill >= 8)
             {
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: {0} entering information gathering phase targeting {1}", 
-                    initiator.LabelShort, recipient.LabelShort));
-                    
                 // Execute information gathering phase - interact with the target to learn about their relationships
                 ExecuteInfoGatheringPhase(initiator, recipient, extraSentencePacks);
-                
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: {0} completed information gathering phase", 
-                    initiator.LabelShort));
                     
                 // Call the base method for the info gathering interaction
                 base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
             }
             else
             {
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: {0} entering direct backstabbing phase against {1} (Skill: {2}, Manipulation: {3})", 
-                    initiator.LabelShort, recipient.LabelShort, initiatorSocialSkill, hasManipulationTrait));
-                    
                 // Execute the actual backstabbing - use gathered information to approach a target's ally
                 // For this case, we'll just do a direct backstabbing attempt without prior info gathering
                 ExecuteDirectBackstabbing(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
-                
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: {0} completed direct backstabbing phase", 
-                    initiator.LabelShort));
             }
         }
 
@@ -95,9 +80,6 @@ namespace SocialInteractions
         /// </summary>
         private void ExecuteInfoGatheringPhase(Pawn initiator, Pawn recipient, List<RulePackDef> extraSentencePacks)
         {
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: Starting information gathering phase - {0} attempting to learn about {1}'s relationships", 
-                initiator.LabelShort, recipient.LabelShort));
-                
             // The "recipient" in this phase is actually the target whose relationships we're investigating
             // Try to get information about who the recipient values most
             Pawn bestFriend = TryExtractBestFriendInfo(initiator, recipient);
@@ -105,9 +87,6 @@ namespace SocialInteractions
             if (bestFriend != null)
             {
                 // Successfully gathered information - now we can plan the backstabbing
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: Info gathering successful - {0} learned that {1} values {2} highly", 
-                    initiator.LabelShort, recipient.LabelShort, bestFriend.LabelShort));
-                
                 // Handle the LLM interaction for the information gathering
                 string subject = string.Format("A subtle conversation where {0} skillfully extracts information from {1} about their closest relationships, learning that {1} values and trusts {2}.", 
                     initiator.LabelShort, recipient.LabelShort, bestFriend.LabelShort);
@@ -133,9 +112,6 @@ namespace SocialInteractions
             }
             else
             {
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: Info gathering failed - {0} could not extract relationship information from {1}", 
-                    initiator.LabelShort, recipient.LabelShort));
-                    
                 // Failed to extract information
                 string subject = string.Format("An unsuccessful attempt by {0} to extract information from {1} about their relationships and who they trust most.", 
                     initiator.LabelShort, recipient.LabelShort);
@@ -168,9 +144,6 @@ namespace SocialInteractions
         /// </summary>
         private void ExecuteDirectBackstabbing(Pawn initiator, Pawn recipient, List<RulePackDef> extraSentencePacks, out string letterText, out string letterLabel, out LetterDef letterDef, out LookTargets lookTargets)
         {
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: Starting direct backstabbing phase - {0} attempting to manipulate {1}", 
-                initiator.LabelShort, recipient.LabelShort));
-                
             // Initialize out parameters
             letterText = null;
             letterLabel = null;
@@ -185,7 +158,6 @@ namespace SocialInteractions
             if (ScheduledTargetPawn != null)
             {
                 targetPawn = ScheduledTargetPawn;
-                SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Backstabbing: Using target from ScheduledTargetPawn: {0}", targetPawn.LabelShort));
             }
             else
             {
@@ -194,10 +166,6 @@ namespace SocialInteractions
                 // the pawn is attempting backstabbing without prior information gathering.
                 // This means they don't know the relationships and should target randomly.
                 targetPawn = SelectRandomTargetForBackstabbing(initiator, recipient);
-                if (targetPawn != null)
-                {
-                    SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Backstabbing: Selected random target for backstabbing (no info gathering): {0}", targetPawn.LabelShort));
-                }
             }
             
             if (targetPawn == null)
@@ -207,7 +175,7 @@ namespace SocialInteractions
             }
             
             // Send a warning notification to the player about the backstabbing attempt
-            string backstabMessage = string.Format("{0} is attempting to manipulate {1} against {2} through strategic deception.", 
+            string backstabMessage = string.Format("{0} is attempting to manipulate {1} against {2}.", 
                 initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort);
             Messages.Message(backstabMessage, new LookTargets(initiator, recipient, targetPawn), MessageTypeDefOf.ThreatBig);
             
@@ -250,10 +218,6 @@ namespace SocialInteractions
             
             // Call the base Interacted method to create the normal log entry using XML rules
             base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
-            
-            // Log the interaction
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: {0} attempted to backstab {1} to {2} (success: {3})", 
-                initiator.LabelShort, targetPawn.LabelShort, recipient.LabelShort, backstabSuccessful));
         }
         
         /// <summary>
@@ -261,23 +225,15 @@ namespace SocialInteractions
         /// </summary>
         private Pawn TryExtractBestFriendInfo(Pawn initiator, Pawn recipient)
         {
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: Attempting to extract relationship info - {0} (Social: {1}) trying to extract info from {2} (Social: {3})", 
-                initiator.LabelShort, initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Social).Level : 0, 
-                recipient.LabelShort, recipient.skills != null ? recipient.skills.GetSkill(SkillDefOf.Social).Level : 0));
-                
             // Calculate success chance based on social skill and traits
             int initiatorSocialSkill = initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Social).Level : 0;
             int recipientSocialSkill = recipient.skills != null ? recipient.skills.GetSkill(SkillDefOf.Social).Level : 0;
-            
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: Initial base chance from settings: {0:F3}", SocialInteractions.Settings.baseBackstabbingChance));
             
             // Base chance of success - use the settings value instead of hardcoded 0.3
             float baseChance = SocialInteractions.Settings.baseBackstabbingChance; // Base chance from settings
             
             // Adjust for skill difference
             float skillDifference = (initiatorSocialSkill - recipientSocialSkill) * 0.05f; // 5% per skill difference
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: Skill difference adjustment: {0:F3} (Initiator: {1}, Recipient: {2})", 
-                skillDifference, initiatorSocialSkill, recipientSocialSkill));
             baseChance += skillDifference;
             
             // Adjust for manipulation traits
@@ -285,26 +241,20 @@ namespace SocialInteractions
             if (hasDeceptionTrait)
             {
                 baseChance += 0.2f;
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: {0} has deception trait, adding +0.2 to chance", initiator.LabelShort));
             }
             
             bool hasPerceptiveTrait = HasTraitThatPreventsDeception(recipient);
             if (hasPerceptiveTrait)
             {
                 baseChance -= 0.2f;
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: {0} has perceptive trait, subtracting 0.2 from chance", recipient.LabelShort));
             }
             
             // Ensure chance is within bounds
             baseChance = Math.Max(0.1f, Math.Min(0.8f, baseChance));
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: Final success chance after adjustments: {0:F3}", baseChance));
             
             // Roll for success
             float roll = Rand.Value;
             bool success = roll < baseChance;
-            
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: Roll was {0:F3} (needed < {1:F3}) - {2}", 
-                roll, baseChance, success ? "SUCCESS" : "FAILED"));
             
             if (success)
             {
@@ -313,18 +263,14 @@ namespace SocialInteractions
                 
                 if (bestFriend != null)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] Backstabbing: Successfully identified {0} as {1}'s best friend", 
-                        bestFriend.LabelShort, recipient.LabelShort));
                     return bestFriend;
                 }
                 else
                 {
-                    SLog.Message(string.Format("[SocialInteractions] Backstabbing: No best friend found for {0}, returning null", recipient.LabelShort));
                     return null; // No good targets to backstab
                 }
             }
             
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: Failed to extract information from {0}", recipient.LabelShort));
             return null; // Failed to extract information
         }
         
@@ -485,8 +431,21 @@ namespace SocialInteractions
         {
             if (success)
             {
-                return string.Format("{0} uses deception to turn {1} against {2}. The manipulation is successful, causing {1} to completely reverse their opinion of {2}, now seeing {2} negatively.", 
-                    initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort);
+                // Get original trust level to customize the subject
+                int originalTrust = recipient.relations != null ? recipient.relations.OpinionOf(targetPawn) : 0;
+                
+                if (originalTrust > 50)
+                {
+                    // Catastrophic betrayal for high-trust relationships
+                    return string.Format("{0} uses deception to turn {1} against {2}. The manipulation is successful and devastating, causing {1} to completely reverse their opinion of {2}, now seeing {2} negatively.", 
+                        initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort);
+                }
+                else
+                {
+                    // Generic manipulation for low/medium-trust relationships
+                    return string.Format("{0} uses deception to turn {1} against {2}. The manipulation is successful, causing {1} to now think worse of {2}.", 
+                        initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort);
+                }
             }
             else
             {
@@ -500,27 +459,36 @@ namespace SocialInteractions
         /// </summary>
         private void ApplySuccessfulBackstabEffects(Pawn initiator, Pawn recipient, Pawn targetPawn)
         {
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: Applying successful backstab effects - {0} is manipulating {1} against {2}", 
-                initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort));
-                
             // Get original trust level between recipient and target
             int originalTrust = recipient.relations != null ? recipient.relations.OpinionOf(targetPawn) : 0;
             
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: Original trust level between {0} and {1} was {2}", 
-                recipient.LabelShort, targetPawn.LabelShort, originalTrust));
-            
-            // Apply the massive opinion change using our custom thought definitions
+            // Apply the opinion change based on original trust level
             if (recipient.needs != null && recipient.needs.mood != null)
             {
-                // Recipient was successfully manipulated - they get negative thoughts about being manipulated
-                ThoughtDef manipulatedThought = SI_ThoughtDefOf.WasManipulatedAgainstSomeone;
-                if (manipulatedThought != null)
+                // For high trust levels (over 50), apply catastrophic betrayal with massive opinion reversal
+                // For moderate or low trust levels (50 or below), apply generic "heard bad things" thought with -5 opinion offset
+                if (originalTrust > 50)
                 {
-                    recipient.needs.mood.thoughts.memories.TryGainMemory(manipulatedThought, targetPawn);
+                    // Catastrophic betrayal: massive opinion change based on original trust level
+                    ThoughtDef manipulatedThought = SI_ThoughtDefOf.WasManipulatedAgainstSomeone;
+                    if (manipulatedThought != null)
+                    {
+                        recipient.needs.mood.thoughts.memories.TryGainMemory(manipulatedThought, targetPawn);
+                    }
                 }
-                
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: Applied manipulation thought to {0} about {1}", 
-                    recipient.LabelShort, targetPawn.LabelShort));
+                else
+                {
+                    // Generic "heard bad things" thought with moderate -5 opinion offset
+                    ThoughtDef heardBadThingsThought = DefDatabase<ThoughtDef>.GetNamed("WasToldNegativeThings");
+                    if (heardBadThingsThought != null)
+                    {
+                        recipient.needs.mood.thoughts.memories.TryGainMemory(heardBadThingsThought, targetPawn);
+                    }
+                    else
+                    {
+                        SLog.Warning(string.Format("[SocialInteractions] Backstabbing: Could not find WasToldNegativeThings thought definition, skipping thought application"));
+                    }
+                }
             }
             
             // Apply thoughts to all parties
@@ -532,19 +500,11 @@ namespace SocialInteractions
                 {
                     initiator.needs.mood.thoughts.memories.TryGainMemory(successfulManipulationThought, recipient);
                 }
-                
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: Applied success thought to {0} about {1}", 
-                    initiator.LabelShort, recipient.LabelShort));
             }
             
             // Target pawn does not immediately realize they were backstabbed
             // The revelation should happen later when they interact with the friend who now hates them
             // This creates more realistic and dramatic social dynamics
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: {0} does not yet realize they were backstabbed by {1}", 
-                targetPawn.LabelShort, initiator.LabelShort));
-            
-            SLog.Message(string.Format("[SocialInteractions] Successful backstab: {0}'s opinion of {1} should change dramatically due to manipulation thought", 
-                recipient.LabelShort, targetPawn.LabelShort));
         }
         
         /// <summary>
@@ -552,9 +512,6 @@ namespace SocialInteractions
         /// </summary>
         private void ApplyFailedBackstabEffects(Pawn initiator, Pawn recipient, Pawn targetPawn)
         {
-            SLog.Message(string.Format("[SocialInteractions] Backstabbing: Applying failed backstab effects - {0}'s manipulation of {1} about {2} was detected", 
-                initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort));
-                
             // The recipient sees through the deception
             // Apply negative thoughts to recipient about the instigator (for trying to deceive them)
             if (recipient.needs != null && recipient.needs.mood != null)
@@ -564,9 +521,6 @@ namespace SocialInteractions
                 {
                     recipient.needs.mood.thoughts.memories.TryGainMemory(failedManipulationThought, initiator);
                 }
-                
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: Applied failed manipulation thought to {0} about {1}", 
-                    recipient.LabelShort, initiator.LabelShort));
             }
             
             // Apply negative thoughts to instigator for failing their manipulation attempt
@@ -577,9 +531,6 @@ namespace SocialInteractions
                 {
                     initiator.needs.mood.thoughts.memories.TryGainMemory(failedAttemptThought, recipient);
                 }
-                
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: Applied failed attempt thought to {0} about {1}", 
-                    initiator.LabelShort, recipient.LabelShort));
             }
             
             // Target gets slight positive thoughts about recipient (for seeing through the deception)
@@ -591,13 +542,7 @@ namespace SocialInteractions
                 {
                     targetPawn.needs.mood.thoughts.memories.TryGainMemory(sawThroughDeceptionThought, recipient);
                 }
-                
-                SLog.Message(string.Format("[SocialInteractions] Backstabbing: Applied saw-through-deception thought to {0} about {1}", 
-                    targetPawn.LabelShort, recipient.LabelShort));
             }
-            
-            SLog.Message(string.Format("[SocialInteractions] Failed backstab: {0} saw through {1}'s deception about {2}", 
-                recipient.LabelShort, initiator.LabelShort, targetPawn.LabelShort));
         }
         
         /// <summary>

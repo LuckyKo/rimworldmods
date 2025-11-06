@@ -116,7 +116,7 @@ namespace SocialInteractions
 
         public static bool IsLlmInteractionEnabled(InteractionDef interactionDef)
         {
-            SLog.Message(string.Format("[SocialInteractions] IsLlmInteractionEnabled called for: {0}", interactionDef.defName));
+            //SLog.Message(string.Format("[SocialInteractions] IsLlmInteractionEnabled called for: {0}", interactionDef.defName));
             if (!Settings.llmInteractionsEnabled) return false;
 
             

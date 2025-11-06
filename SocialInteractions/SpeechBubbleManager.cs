@@ -284,7 +284,8 @@ namespace SocialInteractions
                     interactionDef.defName == "CaughtCheating" ||
                     interactionDef.defName == "EnhancedInsult" ||
                     interactionDef.defName == "Admiration" ||
-                    interactionDef.defName == "Insult")
+                    interactionDef.defName == "Insult" ||
+                    interactionDef.defName == "Backstabbing")
                 {
                     messageType = MessageType.DramaEvent; // Red for drama/insult interactions
                     messageColor = Color.red;

@@ -169,7 +169,7 @@ Current event: [pawn1] [subject]
 
         // Backstabbing interaction settings 
         public bool enableBackstabbing = true; // Whether backstabbing interactions are enabled
-        public float baseBackstabbingChance = 0.02f; // Base chance for backstabbing attempts
+        public float baseBackstabbingChance = 0.05f; // Base chance for backstabbing attempts
 
 
         public override void ExposeData()
@@ -277,7 +277,7 @@ Current event: [pawn1] [subject]
             
             // Backstabbing interaction settings
             Scribe_Values.Look(ref enableBackstabbing, "enableBackstabbing", true);
-            Scribe_Values.Look(ref baseBackstabbingChance, "baseBackstabbingChance", 0.02f);
+            Scribe_Values.Look(ref baseBackstabbingChance, "baseBackstabbingChance", 0.05f);
         }
     }
 

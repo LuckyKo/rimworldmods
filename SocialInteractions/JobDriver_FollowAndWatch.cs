@@ -112,11 +112,6 @@ namespace SocialInteractions
             };
             follow.AddFinishAction(() =>
             {
-                if (this.pawn != null)
-                {
-                    // Simplified logging, removed attempt to access JobCondition
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: follow toil finished for {0}.", this.pawn.LabelShort));
-                }
             });
             follow.defaultCompleteMode = ToilCompleteMode.PatherArrival;
             yield return follow;
@@ -126,14 +121,12 @@ namespace SocialInteractions
                 // Add comprehensive null checks at the beginning
                 if (this.pawn == null)
                 {
-                    SLog.Message("[SocialInteractions] JobDriver_FollowAndWatch: pawn is null, ending job.");
                     this.ReadyForNextToil();
                     return;
                 }
                 
                 if (this.job == null)
                 {
-                    SLog.Message("[SocialInteractions] JobDriver_FollowAndWatch: job is null, ending job.");
                     this.ReadyForNextToil();
                     return;
                 }
@@ -141,7 +134,6 @@ namespace SocialInteractions
                 Pawn initiator = this.job.targetA.Thing as Pawn;
                 if (initiator == null)
                 {
-                    SLog.Message("[SocialInteractions] JobDriver_FollowAndWatch: initiator is null, ending job.");
                     this.ReadyForNextToil();
                     return;
                 }
@@ -150,9 +142,6 @@ namespace SocialInteractions
                 // This is indicated by the initiator having the "OnDate" hediff.
                 if (!DatingManager.IsOnDate(initiator))
                 {
-                    string initiatorName = (initiator != null && initiator.Name != null) ? initiator.Name.ToStringShort : "NULL";
-                    string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Date ended for initiator ({0}), ending job for follower ({1}).", initiatorName, pawnName));
                     this.ReadyForNextToil(); // End the FollowAndWatch job
                     return;
                 }
@@ -160,8 +149,6 @@ namespace SocialInteractions
                 // Also check if the follower is still on the date
                 if (!DatingManager.IsOnDate(this.pawn))
                 {
-                    string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Date ended for follower ({0}), ending job.", pawnName));
                     this.ReadyForNextToil(); // End the FollowAndWatch job
                     return;
                 }
@@ -187,10 +174,6 @@ namespace SocialInteractions
                     // If the initiator is not doing a joy job or is doing the DateLovin job, advance the date
                     if (!isInitiatorDoingJoyJob || isInitiatorDoingDateLovin)
                     {
-                        string initiatorName = (initiator != null && initiator.Name != null) ? initiator.Name.ToStringShort : "NULL";
-                        string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
-                        SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator ({0}) moved to non-joy job or DateLovin job, advancing date for follower ({1}).", initiatorName, pawnName));
-                        
                         // Advance the date stage. The DatingManager will handle ending this job.
                         DatingManager.AdvanceDateStage(this.pawn);
                         // We must not call ReadyForNextToil() here, as it will interfere with the job transition.
@@ -206,8 +189,6 @@ namespace SocialInteractions
                         // Check if pawn or pather is null before accessing
                         if (this.pawn.pather == null)
                         {
-                            string pawnName = (this.pawn != null && this.pawn.Label != null) ? this.pawn.LabelShort : "NULL";
-                            SLog.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: {0}'s pather became null during tick, ending job.", pawnName));
                             this.ReadyForNextToil();
                             return;
                         }
@@ -215,9 +196,6 @@ namespace SocialInteractions
                         // Check if initiator is spawned and on the same map
                         if (!initiator.Spawned || initiator.Map != this.pawn.Map)
                         {
-                            string initiatorName = (initiator != null && initiator.Label != null) ? initiator.LabelShort : "NULL";
-                            string pawnName = (this.pawn != null && this.pawn.Label != null) ? this.pawn.LabelShort : "NULL";
-                            SLog.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Initiator {0} is not spawned or on a different map for follower {1}. Ending job.", initiatorName, pawnName));
                             this.ReadyForNextToil();
                             return;
                         }
@@ -225,9 +203,6 @@ namespace SocialInteractions
                         // Additional check to ensure both pawns are still valid for dating
                         if (!IsPawnValidForDating(this.pawn) || !IsPawnValidForDating(initiator))
                         {
-                            string initiatorName = (initiator != null && initiator.Label != null) ? initiator.LabelShort : "NULL";
-                            string pawnName = (this.pawn != null && this.pawn.Label != null) ? this.pawn.LabelShort : "NULL";
-                            SLog.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: One or both pawns are no longer valid for dating. Initiator: {0}, Follower: {1}. Ending job.", initiatorName, pawnName));
                             this.ReadyForNextToil();
                             return;
                         }
@@ -245,19 +220,14 @@ namespace SocialInteractions
                             // Basic check for immediate pathing failure (heuristic)
                             if (!this.pawn.pather.Moving && this.pawn.Position.DistanceTo(initiator.Position) > 5f) 
                             {
-                                string initiatorName = (initiator != null && initiator.Label != null) ? initiator.LabelShort : "NULL";
-                                string pawnName = (this.pawn != null && this.pawn.Label != null) ? this.pawn.LabelShort : "NULL";
-                                SLog.Warning(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: {0} failed to start path to {1} (dist: {2:F2}). Ending job.", pawnName, initiatorName, this.pawn.Position.DistanceTo(initiator.Position)));
                                 this.ReadyForNextToil(); 
                                 return;
                             }
                         }
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    string pawnName = (this.pawn != null) ? this.pawn.LabelShort : "NULL";
-                    SLog.Error(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Exception during pathing for {0}: {1}", pawnName, ex.Message));
                     this.ReadyForNextToil(); // End job on exception
                     return;
                 }
@@ -274,8 +244,6 @@ namespace SocialInteractions
             };
             watch.AddFinishAction(() => {
                 // OnDate hediffs are now handled by DatingManager
-                string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: Job finished for pawn {0}.", pawnName));
             });
             watch.defaultCompleteMode = ToilCompleteMode.Never;
             yield return watch;

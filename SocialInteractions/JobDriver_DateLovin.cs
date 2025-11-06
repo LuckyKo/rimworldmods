@@ -74,23 +74,10 @@ namespace SocialInteractions
         {
             base.ExposeData();
             Scribe_Values.Look(ref ticksLeft, "ticksLeft", 0);
-            
-            // Add null checks for debugging
-            if (Scribe.mode == LoadSaveMode.LoadingVars)
-            {
-                SLog.Message("[SocialInteractions] JobDriver_DateLovin: ExposeData loading vars");
-            }
-            else if (Scribe.mode == LoadSaveMode.Saving)
-            {
-                SLog.Message("[SocialInteractions] JobDriver_DateLovin: ExposeData saving vars");
-            }
         }
 
         public override void Notify_Starting()
         {
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: Notify_Starting called for pawn {0}. Job target: {1}", 
-                pawn != null ? pawn.LabelShort : "NULL",
-                Partner != null ? Partner.LabelShort : "NULL"));
             base.Notify_Starting();
             
             // Add comprehensive null checks
@@ -115,10 +102,6 @@ namespace SocialInteractions
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: TryMakePreToilReservations called for pawn {0}. Job target: {1}",
-                pawn != null ? pawn.LabelShort : "NULL",
-                Partner != null ? Partner.LabelShort : "NULL"));
-
             // Add comprehensive null checks at the beginning
             if (pawn == null || Partner == null) 
             {
@@ -159,8 +142,6 @@ namespace SocialInteractions
                 }
             }
 
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: TryMakePreToilReservations returning true for pawn {0}.",
-                pawn.LabelShort != null ? pawn.LabelShort : "NULL"));
             return true;
         }
 
@@ -194,18 +175,12 @@ namespace SocialInteractions
                     return;
                 }
                 
-                // Log tick for debugging
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: waitForPartnerToil tick. Pawn: {0}, Partner: {1}, Distance: {2}", 
-                    pawn.LabelShort, Partner.LabelShort, pawn.Position.DistanceTo(Partner.Position)));
-                
                 // Check if both pawns are within a generous distance of each other
                 try
                 {
                     if (pawn.Position.DistanceTo(Partner.Position) <= 3.5f)
                     {
                         // If they're close enough, we can proceed to the next toil
-                        SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: Pawns {0} and {1} are close enough, proceeding to lovin", 
-                            pawn.LabelShort, Partner.LabelShort));
                         this.ReadyForNextToil();
                         return;
                     }
@@ -240,8 +215,6 @@ namespace SocialInteractions
                 // Check if the pawn is still on a date in the Lovin stage
                 if (!DatingManager.IsOnDate(pawn))
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: Pawn {0} is no longer on a date, ending job.", 
-                        pawn != null ? pawn.LabelShort : "NULL"));
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
@@ -249,8 +222,6 @@ namespace SocialInteractions
                 Date date = DatingManager.GetDateWith(pawn);
                 if (date == null || date.Stage != DateStage.Lovin)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: Date stage is not Lovin for pawn {0}, ending job.", 
-                        pawn != null ? pawn.LabelShort : "NULL"));
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
@@ -305,10 +276,6 @@ namespace SocialInteractions
                 // Only add it once
                 if (ticksLeft == SocialInteractions.Settings.dateLovinTicks)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] Adding SI_Naked hediff to {0} and {1}",
-                        initiator != null ? initiator.LabelShort : "NULL",
-                        currentPartner != null ? currentPartner.LabelShort : "NULL"));
-
                     // Add null checks before adding hediff
                     if (initiator != null && initiator.health != null)
                     {
@@ -387,7 +354,6 @@ namespace SocialInteractions
             Toil cleanupToil = ToilMaker.MakeToil("CleanupToil");
             cleanupToil.initAction = delegate
             {
-                SLog.Message("[SocialInteractions] JobDriver_DateLovin: cleanupToil.initAction called");
                 try
                 {
                     // Add comprehensive null checks to prevent NullReferenceException
@@ -396,8 +362,6 @@ namespace SocialInteractions
                         SLog.Warning("[SocialInteractions] JobDriver_DateLovin: pawn is null in cleanupToil.initAction.");
                         return;
                     }
-                    
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_DateLovin: cleanupToil.initAction for pawn {0}", pawn.LabelShort));
                     
                     // Re-validate partner reference
                     Pawn currentPartner = Partner;
@@ -425,8 +389,6 @@ namespace SocialInteractions
                             if (hediff != null)
                             {
                                 pawn.health.RemoveHediff(hediff);
-                                SLog.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", 
-                                    pawn.LabelShort != null ? pawn.LabelShort : "NULL"));
                             }
                         }
                         catch (Exception ex)
@@ -445,8 +407,6 @@ namespace SocialInteractions
                             if (hediff != null)
                             {
                                 currentPartner.health.RemoveHediff(hediff);
-                                SLog.Message(string.Format("[SocialInteractions] SI_Naked hediff removed from {0}", 
-                                    currentPartner.LabelShort != null ? currentPartner.LabelShort : "NULL"));
                             }
                         }
                         catch (Exception ex)

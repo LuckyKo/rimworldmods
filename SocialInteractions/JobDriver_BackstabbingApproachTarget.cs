@@ -16,10 +16,6 @@ namespace SocialInteractions
 
         protected override IEnumerable<Toil> MakeNewToils()
         {
-            Thing targetThing = job.GetTarget(TargetIndex.A).Thing;
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Starting toil sequence for {0} to approach {1}", 
-                pawn.LabelShort, targetThing != null ? targetThing.LabelShort : "null"));
-                
             this.FailOnDespawnedNullOrForbidden(TargetIndex.A);
             this.FailOnMentalState(TargetIndex.A);
             
@@ -29,10 +25,6 @@ namespace SocialInteractions
             Toil interactionToil = new Toil();
             interactionToil.initAction = delegate
             {
-                Thing targetThingInit = job.GetTarget(TargetIndex.A).Thing;
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Initiating backstabbing interaction for {0} with {1}", 
-                    pawn.LabelShort, targetThingInit != null ? targetThingInit.LabelShort : "null"));
-                    
                 Pawn targetPawn = (Pawn)job.GetTarget(TargetIndex.A).Thing;
                 
                 if (targetPawn == null)
@@ -57,9 +49,6 @@ namespace SocialInteractions
                     return;
                 }
                 
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: All checks passed, executing backstabbing interaction between {0} and {1}", 
-                    pawn.LabelShort, targetPawn.LabelShort));
-                    
                 // Perform the actual backstabbing interaction
                 TryStartBackstabbingInteraction(targetPawn);
             };
@@ -73,7 +62,6 @@ namespace SocialInteractions
                     // Check if target is in a valid state for interaction
                     if (!CanInteractWithTarget(targetPawn))
                     {
-                        SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Target {0} became invalid during interaction, ending job", targetPawn.LabelShort));
                         EndJobWith(JobCondition.Incompletable);
                         return;
                     }
@@ -85,8 +73,6 @@ namespace SocialInteractions
                         float distance = (pawn.Position - targetPawn.Position).LengthHorizontal;
                         if (distance > 2f) // If more than 2 cells away
                         {
-                            SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: {0} updating path to follow {1} (distance: {2:F1})", 
-                                pawn.LabelShort, targetPawn.LabelShort, distance));
                             // Update path to follow target
                             pawn.pather.StartPath(targetPawn, PathEndMode.Touch);
                         }
@@ -102,9 +88,6 @@ namespace SocialInteractions
         
         private void TryStartBackstabbingInteraction(Pawn targetPawn)
         {
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Starting backstabbing interaction between {0} and {1}", 
-                pawn.LabelShort, targetPawn.LabelShort));
-                
             if (pawn == null || targetPawn == null)
             {
                 SLog.Warning("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Null pawn detected, skipping interaction");
@@ -115,14 +98,10 @@ namespace SocialInteractions
             // that should be able to interrupt temporarily busy pawns
             if (!pawn.CanTradeNow)
             {
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: {0} is temporarily busy, but this is OK for backstabbing", 
-                    pawn.LabelShort));
             }
             
             if (!targetPawn.CanTradeNow)
             {
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Target {0} is temporarily busy, but this is OK for backstabbing", 
-                    targetPawn.LabelShort));
             }
             
             // Check if we can interact with the target (reachability check)
@@ -132,9 +111,6 @@ namespace SocialInteractions
                 return;
             }
             
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: All conditions met, executing backstabbing interaction between {0} and {1}", 
-                pawn.LabelShort, targetPawn.LabelShort));
-                
             // Perform the backstabbing interaction
             string letterText, letterLabel;
             LetterDef letterDef;
@@ -149,15 +125,11 @@ namespace SocialInteractions
                 if (scheduledTarget != null)
                 {
                     backstabbingWorker.ScheduledTargetPawn = scheduledTarget;
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Setting scheduled target to {0}", scheduledTarget.LabelShort));
                 }
             }
             
             // This will perform the backstabbing attempt using the worker
             backstabbingWorker.Interacted(pawn, targetPawn, null, out letterText, out letterLabel, out letterDef, out lookTargets);
-            
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Completed backstabbing interaction between {0} and {1}", 
-                pawn.LabelShort, targetPawn.LabelShort));
         }
         
         /// <summary>
@@ -196,26 +168,6 @@ namespace SocialInteractions
                 // SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Target {0} is sleeping/in bed, cannot interact", targetPawn.LabelShort));
                 return false;
             }
-            
-            // Soft blocks - these do NOT prevent backstabbing (strategic interruption is allowed)
-            // We don't need to log these since they're expected and allowed
-            // Drafted pawns can still be backstabbed
-            // if (targetPawn.Drafted)
-            // {
-            //     SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Target {0} is drafted, but this is OK for backstabbing", targetPawn.LabelShort));
-            // }
-            
-            // Pawns busy with other jobs can still be interrupted for backstabbing
-            // if (!targetPawn.CanTradeNow)
-            // {
-            //     SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Target {0} is busy with other job, but this is OK for backstabbing", targetPawn.LabelShort));
-            // }
-            
-            // Pawns who are not awake (but not sleeping) can still be backstabbed
-            // if (!targetPawn.Awake())
-            // {
-            //     SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Target {0} is not awake, but this is OK for backstabbing", targetPawn.LabelShort));
-            // }
             
             // SLog.Message(string.Format("[SocialInteractions] JobDriver_BackstabbingApproachTarget: Target {0} is in acceptable state for backstabbing interaction", targetPawn.LabelShort));
             return true;

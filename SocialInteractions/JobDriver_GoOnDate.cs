@@ -59,7 +59,6 @@ namespace SocialInteractions
                     // If the pawn is in any other job, they should not be doing it
                     if (pawn.jobs != null && pawn.jobs.curJob != null && pawn.jobs.curJob.def != SI_JobDefOf.DateLovin)
                     {
-                        SLog.Message(string.Format("[SocialInteractions] IsPawnValidForDating: Pawn {0} is on a date in Lovin stage but not in DateLovin job.", pawn.LabelShort));
                         return false;
                     }
                 }
@@ -70,7 +69,6 @@ namespace SocialInteractions
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
-            SLog.Message("[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations called.");
             // Add null check to prevent NullReferenceException
             if (this.pawn == null)
             {
@@ -85,7 +83,6 @@ namespace SocialInteractions
                 return false;
             }
             
-            SLog.Message("[SocialInteractions] JobDriver_GoOnDate: TryMakePreToilReservations returning true.");
             return true;
         }
 
@@ -96,18 +93,11 @@ namespace SocialInteractions
 
         public override void Notify_Starting()
         {
-            SLog.Message("[SocialInteractions] JobDriver_GoOnDate: Notify_Starting called.");
             base.Notify_Starting();
-            // Add null checks to prevent NullReferenceException
-            string pawnName = (this.pawn != null && this.pawn.Name != null) ? this.pawn.Name.ToStringShort : "NULL";
-            string partnerName = (this.Partner != null && this.Partner.Name != null) ? this.Partner.Name.ToStringShort : "NULL";
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Starting job for {0} to date {1}.", pawnName, partnerName));
         }
 
         protected override IEnumerable<Toil> MakeNewToils()
         {
-            SLog.Message("[SocialInteractions] JobDriver_GoOnDate: MakeNewToils called.");
-            
             // Add null check for pawn
             if (this.pawn == null)
             {
@@ -134,7 +124,6 @@ namespace SocialInteractions
                 int maxDistance = SocialInteractions.Settings.maxDistanceForDate; // 50x50 tiles
                 if ((Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)) > maxDistance)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Aborting job. Recipient {0} is too far from initiator {1}. Distance: {2}, Max Distance: {3}", recipient.Name.ToStringShort, this.pawn.Name.ToStringShort, (Math.Abs(this.pawn.Position.x - recipient.Position.x) + Math.Abs(this.pawn.Position.z - recipient.Position.z)), maxDistance));
                     this.EndJobWith(JobCondition.Incompletable);
                 }
             };
@@ -159,8 +148,6 @@ namespace SocialInteractions
                 // Check if the recipient is still valid for dating
                 if (recipient.Downed || !recipient.Awake() || recipient.InMentalState || recipient.Drafted)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Recipient {0} is no longer valid for dating (Downed: {1}, Awake: {2}, InMentalState: {3}, Drafted: {4}), rejecting date.", 
-                        recipient.Name.ToStringShort, recipient.Downed, recipient.Awake(), recipient.InMentalState, recipient.Drafted));
                     Find.PlayLog.Add(new PlayLogEntry_Interaction(DefDatabase<InteractionDef>.GetNamed("DateRejected"), this.pawn, this.Partner, null));
                     DatingManager.RejectDate(this.pawn, this.Partner);
                     SocialInteractions.HandleNonStoppingInteraction(this.pawn, this.Partner, SI_InteractionDefOf.DateRejected, SpeechBubbleManager.GetDateRejectionSubject(this.pawn, this.Partner));
@@ -192,26 +179,21 @@ namespace SocialInteractions
                 // Cap the chance at 100%
                 finalChance = System.Math.Min(finalChance, 1.0f);
                 
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Calculating acceptance chance for {0} asking {1}. Base: {2}, Opinion: {3}, Mood Factor: {4}, Final: {5}", 
-                    this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, baseChance, opinion, moodFactor, finalChance));
-
                 // Roll for acceptance
                 float roll = Rand.Value;
                 bool accepted = roll < finalChance;
                 
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Acceptance roll for {0} asking {1}. Rolled: {2}, Chance: {3}, Accepted: {4}", 
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Acceptance roll for {0} asking {1}. Rolled: {2:F3}, Chance: {3:F3}, Accepted: {4}", 
                     this.pawn.Name.ToStringShort, recipient.Name.ToStringShort, roll, finalChance, accepted));
 
                 if (accepted)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Date accepted between {0} and {1}.", this.pawn.Name.ToStringShort, this.Partner.Name.ToStringShort));
                     Find.PlayLog.Add(new PlayLogEntry_Interaction(DefDatabase<InteractionDef>.GetNamed("DateAccepted"), this.pawn, this.Partner, null));
                     DatingManager.StartDate(this.pawn, this.Partner);
                     Messages.Message(string.Format("{0} and {1} are now going on a date.", this.pawn.Name.ToStringShort, this.Partner.Name.ToStringShort), new LookTargets(this.pawn, this.Partner), MessageTypeDefOf.PositiveEvent);
                 }
                 else
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Date rejected between {0} and {1}.", this.pawn.Name.ToStringShort, this.Partner.Name.ToStringShort));
                     Find.PlayLog.Add(new PlayLogEntry_Interaction(DefDatabase<InteractionDef>.GetNamed("DateRejected"), this.pawn, this.Partner, null));
                     DatingManager.RejectDate(this.pawn, this.Partner);
                     SocialInteractions.HandleNonStoppingInteraction(this.pawn, this.Partner, SI_InteractionDefOf.DateRejected, SpeechBubbleManager.GetDateRejectionSubject(this.pawn, this.Partner));
@@ -233,13 +215,10 @@ namespace SocialInteractions
                     return;
                 }
                 
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: findJoyJobAndAssign initAction called for pawn {0}.", this.pawn != null ? this.pawn.Name.ToStringShort : "NULL"));
-
                 // Find a suitable joy job for the initiator
                 Job joyJob = FindJoyJobFor(this.pawn, this.Partner);
                 if (joyJob == null)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Could not find a suitable joy job for pawn {0}.", this.pawn.Name.ToStringShort));
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
@@ -250,11 +229,7 @@ namespace SocialInteractions
                 // --- End LLM Interaction ---
                 
                 // Create the FollowAndWatch job for the partner
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Creating FollowAndWatch job for partner {0}", 
-                    this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
                 Job partnerJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn);
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Starting FollowAndWatch job for partner {0}", 
-                    this.Partner != null ? this.Partner.Name.ToStringShort : "NULL"));
                 
                 // Start the partner's job
                 this.Partner.jobs.StartJob(partnerJob, JobCondition.InterruptForced);
@@ -278,8 +253,6 @@ namespace SocialInteractions
             if (this.Partner.needs != null && this.Partner.needs.joy != null && 
                 this.Partner.needs.joy.CurLevelPercentage >= 0.95f)
             {
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner {0}'s joy level is too high to join activity", 
-                    this.Partner.Name.ToStringShort));
                 return;
             }
             
@@ -296,8 +269,6 @@ namespace SocialInteractions
             
             if (initiatorJoyGiver == null)
             {
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Could not find joy giver for job def {0}", 
-                    joyJobDef.defName));
                 return;
             }
             
@@ -305,8 +276,6 @@ namespace SocialInteractions
             Job partnerJoyJob = initiatorJoyGiver.Worker.TryGiveJob(this.Partner);
             if (partnerJoyJob == null)
             {
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner {0} cannot do the same joy activity as initiator {1}, will continue following.", 
-                    this.Partner.Name.ToStringShort, this.pawn.Name.ToStringShort));
                 return;
             }
             
@@ -323,20 +292,12 @@ namespace SocialInteractions
             
             if (targetsMatch)
             {
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Partner {0} is joining initiator {1} in joy activity {2}.", 
-                    this.Partner.Name.ToStringShort, this.pawn.Name.ToStringShort, partnerJoyJob.def.defName));
-                
                 // Track the joy job we're starting for the partner
                 partnerJoyJobDef = partnerJoyJob.def;
                 
                 // Enqueue the joy job and then interrupt the current job for a smooth transition
                 this.Partner.jobs.jobQueue.EnqueueFirst(partnerJoyJob);
                 this.Partner.jobs.EndCurrentJob(JobCondition.InterruptForced);
-            }
-            else
-            {
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Target locations don't match for partner {0} and initiator {1}", 
-                    this.Partner.Name.ToStringShort, this.pawn.Name.ToStringShort));
             }
         }
 
@@ -369,7 +330,6 @@ namespace SocialInteractions
             // If we have no valid joy givers, return null
             if (weightedJoyGivers.Count == 0 || totalWeight <= 0)
             {
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: No suitable joy job found for {0}.", initiator.Name.ToStringShort));
                 return null;
             }
 
@@ -407,11 +367,6 @@ namespace SocialInteractions
                         // Skip jobs that don't have a valid target
                         if (joyJob.targetA.Thing == null && !joyJob.targetA.Cell.IsValid)
                         {
-                            // Clean up the job since we're not using it
-                            if (joyJob.def != null)
-                            {
-                                // No need to explicitly clean up, the job will be garbage collected
-                            }
                             continue;
                         }
                         
@@ -422,12 +377,9 @@ namespace SocialInteractions
                         if (initiator.CanReserveAndReach(joyJob.targetA, pathEndMode, Danger.None) &&
                             partner.CanReserveAndReach(joyJob.targetA, pathEndMode, Danger.None))
                         {
-                            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Found suitable joy job {0} for {1} at {2} with PathEndMode {3}.", 
-                                joyJob.def.defName, initiator.Name.ToStringShort, joyJob.targetA.ToString(), pathEndMode));
                             return joyJob;
                         }
                         // If we can't reserve it, we try again with a different joy giver
-                        // No need to explicitly clean up the job
                     }
                 }
                 catch (NullReferenceException nre)
@@ -444,7 +396,6 @@ namespace SocialInteractions
                 }
             }
             
-            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: No suitable joy job found for {0} after {1} attempts.", initiator.Name.ToStringShort, maxAttempts));
             return null;
         }
     }

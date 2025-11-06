@@ -39,12 +39,9 @@ namespace SocialInteractions
 
             // Find the least favorite pawn in the colony for the initiator
             Pawn targetPawn = GetLeastFavoritePawn(initiator);
-            SLog.Message(string.Format("[SocialInteractions] Badmouthing: {0} selected {1} as target for badmouthing", 
-                initiator.LabelShort, targetPawn != null ? targetPawn.LabelShort : "null"));
                 
             if (targetPawn == null)
             {
-                SLog.Message("[SocialInteractions] Badmouthing: No target selected, skipping interaction");
                 base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
                 return;
             }
@@ -52,8 +49,6 @@ namespace SocialInteractions
             // Check that the target pawn is not the same as the recipient
             if (targetPawn == recipient)
             {
-                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Target {0} is same as recipient {1}, skipping interaction", 
-                    targetPawn.LabelShort, recipient.LabelShort));
                 base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
                 return;
             }
@@ -62,11 +57,8 @@ namespace SocialInteractions
             int recipientOpinionOfTarget = recipient.relations != null ? recipient.relations.OpinionOf(targetPawn) : 0;
             int recipientOpinionOfInitiator = recipient.relations != null ? recipient.relations.OpinionOf(initiator) : 0;
             
-            // Get initiator's opinion of the target for logging
+            // Get initiator's opinion of the target
             int initiatorOpinionOfTarget = initiator.relations != null ? initiator.relations.OpinionOf(targetPawn) : 0;
-            
-            SLog.Message(string.Format("[SocialInteractions] Badmouthing: Opinions - {0} vs Target {1}: {2}, Recipient vs Target {1}: {3}, Recipient vs Initiator: {4}", 
-                initiator.LabelShort, targetPawn.LabelShort, initiatorOpinionOfTarget, recipientOpinionOfTarget, recipientOpinionOfInitiator));
             
             // Check if both initiator and recipient share a negative opinion of the target (gossip scenario)
             bool sharedNegativeOpinion = initiatorOpinionOfTarget <= SocialInteractions.Settings.badmouthingLowOpinionThreshold && 
@@ -169,7 +161,6 @@ namespace SocialInteractions
             else
             {
                 // Fallback to game's general social thoughts if custom thoughts aren't loaded
-                SLog.Message("[SocialInteractions] Gossip: Custom bonding thoughts not available, using fallback");
                 
                 // Use existing RimWorld thoughts that promote social bonding
                 ThoughtDef socialConnectionThought = DefDatabase<ThoughtDef>.GetNamedSilentFail("IncreasedChemistry");
@@ -187,10 +178,6 @@ namespace SocialInteractions
                     {
                         initiator.needs.mood.thoughts.memories.TryGainMemory(positiveSocialThought, recipient);
                         recipient.needs.mood.thoughts.memories.TryGainMemory(positiveSocialThought, initiator);
-                    }
-                    else
-                    {
-                        SLog.Message("[SocialInteractions] Gossip: Could not find any appropriate bonding thoughts");
                     }
                 }
             }
@@ -254,10 +241,6 @@ namespace SocialInteractions
                 {
                     recipient.needs.mood.thoughts.memories.TryGainMemory(insultedThought, targetPawn);
                 }
-                else
-                {
-                    SLog.Message("[SocialInteractions] Could not find appropriate thought for badmouthing target scenario");
-                }
             }
         }
         
@@ -281,10 +264,6 @@ namespace SocialInteractions
                 if (insultedThought != null)
                 {
                     recipient.needs.mood.thoughts.memories.TryGainMemory(insultedThought, initiator);
-                }
-                else
-                {
-                    SLog.Message("[SocialInteractions] Could not find appropriate thought for badmouthing initiator scenario");
                 }
             }
         }
@@ -392,36 +371,14 @@ namespace SocialInteractions
         /// </summary>
         private void TryTriggerBackstabbingOpportunity(Pawn initiator, Pawn recipient, Pawn targetPawn)
         {
-            SLog.Message(string.Format("[SocialInteractions] Badmouthing: Checking for backstabbing opportunity after successful badmouthing - {0} to {1} about {2}", 
-                initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort));
-                
             // Check if backstabbing is enabled in settings
             if (!SocialInteractions.Settings.enableBackstabbing)
             {
-                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Backstabbing is disabled in settings, skipping opportunity"));
                 return;
             }
             
             if (initiator == null || recipient == null || targetPawn == null)
             {
-                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Null reference detected, skipping backstabbing opportunity"));
-                return;
-            }
-            
-            // // Check if the instigator has traits that encourage manipulation/backstabbing
-            // bool encouragesManipulation = HasTraitThatEncouragesManipulation(initiator);
-            // if (!encouragesManipulation)
-            // {
-                // // Only pawns with manipulation traits attempt strategic backstabbing
-                // return;
-            // }
-            
-            // Check the instigator's social skill level - higher skill allows more complex maneuvers
-            int socialSkill = initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Social).Level : 0;
-            if (socialSkill < 4) // Set threshold for strategic manipulation
-            {
-                // Not skilled enough for complex backstabbing plans
-                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Social skill too low to attempt backstabbing. Exiting."));
                 return;
             }
             
@@ -436,9 +393,6 @@ namespace SocialInteractions
             // Calculate the backstabbing opportunity chance based on various factors
             float backstabChance = CalculateBackstabbingChance(initiator, bestTargetForBackstab, targetPawn);
             
-            SLog.Message(string.Format("[SocialInteractions] Badmouthing: Backstabbing chance calculated as {0:F3} for {1} against {2}'s ally {3}", 
-                backstabChance, initiator.LabelShort, targetPawn.LabelShort, bestTargetForBackstab.LabelShort));
-                
             // Roll for the backstabbing opportunity
             float roll = Rand.Value;
             SLog.Message(string.Format("[SocialInteractions] Badmouthing: Backstabbing roll was {0:F3} (needed < {1:F3}) - {2}", 
@@ -447,15 +401,7 @@ namespace SocialInteractions
             if (roll < backstabChance)
             {
                 // Schedule a strategic backstabbing interaction
-                // For now, we'll create a simple delay mechanism to simulate planning
-                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Scheduling backstabbing attempt - {0} will attempt to manipulate {1} against {2}", 
-                    initiator.LabelShort, bestTargetForBackstab.LabelShort, targetPawn.LabelShort));
-                    
                 ScheduleBackstabbingAttempt(initiator, bestTargetForBackstab, targetPawn);
-            }
-            else
-            {
-                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Backstabbing opportunity failed for {0}", initiator.LabelShort));
             }
         }
         
@@ -538,15 +484,9 @@ namespace SocialInteractions
         /// </summary>
         private void ScheduleBackstabbingAttempt(Pawn initiator, Pawn targetAlly, Pawn originalTarget)
         {
-            SLog.Message(string.Format("[SocialInteractions] Badmouthing: Scheduling backstabbing attempt - {0} will approach {1} to manipulate them against {2}", 
-                initiator.LabelShort, targetAlly.LabelShort, originalTarget.LabelShort));
-                
             // Decide whether to do information gathering first
             if (ShouldDoInfoGatheringFirst(initiator, targetAlly, originalTarget))
             {
-                SLog.Message(string.Format("[SocialInteractions] Badmouthing: Scheduling info gathering job first - {0} will gather info from {1}", 
-                    initiator.LabelShort, originalTarget.LabelShort));
-                    
                 // Schedule an information gathering attempt first
                 Job infoGatherJob = new Job(SI_JobDefOf.BackstabbingGatherInfo, originalTarget);
                 infoGatherJob.count = 1; // Just execute once
@@ -554,13 +494,6 @@ namespace SocialInteractions
                 if (initiator.jobs != null)
                 {
                     initiator.jobs.TryTakeOrderedJob(infoGatherJob);
-                    SLog.Message(string.Format("[SocialInteractions] Badmouthing: Info gathering job scheduled for {0} to approach {1}", 
-                        initiator.LabelShort, originalTarget.LabelShort));
-                }
-                else
-                {
-                    SLog.Message(string.Format("[SocialInteractions] Badmouthing: Could not schedule info gathering job - {0} has no job system", 
-                        initiator.LabelShort));
                 }
             }
             else
@@ -576,13 +509,6 @@ namespace SocialInteractions
                 if (initiator.jobs != null)
                 {
                     initiator.jobs.TryTakeOrderedJob(backstabJob);
-                    SLog.Message(string.Format("[SocialInteractions] Badmouthing: Backstabbing job scheduled for {0} to approach {1} (target: {2})", 
-                        initiator.LabelShort, targetAlly.LabelShort, originalTarget.LabelShort));
-                }
-                else
-                {
-                    SLog.Message(string.Format("[SocialInteractions] Badmouthing: Could not schedule backstabbing job - {0} has no job system", 
-                        initiator.LabelShort));
                 }
             }
         }

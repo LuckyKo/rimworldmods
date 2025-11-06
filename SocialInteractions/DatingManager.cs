@@ -87,10 +87,8 @@ namespace SocialInteractions
             lock (datesLock)
             {
                 if (initiator == null || partner == null) return;
-                SLog.Message(string.Format("[SocialInteractions] DatingManager.StartDate called for Initiator: {0}, Partner: {1}", initiator.Name.ToStringShort, partner.Name.ToStringShort));
                 if (!IsOnDate(initiator) && !IsOnDate(partner))
                 {
-                    SLog.Message(string.Format("[SocialInteractions] Starting date between {0} and {1}.", initiator.Name.ToStringShort, partner.Name.ToStringShort));
                     HediffDef onDateHediffDef = HediffDef.Named("OnDate");
                     if (onDateHediffDef != null)
                     {
@@ -98,10 +96,6 @@ namespace SocialInteractions
                         if (partner.health != null) partner.health.AddHediff(onDateHediffDef);
                     }
                     dates.Add(new Date(initiator, partner));
-                }
-                else
-                {
-                    SLog.Message(string.Format("[SocialInteractions] DatingManager.StartDate: Not starting date because one or both pawns are already on a date. Initiator: {0} (OnDate: {1}), Partner: {2} (OnDate: {3})", initiator.Name.ToStringShort, IsOnDate(initiator), partner.Name.ToStringShort, IsOnDate(partner)));
                 }
             }
         }
@@ -159,8 +153,6 @@ namespace SocialInteractions
 
                 string initiatorLabel = (date.Initiator != null) ? date.Initiator.LabelShort : "NULL";
                 string partnerLabel = (date.Partner != null) ? date.Partner.LabelShort : "NULL";
-                
-                SLog.Message(string.Format("[SocialInteractions] Ending date for {0} and {1}.", initiatorLabel, partnerLabel));
 
                 // Post-lovin LLM call is now handled in JobDriver_DateLovin.cs
 
@@ -168,7 +160,6 @@ namespace SocialInteractions
                 if (!dates.Remove(date))
                 {
                     // If the date was already removed, do nothing further.
-                    SLog.Message(string.Format("[SocialInteractions] Date for {0} and {1} was already removed.", initiatorLabel, partnerLabel));
                     return;
                 }
 
@@ -184,7 +175,6 @@ namespace SocialInteractions
                 JobDef dateLovinJobDef = SI_JobDefOf.DateLovin;
                 if (date.Initiator != null && date.Initiator.jobs != null && date.Initiator.CurJobDef == dateLovinJobDef)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] Ending DateLovin job for initiator {0}.", initiatorLabel));
                     try
                     {
                         // Check if the job driver is still the DateLovin driver
@@ -192,12 +182,10 @@ namespace SocialInteractions
                         {
                             // Don't end the job immediately, let it finish naturally
                             // Instead, we'll mark that the date has ended and let the job handle it
-                            SLog.Message(string.Format("[SocialInteractions] Initiator {0} is still running DateLovin job driver, will let it finish naturally.", initiatorLabel));
                         }
                         else
                         {
-                            // If the job driver has changed, just log it
-                            SLog.Message(string.Format("[SocialInteractions] Initiator {0} is no longer running DateLovin job driver.", initiatorLabel));
+                            // If the job driver has changed, just handle it
                         }
                     }
                     catch (Exception ex)
@@ -207,7 +195,6 @@ namespace SocialInteractions
                 }
                 if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == dateLovinJobDef)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] Ending DateLovin job for partner {0}.", partnerLabel));
                     try
                     {
                         // Check if the job driver is still the DateLovin driver
@@ -215,12 +202,10 @@ namespace SocialInteractions
                         {
                             // Don't end the job immediately, let it finish naturally
                             // Instead, we'll mark that the date has ended and let the job handle it
-                            SLog.Message(string.Format("[SocialInteractions] Partner {0} is still running DateLovin job driver, will let it finish naturally.", partnerLabel));
                         }
                         else
                         {
-                            // If the job driver has changed, just log it
-                            SLog.Message(string.Format("[SocialInteractions] Partner {0} is no longer running DateLovin job driver.", partnerLabel));
+                            // If the job driver has changed, just handle it
                         }
                     }
                     catch (Exception ex)
@@ -272,7 +257,6 @@ namespace SocialInteractions
                             Hediff nakedHediffInitiator = date.Initiator.health.hediffSet.GetFirstHediffOfDef(siNakedDef);
                             if (nakedHediffInitiator != null) 
                             {
-                                SLog.Message(string.Format("[SocialInteractions] Removing SI_Naked hediff from initiator {0} in EndDate.", initiatorLabel));
                                 date.Initiator.health.RemoveHediff(nakedHediffInitiator);
                             }
                         }
@@ -290,8 +274,6 @@ namespace SocialInteractions
                             Hediff nakedHediffPartner = date.Partner.health.hediffSet.GetFirstHediffOfDef(siNakedDef);
                             if (nakedHediffPartner != null) 
                             {
-                                SLog.Message(string.Format("[SocialInteractions] Removing SI_Naked hediff from partner {0} in EndDate.", partnerLabel));
-                                date.Partner.health.RemoveHediff(nakedHediffPartner);
                             }
                         }
                         catch (Exception ex)
@@ -306,7 +288,6 @@ namespace SocialInteractions
                 JobDef followAndWatchJobDef = SI_JobDefOf.FollowAndWatchInitiator;
                 if (date.Initiator != null && date.Initiator.jobs != null && date.Initiator.CurJobDef == followAndWatchJobDef)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] Ending FollowAndWatch job for initiator {0}.", initiatorLabel));
                     try
                     {
                         date.Initiator.jobs.EndCurrentJob(JobCondition.Succeeded);
@@ -318,7 +299,6 @@ namespace SocialInteractions
                 }
                 if (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJobDef == followAndWatchJobDef)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] Ending FollowAndWatch job for partner {0}.", partnerLabel));
                     try
                     {
                         date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
@@ -430,7 +410,6 @@ namespace SocialInteractions
                 if (dateCooldowns.TryGetValue(pawn.thingIDNumber, out expiryTick))
                 {
                     bool onCooldown = Find.TickManager.TicksGame < expiryTick;
-                    SLog.Message(string.Format("[SocialInteractions] IsOnDateCooldown check for {0}: Found expiry tick {1}. Current tick: {2}. On cooldown: {3}", pawn.LabelShort, expiryTick, Find.TickManager.TicksGame, onCooldown));
                     if (onCooldown)
                     {
                         return true;
@@ -464,11 +443,6 @@ namespace SocialInteractions
                 {
                     dateCooldowns.Remove(key);
                 }
-                
-                if (expiredKeys.Count > 0)
-                {
-                    SLog.Message(string.Format("[SocialInteractions] Cleaned up {0} expired date cooldowns", expiredKeys.Count));
-                }
             }
         }
 
@@ -496,8 +470,6 @@ namespace SocialInteractions
                     // If we can't find a valid initiator or date, end the date
                     if (initiator == null || date == null)
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Found date with null initiator or date object for pawn {0}, ending date.", 
-                            pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
                         if (date != null)
                         {
                             EndDate(date);
@@ -513,9 +485,6 @@ namespace SocialInteractions
                     
                     if (initiatorCritical || partnerCritical)
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Found critical interruption for date between {0} and {1}, ending date.", 
-                            initiator != null ? initiator.LabelShort : "NULL",
-                            date.Partner != null ? date.Partner.LabelShort : "NULL"));
                         EndDate(date);
                         continue;
                     }
@@ -538,35 +507,6 @@ namespace SocialInteractions
                             }
                         }
                         
-                        // Log the current job for debugging
-                        if (initiator != null && initiator.CurJob != null)
-                        {
-                            // SLog.Message(string.Format("[SocialInteractions] DateTracker: Initiator {0} is doing job {1}, is joy job: {2}", 
-                                // initiator.LabelShort != null ? initiator.LabelShort : "NULL",
-                                // initiator.CurJob.def.defName,
-                                // isDoingJoyJob));
-                        }
-                        
-                        // Log the partner's current job for debugging
-                        if (date.Partner != null && date.Partner.CurJob != null)
-                        {
-                            // Check if the partner's job is a joy job
-                            bool isPartnerDoingJoyJob = false;
-                            foreach (JoyGiverDef joyGiver in DefDatabase<JoyGiverDef>.AllDefs)
-                            {
-                                if (joyGiver.jobDef == date.Partner.CurJob.def)
-                                {
-                                    isPartnerDoingJoyJob = true;
-                                    break;
-                                }
-                            }
-                            
-                            // SLog.Message(string.Format("[SocialInteractions] DateTracker: Partner {0} is doing job {1}, is joy job: {2}", 
-                                // date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL",
-                                // date.Partner.CurJob.def.defName,
-                                // isPartnerDoingJoyJob));
-                        }
-                        
                         // If the initiator is doing a joy job, DateLovin job, GoOnDate job, or Wait_MaintainPosture job, the date is not stuck
                         // Also, if the initiator is on a path to a joy job or DateLovin job, the date is not stuck
                         if (initiator != null && initiator.jobs != null && initiator.CurJob != null)
@@ -575,9 +515,6 @@ namespace SocialInteractions
                                 initiator.CurJobDef == waitMaintainPostureJobDef) // Add Wait_MaintainPosture as valid job
                             {
                                 // Date is not stuck
-                                // SLog.Message(string.Format("[SocialInteractions] DateTracker: Date for {0} and {1} is not stuck (valid job or pathing)", 
-                                    // initiator.LabelShort != null ? initiator.LabelShort : "NULL",
-                                    // date.Partner != null ? date.Partner.LabelShort : "NULL"));
                                 continue;
                             }
                             
@@ -585,9 +522,6 @@ namespace SocialInteractions
                             if (initiator.pather != null && initiator.pather.curPath != null && !initiator.pather.curPath.NodesLeftCount.Equals(0))
                             {
                                 // Initiator is still pathing, so the date is not stuck
-                                SLog.Message(string.Format("[SocialInteractions] DateTracker: Date for {0} and {1} is not stuck (still pathing)", 
-                                    initiator.LabelShort != null ? initiator.LabelShort : "NULL",
-                                    date.Partner != null ? date.Partner.LabelShort : "NULL"));
                                 continue;
                             }
                         }
@@ -598,9 +532,6 @@ namespace SocialInteractions
                             (!isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef && initiator.CurJobDef != goOnDateJobDef && 
                              initiator.CurJobDef != waitMaintainPostureJobDef)) // Add Wait_MaintainPosture as valid job
                         {
-                            // Only log when we actually find a stuck date to reduce log spam
-                            SLog.Message(string.Format("[SocialInteractions] Found stuck date for pawn {0}, advancing stage.", 
-                                pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
                             AdvanceDateStage(pawn);
                         }
                     }
@@ -612,9 +543,6 @@ namespace SocialInteractions
                         {
                             // For 3p actions, we don't want to end the date automatically
                             // The 3p action will handle ending the date when appropriate
-                            SLog.Message(string.Format("[SocialInteractions] DateTracker: Date for {0} and {1} is a 3p action, not ending automatically", 
-                                initiator != null ? initiator.LabelShort : "NULL",
-                                date.Partner != null ? date.Partner.LabelShort : "NULL"));
                             continue;
                         }
                         
@@ -628,8 +556,6 @@ namespace SocialInteractions
                         // If either pawn is not in a valid job for the Lovin stage, end the date immediately
                         if (!initiatorInValidJob || !partnerInValidJob)
                         {
-                            SLog.Message(string.Format("[SocialInteractions] Found pawn not in valid job during Lovin stage. Initiator valid: {0}, Partner valid: {1}. Ending date.", 
-                                initiatorInValidJob, partnerInValidJob));
                             EndDate(date);
                         }
                     }
@@ -685,11 +611,6 @@ namespace SocialInteractions
 
         private static void HandleDateStage(Date date)
         {
-            // Reduce log spam by commenting out this message
-            // SLog.Message(string.Format("[SocialInteractions] HandleDateStage: Handling date stage {0} for {1} and {2}", 
-            //     date.Stage, 
-            //     (date.Initiator != null && date.Initiator.LabelShort != null) ? date.Initiator.LabelShort : "NULL", 
-            //     (date.Partner != null && date.Partner.LabelShort != null) ? date.Partner.LabelShort : "NULL"));
             switch (date.Stage)
             {
                 case DateStage.Lovin:
@@ -697,23 +618,12 @@ namespace SocialInteractions
                     date.StageTransitionTick = Current.Game.tickManager.TicksGame;
                     // Note: We don't set ReachedLovinStage = true here because the transition might fail
                     // Instead, we'll set it in TransitionToLovin when the transition is successful
-                    SLog.Message(string.Format("[SocialInteractions] Attempting to transition to Lovin stage for date between {0} and {1}", 
-                        date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
-                        date.Partner != null ? date.Partner.LabelShort : "NULL"));
                     TransitionToLovin(date);
                     break;
                 case DateStage.Finished:
-                    SLog.Message(string.Format("[SocialInteractions] Handling Finished stage for date between {0} and {1}. ReachedLovinStage: {2}", 
-                        date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
-                        date.Partner != null ? date.Partner.LabelShort : "NULL",
-                        date.ReachedLovinStage));
-                    
                     // Give "Got some lovin" thoughts to both pawns only if the date actually reached the lovin stage
                     if (date.Initiator != null && date.Partner != null && date.ReachedLovinStage)
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Giving lovin thoughts to {0} and {1}", 
-                            date.Initiator.LabelShort, date.Partner.LabelShort));
-                        
                         // Give thought to initiator
                         if (date.Initiator.needs != null && date.Initiator.needs.mood != null && date.Initiator.needs.mood.thoughts != null && date.Initiator.needs.mood.thoughts.memories != null)
                         {
@@ -730,18 +640,10 @@ namespace SocialInteractions
                             date.Partner.needs.mood.thoughts.memories.TryGainMemory(thought, null);
                         }
                     }
-                    else if (date.Initiator != null && date.Partner != null)
-                    {
-                        SLog.Message(string.Format("[SocialInteractions] Skipping lovin thoughts for {0} and {1} because ReachedLovinStage is false", 
-                            date.Initiator.LabelShort, date.Partner.LabelShort));
-                    }
                     
                     // Handle pregnancy only if the date actually reached the lovin stage
                     if (ModsConfig.BiotechActive && date.Initiator != null && date.Partner != null && date.ReachedLovinStage)
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Handling pregnancy for {0} and {1}", 
-                            date.Initiator.LabelShort, date.Partner.LabelShort));
-                        
                         Pawn malePawn = ((date.Initiator.gender == Gender.Male) ? date.Initiator : ((date.Partner.gender == Gender.Male) ? date.Partner : null));
                         Pawn femalePawn = ((date.Initiator.gender == Gender.Female) ? date.Initiator : ((date.Partner.gender == Gender.Female) ? date.Partner : null));
                         
@@ -767,24 +669,12 @@ namespace SocialInteractions
                             }
                         }
                     }
-                    else if (date.Initiator != null && date.Partner != null)
-                    {
-                        SLog.Message(string.Format("[SocialInteractions] Skipping pregnancy handling for {0} and {1} because ReachedLovinStage is false", 
-                            date.Initiator.LabelShort, date.Partner.LabelShort));
-                    }
                     
                     // Make post-lovin LLM call only if the date actually reached the lovin stage
                     if (SocialInteractions.Settings.enableLovin && date.Initiator != null && date.Partner != null && date.ReachedLovinStage)
                     {
-                        SLog.Message(string.Format("[SocialInteractions] Making post-lovin LLM call between {0} and {1}", 
-                            date.Initiator.LabelShort, date.Partner.LabelShort));
                         SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, 
                             SpeechBubbleManager.GetPostDateLovinSubject(date.Initiator, date.Partner), true);
-                    }
-                    else if (date.Initiator != null && date.Partner != null)
-                    {
-                        SLog.Message(string.Format("[SocialInteractions] Skipping post-lovin LLM call for {0} and {1} because ReachedLovinStage is false", 
-                            date.Initiator.LabelShort, date.Partner.LabelShort));
                     }
                     EndDate(date);
                     break;
@@ -793,15 +683,8 @@ namespace SocialInteractions
 
         private static void TransitionToLovin(Date date)
         {
-            // Reduce log spam by commenting out this message
-            // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Attempting to transition date for {0} and {1} to Lovin stage.", 
-            //     date.Initiator != null ? (date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL") : "NULL", 
-            //     date.Partner != null ? (date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL") : "NULL"));
-
             if (date.Initiator == null || date.Partner == null)
             {
-                // Reduce log spam by commenting out this message
-                // SLog.Warning("[SocialInteractions] TransitionToLovin: Initiator or Partner is null, ending date.");
                 date.Stage = DateStage.Finished;
                 HandleDateStage(date);
                 return;
@@ -813,9 +696,6 @@ namespace SocialInteractions
                 // End any existing FollowAndWatch job
                 if (date.Partner.CurJobDef == SI_JobDefOf.FollowAndWatchInitiator)
                 {
-                    // Reduce log spam by commenting out this message
-                    // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Ending partner's ({0}) FollowAndWatch job.", 
-                    //     date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
                     date.Partner.jobs.EndCurrentJob(JobCondition.Succeeded);
                 }
                 // Also check the job queue for any pending FollowAndWatch jobs
@@ -837,9 +717,6 @@ namespace SocialInteractions
                     {
                         // End the current job to clear the queue
                         date.Partner.jobs.EndCurrentJob(JobCondition.InterruptForced);
-                        // Reduce log spam by commenting out this message
-                        // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Cleared job queue for partner {0} to remove queued FollowAndWatch jobs.", 
-                        //     date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
                     }
                 }
             }
@@ -856,18 +733,10 @@ namespace SocialInteractions
                     if (distanceToBed > SocialInteractions.Settings.maxDistanceToLovinSpot)
                     {
                         // Bed is too far, use a random spot near the initiator instead
-                        SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Found bed at {0} is too far (distance: {1:F2}), using random spot near initiator.", 
-                            bed.Position, distanceToBed));
-                        
                         // Find a random valid position near the initiator (within 5 cells)
                         finalPosition = GetRandomValidPositionNear(date.Initiator, 5);
-                        SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Using position {0} near initiator instead of distant bed.", finalPosition));
                     }
                 }
-
-                // Reduce log spam by commenting out this message
-                // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Found suitable bed {0} at {1}. Assigning lovin' jobs.",
-                //     bed.LabelShort != null ? bed.LabelShort : "NULL", bed.Position));
 
                 // End any existing jobs that might interfere
                 if (date.Initiator != null && date.Initiator.jobs != null) date.Initiator.jobs.EndCurrentJob(JobCondition.InterruptForced, false);
@@ -880,19 +749,12 @@ namespace SocialInteractions
                 lovinJobInitiator.playerForced = true;
                 
                 date.Initiator.jobs.StartJob(lovinJobInitiator, JobCondition.InterruptForced);
-                // Reduce log spam by commenting out this message
-                // SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Started DateLovin job for initiator {0}.",
-                //     date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL"));
 
                 Job lovinJobPartner = JobMaker.MakeJob(SI_JobDefOf.DateLovin, date.Initiator, finalPosition);
                 // Set the job as player-forced to give it higher priority
                 lovinJobPartner.playerForced = true;
                 
                 // For the partner, we want to make sure the job isn't interrupted by other jobs
-                SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: Queueing DateLovin job for partner {0}. Target: {1}, Position: {2}", 
-                    date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL", 
-                    date.Initiator != null ? date.Initiator.LabelShort : "NULL",
-                    finalPosition));
 
                 // Enqueue the lovin job and then end the current job.
                 // This makes the game immediately start our queued job without a chance for the pawn to find other work.
@@ -900,24 +762,8 @@ namespace SocialInteractions
                 date.Partner.jobs.jobQueue.EnqueueFirst(lovinJobPartner);
                 date.Partner.jobs.EndCurrentJob(JobCondition.InterruptForced);
 
-                // Check if the job was actually started
-                if (date.Partner.jobs.curJob != null && date.Partner.jobs.curJob.def == SI_JobDefOf.DateLovin)
-                {
-                    SLog.Message(string.Format("[SocialInteractions] TransitionToLovin: DateLovin job successfully started for partner {0}.", 
-                        date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL"));
-                }
-                else
-                {
-                    SLog.Warning(string.Format("[SocialInteractions] TransitionToLovin: DateLovin job was not started for partner {0}. Current job: {1}", 
-                        date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL",
-                        date.Partner.jobs.curJob != null ? date.Partner.jobs.curJob.def.defName : "NULL"));
-                }
-
                 // Mark that the date successfully reached the lovin stage
                 date.ReachedLovinStage = true;
-                SLog.Message(string.Format("[SocialInteractions] Successfully transitioned to Lovin stage for date between {0} and {1}. ReachedLovinStage set to true.", 
-                    date.Initiator != null ? date.Initiator.LabelShort : "NULL", 
-                    date.Partner != null ? date.Partner.LabelShort : "NULL"));
 
                 // Start the LLM interaction for date lovin, skipping spam protection since we're already in a date
                 // Only if lovin interactions are enabled in settings
@@ -928,10 +774,6 @@ namespace SocialInteractions
             }
             else
             {
-                // Reduce log spam by commenting out this message
-                // SLog.Warning(string.Format("[SocialInteractions] TransitionToLovin: No suitable bed found. Ending date for {0} and {1}.", 
-                //     date.Initiator != null ? (date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL") : "NULL", 
-                //     date.Partner != null ? (date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL") : "NULL"));
                 date.Stage = DateStage.Finished;
                 HandleDateStage(date);
             }
@@ -1007,7 +849,6 @@ namespace SocialInteractions
             {
                 // Apply a heavy penalty for blood relations
                 compatibility *= 0.1f; // 90% reduction in compatibility
-                SLog.Message(string.Format("[SocialInteractions] CalculateDateCompatibility: {0} and {1} are blood related, applying penalty", pawn1.LabelShort, pawn2.LabelShort));
             }
 
             // Check for libido compatibility
@@ -1027,19 +868,16 @@ namespace SocialInteractions
                     {
                         // Both have high libido - bonus
                         compatibility *= 1.5f; // 50% bonus
-                        SLog.Message(string.Format("[SocialInteractions] CalculateDateCompatibility: {0} and {1} both have high libido, applying bonus", pawn1.LabelShort, pawn2.LabelShort));
                     }
                     else if (pawn1HasLowLibido && pawn2HasLowLibido)
                     {
                         // Both have low libido - high penalty
                         compatibility *= 0.7f; // 30% penalty
-                        SLog.Message(string.Format("[SocialInteractions] CalculateDateCompatibility: {0} and {1} both have low libido, applying small penalty", pawn1.LabelShort, pawn2.LabelShort));
                     }
                     else if ((pawn1HasHighLibido && pawn2HasLowLibido) || (pawn1HasLowLibido && pawn2HasHighLibido))
                     {
                         // Mismatched libido - penalty
                         compatibility *= 0.9f; // 10% penalty
-                        SLog.Message(string.Format("[SocialInteractions] CalculateDateCompatibility: {0} and {1} have mismatched libido, applying penalty", pawn1.LabelShort, pawn2.LabelShort));
                     }
                 }
             }
@@ -1175,14 +1013,8 @@ namespace SocialInteractions
         // Helper method to find a suitable bed for lovin'
         public static Building_Bed FindSuitableBedForLovin(Pawn initiator, Pawn partner)
         {
-            // Reduce log spam by commenting out this message
-            // SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Searching for bed for {0} and {1}.", 
-            //     initiator != null ? (initiator.LabelShort != null ? initiator.LabelShort : "NULL") : "NULL", 
-            //     partner != null ? (partner.LabelShort != null ? partner.LabelShort : "NULL") : "NULL"));
             if (initiator == null || initiator.Map == null || partner == null) 
             {
-                // Reduce log spam by commenting out this message
-                // SLog.Error("[SocialInteractions] FindSuitableBedForLovin: Initiator, Partner, or Map is null.");
                 return null;
             }
 
@@ -1192,11 +1024,9 @@ namespace SocialInteractions
             float dateCompatibility = CalculateDateCompatibility(initiator, partner);
             float rawChance = baseChance * moodFactor * dateCompatibility;
             float finalChance = Sigmoid(rawChance);
-            SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance calculation: base({0}) * mood({1}) * compatibility({2}) = raw({3}) -> final({4})", baseChance, moodFactor, dateCompatibility, rawChance, finalChance));
 
             if (!Rand.Chance(finalChance))
             {
-                SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Lovin chance failed. Rolled > {0}.", finalChance));
                 return null;
             }
 
@@ -1205,22 +1035,15 @@ namespace SocialInteractions
             var potentialBeds = allBeds.Where(bed =>
                 {
                     if (bed == null || bed.Destroyed || !bed.Spawned) return false;
-                    // Remove the restriction on bed size since we're not actually laying in bed
-                    // if (bed.SleepingSlotsCount < 2) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Bed {0} has < 2 slots.", bed.LabelShort));*/ return false; }
-                    if (!initiator.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Initiator cannot reserve/reach {0}.", bed.LabelShort));*/ return false; }
-                    if (!partner.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) { /*SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Partner cannot reserve/reach {0}.", bed.LabelShort));*/ return false; }
+                    if (!initiator.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) return false;
+                    if (!partner.CanReserveAndReach(bed, PathEndMode.InteractionCell, Danger.None)) return false;
                     return true;
                 });
-            // Reduce log spam by commenting out this message
-            // SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found {0} beds that are reachable.", potentialBeds.Count()));
 
             // Prioritize owned beds
             Building_Bed ownedBed = potentialBeds.FirstOrDefault(b => b.OwnersForReading.Contains(initiator));
             if (ownedBed != null) 
             {
-                // Reduce log spam by commenting out this message
-                // SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found bed owned by initiator: {0}.", 
-                //     ownedBed.LabelShort != null ? ownedBed.LabelShort : "NULL"));
                 return ownedBed;
             }
 
@@ -1228,12 +1051,9 @@ namespace SocialInteractions
             Building_Bed anyBed = potentialBeds.FirstOrDefault();
             if (anyBed != null) 
             {
-                // SLog.Message(string.Format("[SocialInteractions] FindSuitableBedForLovin: Found available bed: {0}.", 
-                //     anyBed.LabelShort != null ? anyBed.LabelShort : "NULL"));
                 return anyBed;
             }
 
-            SLog.Warning("[SocialInteractions] FindSuitableBedForLovin: No suitable bed found after all checks.");
             return null;
         }
 
