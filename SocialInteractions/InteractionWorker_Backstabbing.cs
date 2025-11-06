@@ -39,6 +39,17 @@ namespace SocialInteractions
                 return;
             }
             
+            // Check if the same pawn is both initiator and recipient (self-interaction not allowed)
+            if (initiator == recipient)
+            {
+                SLog.Warning("[SocialInteractions] InteractionWorker_Backstabbing: Initiator and recipient are the same pawn, skipping interaction.");
+                letterText = null;
+                letterLabel = null;
+                letterDef = null;
+                lookTargets = LookTargets.Invalid;
+                return;
+            }
+            
             // Check if backstabbing is enabled in settings
             if (!SocialInteractions.Settings.enableBackstabbing)
             {
@@ -171,6 +182,14 @@ namespace SocialInteractions
             if (targetPawn == null)
             {
                 SLog.Warning("[SocialInteractions] InteractionWorker_Backstabbing: Could not determine target pawn for backstabbing, skipping.");
+                return;
+            }
+            
+            // Validate that we don't have the same pawn in multiple roles
+            if (targetPawn == initiator || targetPawn == recipient)
+            {
+                SLog.Warning(string.Format("[SocialInteractions] InteractionWorker_Backstabbing: Target pawn is same as initiator or recipient. Initiator: {0}, Recipient: {1}, Target: {2}, skipping.",
+                    initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort));
                 return;
             }
             

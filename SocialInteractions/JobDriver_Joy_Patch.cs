@@ -31,14 +31,9 @@ namespace SocialInteractions
             // Check if the pawn is on a date
             if (DatingManager.IsOnDate(pawn))
             {
-                // Log that the pawn is on a date
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_Joy_Patch: Pawn {0} is on a date", 
-                    pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
-                
                 // Check if the job is the CaughtCheatingInteraction job, if so, skip the date logic
                 if (__instance.curJob != null && __instance.curJob.def == SI_JobDefOf.CaughtCheatingInteraction)
                 {
-                    SLog.Message("[SocialInteractions] JobDriver_Joy_Patch: Skipping date logic for CaughtCheatingInteraction job.");
                     return;
                 }
                 
@@ -56,10 +51,6 @@ namespace SocialInteractions
                         }
                     }
                     
-                    // Log the joy job check result
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_Joy_Patch: Job {0} is joy job: {1}", 
-                        __instance.curJob.def.defName, isJoyJob));
-                    
                     // If it was a joy job, check if this pawn is the initiator of the date
                     if (isJoyJob)
                     {
@@ -67,16 +58,11 @@ namespace SocialInteractions
                         if (initiator == pawn)
                         {
                             // This pawn is the initiator, so advance the date stage
-                            SLog.Message(string.Format("[SocialInteractions] Joy job completed for initiator {0}, advancing date stage.", 
-                                pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
                             DatingManager.AdvanceDateStage(pawn);
                         }
                         else
                         {
                             // This pawn is the partner, so restart their follow job
-                            SLog.Message(string.Format("[SocialInteractions] Joy job completed for partner {0}, restarting follow job.", 
-                                pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
-                            
                             // Get the initiator of the date
                             Pawn dateInitiator = DatingManager.GetInitiatorOfDateWith(pawn);
                             if (dateInitiator != null)
@@ -86,8 +72,6 @@ namespace SocialInteractions
                                 // Add a small delay before starting the job to prevent race conditions
                                 pawn.jobs.jobQueue.EnqueueFirst(followJob);
                                 pawn.jobs.EndCurrentJob(JobCondition.InterruptForced);
-                                SLog.Message(string.Format("[SocialInteractions] Restarted FollowAndWatch job for partner {0}", 
-                                    pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
                             }
                         }
                     }
@@ -119,13 +103,7 @@ namespace SocialInteractions
                         Date date = DatingManager.GetDateWith(pawn);
                         if (initiator == pawn && date != null && date.Stage == DateStage.Joy)
                         {
-                            SLog.Message(string.Format("[SocialInteractions] Pawn {0} moved to non-joy job {1}, checking if should advance date.",
-                                pawn.Name != null ? pawn.Name.ToStringShort : "NULL", 
-                                __instance.curJob.def.defName));
-                            
                             // This pawn is the initiator, so advance the date stage
-                            SLog.Message(string.Format("[SocialInteractions] Initiator {0} moved to non-joy job, advancing date stage.",
-                                pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
                             DatingManager.AdvanceDateStage(pawn);
                         }
                         // For partners, we don't need to do anything special as they will be handled by the stuck date detection
@@ -134,13 +112,6 @@ namespace SocialInteractions
                     }
                 }
             }
-            /*
-            else
-            {
-                SLog.Message(string.Format("[SocialInteractions] JobDriver_Joy_Patch: Pawn {0} is NOT on a date", 
-                    pawn.Name != null ? pawn.Name.ToStringShort : "NULL"));
-            }
-            */
         }
     }
 }

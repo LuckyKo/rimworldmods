@@ -384,9 +384,9 @@ namespace SocialInteractions
             
             // Check if the target has highly trusted allies worth targeting
             Pawn bestTargetForBackstab = FindMostTrustedAllyOfTarget(targetPawn, recipient);
-            if (bestTargetForBackstab == null)
+            if (bestTargetForBackstab == null || bestTargetForBackstab == initiator || bestTargetForBackstab == recipient || bestTargetForBackstab == targetPawn)
             {
-                // No suitable target for backstabbing found
+                // No suitable target for backstabbing found or the target would be one of the participants
                 return;
             }
             
