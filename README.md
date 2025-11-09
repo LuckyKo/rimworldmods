@@ -27,6 +27,13 @@ Enhance your RimWorld experience with dynamic, AI-generated social interactions,
 - **Personality-Driven**: Different pawn types have unique combat expressions
 - **Configurable Frequency**: Adjust how often taunts occur
 
+### Advanced Drama Systems
+- **Gossip/Badmouthing System**: Pawns share negative opinions about others, potentially forming gossip partnerships and strengthening bonds
+- **Enhanced Insults**: Severity-based insults that escalate based on opinion, with potential for social fight escalation
+- **Strategic Backstabbing**: Manipulative pawns can turn allies against each other through deception and social skill
+- **Admiration System**: Low-influence pawns praise leaders based on shared traits/skills to build relationships
+- **Make Up/Apologizing System**: Colonists can initiate reconciliation conversations to resolve conflicts and repair damaged relationships
+
 ### UI Enhancements
 - **Custom Speech Bubbles**: Visually distinct bubbles for different interaction types
 - **Chat Log**: Review all interactions in a dedicated chat log window
@@ -67,6 +74,7 @@ Enhance your RimWorld experience with dynamic, AI-generated social interactions,
 ### Feature Toggles
 - Enable/disable combat taunts
 - Enable/disable dating system
+- Enable/disable drama interactions (badmouthing, enhanced insults, backstabbing, admiration)
 - Control which interaction types use LLM
 - Adjust dating probabilities and cooldowns
 - Configure visual settings for speech bubbles
@@ -88,10 +96,30 @@ Pawns will automatically engage in LLM-generated conversations during:
 - Medical interactions (Tend Patient, Visit Sick Pawn)
 
 ### Additional Drama Interactions
-Pawns can engage in new interactions that promote the formation of cliques and group leaders
-- Gossip/badmouth about other pawns that they dislike
-- Enhanced Insults that have a more in-depth awareness of inner/outer social circles
-- Praising/Admiring pawns that they see as leaders to raise through the social ranks
+Pawns can engage in new interactions that promote the formation of cliques and group leaders:
+
+#### Gossip/Badmouthing System
+- Pawns with negative opinions about others will share these views with others during social interactions
+- If both pawns share negative opinions about a third party, they form gossip partnerships that strengthen their bond
+- If the recipient values the target more than the initiator, the recipient may lose respect for the initiator instead
+- If the recipient values the target less than the initiator, the recipient will believe the badmouthing and think worse of the target
+
+#### Enhanced Insults
+- Insults are severity-based (Mild, Moderate, Severe, Violent) depending on the initiator's opinion of the recipient
+- Higher severity insults have greater chances to escalate into social fights
+- Outcome depends on recipient's mood, traits, and relationship with the initiator
+
+#### Strategic Backstabbing
+- Successfully badmouthing someone may trigger strategic backstabbing attempts against that person's allies
+- Manipulative pawns approach allies of the target to turn them against the original target
+- Success depends on the difference between social skills of instigator and target
+- Catastrophic betrayal can occur: the more trusted the target was, the more devastating the betrayal (opinions can go from +80 to -100)
+
+#### Admiration System
+- Pawns with low social influence will praise and admire those they see as leaders
+- Based on shared traits, skills, and roles within the colony
+- Success depends on the initiator's social skill level
+- Can lead to positive opinion changes when executed well
 
 ### Dating System
 1. Pawns will naturally attempt to go on dates with others
@@ -126,7 +154,8 @@ Access all generated conversations through the dedicated chat log window:
 ### Architecture
 The mod uses Harmony patches to integrate with RimWorld's systems:
 - Interaction patches for social dialogue
-- Job driver patches for dating mechanics
+- Drama interaction patches for badmouthing, enhanced insults, backstabbing, and admiration
+- Job driver patches for dating mechanics and strategic backstabbing attempts
 - Combat patches for taunts and reactions
 - Map components for lifecycle management
 

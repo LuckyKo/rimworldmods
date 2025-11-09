@@ -16,19 +16,19 @@ namespace SocialInteractions
         public PlayLogEntry_EnhancedInsult()
         {
         }
-        
+
         public PlayLogEntry_EnhancedInsult(InteractionDef intDef, Pawn initiator, Pawn recipient, List<RulePackDef> extraSentencePacks, InsultSeverity severity, bool ledToFight = false)
             : base(intDef, initiator, recipient, extraSentencePacks)
         {
             this.severity = severity;
             this.ledToFight = ledToFight;
         }
-        
-        // Override the ToGameStringFromPOV method to completely replace XML-defined behavior with severity-based text
+
+        // Override the ToGameStringFromPOV method to include severity-based text
         public new string ToGameStringFromPOV(Thing pov, bool forceLog = false)
         {
             string actionDesc = GetSeverityBasedActionDescription(severity, ledToFight);
-            
+
             if (pov == initiator)
             {
                 // From initiator's perspective
@@ -45,7 +45,7 @@ namespace SocialInteractions
                 return string.Format("{0} {1} {2}", initiator.LabelShort, actionDesc, recipient.LabelShort);
             }
         }
-        
+
         private string GetSeverityBasedActionDescription(InsultSeverity severity, bool ledToFight)
         {
             if (ledToFight)

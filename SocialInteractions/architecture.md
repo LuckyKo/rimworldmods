@@ -115,6 +115,20 @@ When debugging RimWorld Harmony patches, if a patch isn't applying, follow these
 - **Trait Integration**: Considers traits that prevent negative interactions (Kind, etc.) or encourage them (Jealous, Abrasive, etc.).
 - **Prevention Mechanisms**: Ensures that drama interactions only occur when appropriate based on pawn relationships and settings.
 
+### 13. `InteractionWorker_Badmouthing.cs` (Badmouthing System)
+- **Custom Interaction Worker**: Handles the core logic of badmouthing interactions that selects a target pawn and determines outcomes based on opinion dynamics.
+- **Smart Target Selection**: Uses `GetLeastFavoritePawn` to identify the most disliked pawn in the colony for badmouthing, preventing the recipient from being the target.
+- **Gossip Scenario**: When both initiator and recipient share negative opinions about the target, they bond over their shared dislike.
+- **Opinion-Based Outcomes**:
+  - If recipient values the target pawn less than the initiator, the recipient believes the badmouthing and forms a worse opinion of the target.
+  - If recipient values the target pawn more than the initiator, the recipient loses trust in the initiator.
+- **Gossip Partnership Formation**: Creates stronger bonds between pawns who share negative opinions about others.
+- **Trait Integration**: Considers traits that encourage or prevent badmouthing (e.g., Kind trait prevents it, Jealous/Abrasive traits encourage it).
+- **Backstabbing Trigger**: Successful badmouthing may trigger strategic backstabbing attempts against the target's allies.
+- **Custom Play Log Entry**: Uses `PlayLogEntry_Badmouthing` for proper logging with target pawn information.
+- **LLM Integration**: Generates appropriate subject text for LLM dialogue based on the specific badmouthing scenario and opinion dynamics.
+- **Drama Event Tracking**: Adds badmouthing events to the chat log for review via `ChatLogManager.AddDramaEvent`.
+
 ### 14. `InteractionWorker_EnhancedInsult.cs` (Enhanced Insult System)
 - **Severity-Based Interaction**: Implements insult severity levels (Mild, Moderate, Severe, Violent) based on initiator's opinion of recipient.
 - **Social Fight Escalation**: Can escalate insults to physical social fights based on severity, mood, and recipient traits.
@@ -130,10 +144,39 @@ When debugging RimWorld Harmony patches, if a patch isn't applying, follow these
 - **Perspective Handling**: Formats the log text differently based on the viewer's relationship to the interaction (initiator, recipient, or third party).
 - **Serialization Support**: Includes parameterless constructor and proper serialization methods for RimWorld's save/load system.
 
-### 16. `PawnFlavorText_GameComponent.cs` (Pawn Bio Storage)
+### 16. `InteractionWorker_Admiration.cs` (Admiration System)
+- **Custom Interaction Worker**: Handles admiration interactions where low social influence pawns praise those they see as leaders.
+- **Social Hierarchy Recognition**: Identifies pawns with leadership traits, skills, or roles that make them admirable to others.
+- **Trait/Skill Matching**: Evaluates shared traits, valued skills, and compatibility between initiators and recipients.
+- **Social Skill-Based Success**: Success of admiration attempts depends on the initiator's social skill level.
+- **Opinion Change Mechanics**: Can result in positive opinion changes when executed successfully, or neutral/negative outcomes if poorly executed.
+- **Admiration Types**: Supports different types of admiration (GeneralPraise, SharedInterestPraise, SkillBasedAdmiration, InspirationalPraise) based on relationship dynamics.
+- **Thought Application**: Applies appropriate thoughts to both initiator and recipient based on interaction outcomes.
+- **LLM Integration**: Generates subject text for LLM dialogue based on admiration type and outcome.
+- **Custom Play Log Entry**: Uses `PlayLogEntry_Admiration` for proper logging of admiration interactions.
+
+### 17. `PawnFlavorText_GameComponent.cs` (Pawn Bio Storage)
 - **GameComponent** for saving and loading custom pawn bio text with the entire game state.
 - **Persistence**: Uses `Scribe_Collections.Look` to save the `pawnFlavorTexts` dictionary across game sessions, ensuring data persists between different maps and game restarts.
 - **Sync Method**: `SyncWithStaticDictionary` method to synchronize data between the component and static dictionary in `SocialInteractions`.
+
+### 18. `PlayLogEntry_Admiration.cs` (Custom Play Log Entry for Admiration)
+- **Custom PlayLogEntry** for Admiration interactions that includes admiration type information.
+- **Admiration Type Tracking**: Records the type of admiration (GeneralPraise, SharedInterestPraise, SkillBasedAdmiration, InspirationalPraise) in the log entry.
+- **Perspective Handling**: Formats the log text differently based on the viewer's relationship to the interaction (initiator, recipient, or third party).
+- **Serialization Support**: Includes parameterless constructor and proper serialization methods for RimWorld's save/load system.
+- **Extended Functionality**: Overrides `ToGameStringFromPOV` to include admiration type information depending on the perspective of the pawn viewing the log.
+
+### 19. `InteractionWorker_Backstabbing.cs` (Strategic Backstabbing System)
+- **Custom Interaction Worker**: Handles the core logic of strategic betrayal where manipulative pawns turn allies against each other.
+- **Social Skill-Based Success**: Success rate depends on the difference between the instigator's and target's social skills.
+- **Information Gathering Phase**: Can perform an initial information gathering phase to learn about relationship dynamics before attempting manipulation.
+- **Catastrophic Betrayal Mechanics**: Successful backstabbing causes massive opinion reversal based on original trust level - the more trusted the target was, the more devastating the betrayal.
+- **Target Selection Logic**: Identifies the target's "best friends" or highest-opinion allies for the strategic backstabbing attempt.
+- **Trait Integration**: Pawns with manipulation-related traits (manipulative, deceptive, calculating, psychopath) are more likely to attempt or succeed at backstabbing.
+- **Job System Integration**: Uses job.targetB and ScheduledTargetPawn to preserve target information through the job system to prevent targeting errors.
+- **LLM Integration**: Generates appropriate subject text for LLM dialogue based on the strategic nature of the betrayal and its success/failure.
+- **Custom Play Log Entry**: Uses `PlayLogEntry_Backstabbing` for proper logging with target and success information.
 - **Data Management**: Efficiently stores bio text using pawn `thingIDNumber` as the key, working across all maps in the game.
 - **Initialization Methods**: `FinalizeInit` and `LoadedGame` methods to ensure proper data synchronization when the game starts or loads.
 
@@ -186,6 +229,22 @@ When debugging RimWorld Harmony patches, if a patch isn't applying, follow these
 - **Pathing Logic**: Continuously updates the path to follow the initiator.
 - **Joy Gain**: Provides social joy gain to the partner while following.
 - **Stage Transition**: Monitors the initiator's job to determine when to advance the date stage.
+
+### `JobDriver_BackstabbingApproachTarget.cs`
+- **Custom JobDriver** for direct strategic backstabbing attempts.
+- **Physical Movement**: Pawns physically approach their target to manipulate them against a mutual acquaintance.
+- **Pathing Logic**: Continuously updates the path to follow the target during the interaction.
+- **State Validation**: Comprehensive validation system ensures targets are in appropriate states for interaction (alive, conscious, not in mental states).
+- **Target Preservation**: Maintains the original target information to prevent targeting errors.
+- **Interaction Handling**: Executes the backstabbing interaction using `InteractionWorker_Backstabbing`.
+
+### `JobDriver_BackstabbingGatherInfo.cs`
+- **Custom JobDriver** for information gathering phase of strategic backstabbing.
+- **Intelligence Gathering**: Allows the instigator to learn about the target's relationships before attempting manipulation.
+- **Physical Movement**: Pawns physically approach their target to conduct the information gathering conversation.
+- **State Validation**: Comprehensive validation system ensures targets are in appropriate states for interaction.
+- **Target Preservation**: Maintains target information through the job system.
+- **Interaction Handling**: Executes the information gathering using `InteractionWorker_Backstabbing`.
 
 ## Harmony Patches (`*.cs` files)
 
@@ -324,3 +383,14 @@ When debugging RimWorld Harmony patches, if a patch isn't applying, follow these
 - **Physical Movement**: Pawns physically move to their targets and maintain interaction even when targets move, using continuous path updating
 - **State Validation**: Comprehensive validation system ensures targets are in appropriate states for interaction (alive, conscious, not in mental states) while allowing strategic interruptions of regular activities
 - **Target Preservation**: Critical target information is preserved through the job system to prevent the "wrong target" issue where backstabbing would target the wrong pawn
+
+#### Admiration System
+- **Interaction Definition**: Custom `Admiration` interaction defined in `InteractionDefs_Badmouthing.xml` with social-hierarchy-based worker class and log rules
+- **Social Hierarchy Mechanics**: Pawns with low social influence express admiration toward those they perceive as leaders based on shared traits, skills, or roles
+- **Trait/Skill Matching**: Identifies commonalities between initiators and recipients (shared traits, valued skills, leadership roles) that make admiration more likely
+- **Social Skill Impact**: Success of admiration attempts depends on the initiator's social skill level, with higher skill increasing the chance of positive opinion changes
+- **Custom Interaction Worker**: `InteractionWorker_Admiration.cs` handles the core logic of social hierarchy building with skill-based success mechanics
+- **Custom Play Log Entry**: `PlayLogEntry_Admiration.cs` (if exists) provides detailed information about the social hierarchy interaction in the global play log
+- **LLM Integration**: Generates appropriate subject text for LLM dialogue based on the admiration type (shared interests, skill-based, inspirational, or general)
+- **Settings Integration**: Includes toggle to enable/disable admiration and configure success chances and opinion changes
+- **Opinion Dynamics**: Can result in positive opinion changes when executed successfully, or neutral/negative outcomes if poorly executed

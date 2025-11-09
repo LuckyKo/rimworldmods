@@ -88,3 +88,5 @@ InteractionWorker_Backstabbing.cs
 PlayLogEntry_Backstabbing.cs
 JobDriver_BackstabbingApproachTarget.cs
 JobDriver_BackstabbingGatherInfo.cs
+InteractionWorker_MakeUp.cs
+PlayLogEntry_MakeUp.cs

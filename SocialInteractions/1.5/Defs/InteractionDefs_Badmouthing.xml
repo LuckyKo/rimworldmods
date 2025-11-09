@@ -8,12 +8,12 @@
     <symbol>Things/Mote/SpeechSymbols/Insult</symbol>
     <logRulesInitiator>
       <rulesStrings>
-        <li>r_logentry->[INITIATOR_nameDef] spoke negatively about someone to [RECIPIENT_nameDef].</li>
+        <li>r_logentry->[INITIATOR_nameDef] spoke negatively about someone to [RECIPIENT_nameDef]</li>
       </rulesStrings>
     </logRulesInitiator>
     <logRulesRecipient>
       <rulesStrings>
-        <li>r_logentry->[RECIPIENT_nameDef] heard negative comments from [INITIATOR_nameDef].</li>
+        <li>r_logentry->[RECIPIENT_nameDef] heard negative comments from [INITIATOR_nameDef]</li>
       </rulesStrings>
     </logRulesRecipient>
   </InteractionDef>
@@ -59,12 +59,29 @@
     <symbol>Things/Mote/SpeechSymbols/Insult</symbol>
     <logRulesInitiator>
       <rulesStrings>
-        <li>r_logentry->[INITIATOR_nameDef] attempted to manipulate [RECIPIENT_nameDef] about [RECIPIENT_nameDef].</li>
+        <li>r_logentry->[INITIATOR_nameDef] attempted to manipulate [RECIPIENT_nameDef].</li>
       </rulesStrings>
     </logRulesInitiator>
     <logRulesRecipient>
       <rulesStrings>
-        <li>r_logentry->[RECIPIENT_nameDef] was approached by [INITIATOR_nameDef] with information about [RECIPIENT_nameDef].</li>
+        <li>r_logentry->[RECIPIENT_nameDef] was approached by [INITIATOR_nameDef] with shady information about one of their friends.</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
+  <InteractionDef>
+    <defName>MakeUp</defName>
+    <label>make up/apologizing</label>
+    <workerClass>SocialInteractions.InteractionWorker_MakeUp</workerClass>
+    <symbol>Things/Mote/SpeechSymbols/Speech</symbol>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->[INITIATOR_nameDef] had a conversation with [RECIPIENT_nameDef]</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->[RECIPIENT_nameDef] had a conversation with [INITIATOR_nameDef]</li>
       </rulesStrings>
     </logRulesRecipient>
   </InteractionDef>

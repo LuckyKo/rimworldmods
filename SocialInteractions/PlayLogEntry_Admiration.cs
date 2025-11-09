@@ -15,18 +15,18 @@ namespace SocialInteractions
         public PlayLogEntry_Admiration()
         {
         }
-        
+
         public PlayLogEntry_Admiration(InteractionDef intDef, Pawn initiator, Pawn recipient, List<RulePackDef> extraSentencePacks, AdmirationType admirationType)
             : base(intDef, initiator, recipient, extraSentencePacks)
         {
             this.admirationType = admirationType;
         }
-        
-        // Override the ToGameStringFromPOV method to completely replace XML-defined behavior with admiration-type-based text
+
+        // Override the ToGameStringFromPOV method to include admiration-type-based text
         public new string ToGameStringFromPOV(Thing pov, bool forceLog = false)
         {
             string actionDesc = GetAdmirationBasedActionDescription(admirationType);
-            
+
             if (pov == initiator)
             {
                 // From initiator's perspective
@@ -43,7 +43,7 @@ namespace SocialInteractions
                 return string.Format("{0} expressed admiration to {1} ({2})", initiator.LabelShort, recipient.LabelShort, actionDesc);
             }
         }
-        
+
         private string GetAdmirationBasedActionDescription(AdmirationType admirationType)
         {
             switch (admirationType)

@@ -105,6 +105,10 @@ namespace SocialInteractions
                 SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, SI_InteractionDefOf.Badmouthing, subject);
             }
 
+            // We removed the target-specific sentence rulepacks because they caused grammar resolution issues
+            // The target information is now properly handled by the PlayLogEntry_Badmouthing class
+            // which uses direct string formatting to include the target pawn's name
+
             // Call the base Interacted method to create the normal log entry using XML rules
             base.Interacted(initiator, recipient, extraSentencePacks, out letterText, out letterLabel, out letterDef, out lookTargets);
             
@@ -473,6 +477,9 @@ namespace SocialInteractions
                 baseChance += 0.3f; // 30% bonus for manipulative traits
             }
             
+            // Apply age-based modifiers (since backstabbing is triggered after badmouthing)
+            baseChance *= CalculateAgeModifier(initiator, originalTarget);
+
             // Cap at a reasonable maximum
             baseChance = Math.Min(0.8f, baseChance);
             
@@ -583,6 +590,34 @@ namespace SocialInteractions
             }
             
             return false;
+        }
+
+        /// <summary>
+        /// Calculates an age-based modifier for drama interactions
+        /// Adults (age > 17) have decreased chance of targeting children (age < 13) - up to 80% decrease based on recipient age
+        /// Children (age < 18) have increased chance when both are under 18 - 50% increase
+        /// </summary>
+        private float CalculateAgeModifier(Pawn initiator, Pawn recipient)
+        {
+            int initiatorAge = initiator.ageTracker.AgeBiologicalYears;
+            int recipientAge = recipient.ageTracker.AgeBiologicalYears;
+
+            // If initiator is adult (>17) and recipient is child (<13), decrease chance based on recipient age
+            if (initiatorAge > 17 && recipientAge < 13)
+            {
+                // The younger the child, the more we decrease the chance (up to 80% at age 0)
+                float ageBasedReduction = (float)recipientAge / 13f;  // From 0 (age 0) to 1 (age 13)
+                float reductionFactor = 1.0f - (0.8f * (1.0f - ageBasedReduction));  // From 0.2 (age 0) to 1.0 (age 13)
+                return Math.Max(0.2f, reductionFactor);  // At least 20% of original chance
+            }
+            // If both are under 18 (children), increase chance by 50%
+            else if (initiatorAge < 18 && recipientAge < 18)
+            {
+                return 1.5f;  // 50% increase
+            }
+
+            // Default no modifier
+            return 1.0f;
         }
     }
 }

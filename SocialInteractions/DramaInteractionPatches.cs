@@ -165,6 +165,9 @@ namespace SocialInteractions
                 }
             }
             
+            // Apply age-based modifiers
+            admirationChance *= CalculateAgeModifier(initiator, recipient);
+
             float randValue = Rand.Value;
             return randValue < admirationChance;
         }
@@ -386,8 +389,39 @@ namespace SocialInteractions
                 }
             }
             
+            // Apply age-based modifiers
+            badmouthingChance *= CalculateAgeModifier(initiator, recipient);
+
             float randValue = Rand.Value;
             return randValue < badmouthingChance;
+        }
+
+        /// <summary>
+        /// Calculates an age-based modifier for drama interactions
+        /// Adults (age > 17) have decreased chance of targeting children (age < 13) - up to 80% decrease based on recipient age
+        /// Children (age < 18) have increased chance when both are under 18 - 50% increase
+        /// </summary>
+        private static float CalculateAgeModifier(Pawn initiator, Pawn recipient)
+        {
+            int initiatorAge = initiator.ageTracker.AgeBiologicalYears;
+            int recipientAge = recipient.ageTracker.AgeBiologicalYears;
+
+            // If initiator is adult (>17) and recipient is child (<13), decrease chance based on recipient age
+            if (initiatorAge > 17 && recipientAge < 13)
+            {
+                // The younger the child, the more we decrease the chance (up to 80% at age 0)
+                float ageBasedReduction = (float)recipientAge / 13f;  // From 0 (age 0) to 1 (age 13)
+                float reductionFactor = 1.0f - (0.8f * (1.0f - ageBasedReduction));  // From 0.2 (age 0) to 1.0 (age 13)
+                return Math.Max(0.2f, reductionFactor);  // At least 20% of original chance
+            }
+            // If both are under 18 (children), increase chance by 50%
+            else if (initiatorAge < 18 && recipientAge < 18)
+            {
+                return 1.5f;  // 50% increase
+            }
+
+            // Default no modifier
+            return 1.0f;
         }
 
         private static bool HasTraitThatPreventsBadmouthing(Pawn pawn)
@@ -605,6 +639,9 @@ namespace SocialInteractions
             float opinionDifferenceFactor = CalculateOpinionDifferenceFactor(initiator, recipient);
             insultChance *= opinionDifferenceFactor;
             
+            // Apply age-based modifiers
+            insultChance *= CalculateAgeModifier(initiator, recipient);
+
             float randValue = Rand.Value;
             return randValue < insultChance;
         }

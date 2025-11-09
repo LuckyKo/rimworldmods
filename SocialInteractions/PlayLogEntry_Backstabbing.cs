@@ -16,19 +16,19 @@ namespace SocialInteractions
         public PlayLogEntry_Backstabbing()
         {
         }
-        
+
         public PlayLogEntry_Backstabbing(InteractionDef intDef, Pawn initiator, Pawn recipient, List<RulePackDef> extraSentencePacks, Pawn targetPawn, bool success)
             : base(intDef, initiator, recipient, extraSentencePacks)
         {
             this.targetPawn = targetPawn;
             this.success = success;
         }
-        
-        // Override the ToGameStringFromPOV method to completely replace XML-defined behavior with backstabbing-specific text
+
+        // Override the ToGameStringFromPOV method to include backstabbing-specific text with target information
         public new string ToGameStringFromPOV(Thing pov, bool forceLog = false)
         {
             string actionDesc = GetBackstabBasedActionDescription(success);
-            
+
             if (pov == initiator)
             {
                 // From initiator's perspective
@@ -64,7 +64,7 @@ namespace SocialInteractions
                 return string.Format("{0} {1} {2} about {3}", initiator.LabelShort, actionDesc, recipient.LabelShort, targetPawn.LabelShort);
             }
         }
-        
+
         private string GetBackstabBasedActionDescription(bool success)
         {
             if (success)

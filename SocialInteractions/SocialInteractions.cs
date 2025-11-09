@@ -137,6 +137,7 @@ namespace SocialInteractions
             if (interactionDef == SI_InteractionDefOf.EnhancedInsult && Settings.enableDrama) return true;
             if (interactionDef == SI_InteractionDefOf.Admiration && Settings.enableDrama) return true;
             if (interactionDef == SI_InteractionDefOf.Backstabbing && Settings.enableDrama) return true;
+            if (interactionDef == SI_InteractionDefOf.MakeUp && Settings.enableDrama) return true;
             return false;
         }
 
@@ -188,6 +189,7 @@ namespace SocialInteractions
             else if (interactionDef == SI_InteractionDefOf.EnhancedInsult && Settings.enableDrama) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.Admiration && Settings.enableDrama) isEnabled = true;
             else if (interactionDef == SI_InteractionDefOf.Backstabbing && Settings.enableDrama) isEnabled = true;
+            else if (interactionDef == SI_InteractionDefOf.MakeUp && Settings.enableDrama) isEnabled = true;
 
             SLog.Message(string.Format("[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for {0}: {1}", interactionDef.defName, isEnabled));
             if (!isEnabled)
@@ -1135,7 +1137,7 @@ namespace SocialInteractions
         public static int HandleThreewayLovinInteraction(Pawn spouse, Pawn cheater, Pawn partner)
         {
             // Generate a descriptive subject line for the LLM
-            string subject = string.Format("{0} joins {1} and {2} in a 3p lovin' session", 
+            string subject = string.Format("{0} caught {1} cheating with {2}, but instead of getting mad they join in a 3p lovin' session", 
                 spouse.LabelShort, cheater.LabelShort, partner.LabelShort);
                 
             // Trigger the LLM interaction and return the conversation ID
