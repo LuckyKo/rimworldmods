@@ -62,6 +62,14 @@ namespace SocialInteractions
                 return;
             }
             
+            // Check for make-up/apologizing interactions (higher priority than admiration but lower than badmouthing/insults)
+            // This allows pawns to attempt reconciliation after conflicts
+            if (TryProcessMakeUp(initiator, recipient, intDef))
+            {
+                // Make-up interaction was triggered, exit to prevent other drama interactions
+                return;
+            }
+            
             // Additional drama interaction checks would go here as needed
         }
 
@@ -693,6 +701,181 @@ namespace SocialInteractions
             // Return a factor greater than 1.0 if there are significant opinion differences
             // This makes it more likely to have negative comments when pawns have very different opinions
             return 1.0f + (averageDifference * SocialInteractions.Settings.enhancedChitchatInsultOpinionDifferenceMultiplier); // Scale the impact using settings
+        }
+
+        /// <summary>
+        /// Attempts to process make-up/apologizing interaction where pawns attempt to clear up 
+        /// misunderstandings and reconcile after conflicts
+        /// </summary>
+        private static bool TryProcessMakeUp(Pawn initiator, Pawn recipient, InteractionDef intDef)
+        {
+            // Check if we should potentially initiate a make-up/apologizing interaction
+            // based on negative feelings between pawns and reconciliation opportunities
+            bool shouldInitiate = ShouldInitiateMakeUp(initiator, recipient);
+
+            if (shouldInitiate)
+            {
+                // Check if this interaction type is appropriate for make-up interactions
+                // Make-up interactions can happen during Chitchat, DisturbingChat or even Insult interactions
+                if (intDef == InteractionDefOf.Chitchat)
+                {
+                    // Let the MakeUp interaction worker handle the interaction regardless of LLM setting
+                    // The interaction worker will internally handle both LLM and non-LLM cases
+                    InteractionDef makeUpDef = DefDatabase<InteractionDef>.GetNamedSilentFail("MakeUp");
+                    if (makeUpDef != null)
+                    {
+                        InteractionWorker_MakeUp makeUpWorker = new InteractionWorker_MakeUp();
+
+                        string letterText, letterLabel;
+                        LetterDef letterDef;
+                        LookTargets lookTargets;
+
+                        // Call the interaction worker's Interacted method directly
+                        makeUpWorker.Interacted(initiator, recipient, null, out letterText, out letterLabel, out letterDef, out lookTargets);
+
+                        // The interaction worker will handle logging the interaction properly
+                        return true; // Indicate that we processed this interaction
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines if a make-up/apologizing interaction should be initiated based on
+        /// negative modifiers from previous conflicts or backstabbing
+        /// </summary>
+        private static bool ShouldInitiateMakeUp(Pawn initiator, Pawn recipient)
+        {
+            if (initiator == null || recipient == null)
+            {
+                return false;
+            }
+
+            // Check if recipient has negative thoughts about the initiator from past conflicts
+            bool hasNegativeModifier = HasNegativeModifierFromConflict(initiator, recipient);
+            
+            if (!hasNegativeModifier)
+            {
+                return false; // No point in making up if there are no negative feelings
+            }
+
+            // Check if the initiator has traits that encourage positive reconciliation
+            bool hasKindnessTrait = HasTraitThatEncouragesKindness(initiator);
+            
+            // Calculate base chance for make-up attempts
+            float makeUpChance = SocialInteractions.Settings.baseMakeUpChance;
+
+            // Increase chance if the initiator has kindness-related traits
+            if (hasKindnessTrait)
+            {
+                makeUpChance *= 1.5f; // Kind pawns are more likely to try to make up
+            }
+
+            // Consider the relationship between initiator and recipient
+            if (initiator.relations != null)
+            {
+                int opinionOfRecipient = initiator.relations.OpinionOf(recipient);
+
+                // If initiator has a positive opinion of recipient despite negative modifiers,
+                // they might be more motivated to make amends
+                if (opinionOfRecipient > 10) 
+                {
+                    makeUpChance *= SocialInteractions.Settings.makeUpPositiveOpinionMultiplier;
+                }
+                // If initiator has a very negative opinion, chance might be lower
+                else if (opinionOfRecipient < -20)
+                {
+                    makeUpChance *= SocialInteractions.Settings.makeUpNegativeOpinionMultiplier;
+                }
+            }
+
+            // Consider mood of the initiator
+            if (initiator.needs != null && initiator.needs.mood != null)
+            {
+                float mood = initiator.needs.mood.CurLevelPercentage;
+                // Slightly more likely to make up when mood is not too low or too high
+                if (mood > 0.3f && mood < 0.7f)
+                {
+                    makeUpChance *= 1.2f; // 20% increase in reasonable mood range
+                }
+            }
+
+            // Base chance for make-up attempts from settings
+            float randValue = Rand.Value;
+            return randValue < makeUpChance;
+        }
+
+        /// <summary>
+        /// Checks if the pawn has traits that encourage positive reconciliation behaviors
+        /// </summary>
+        private static bool HasTraitThatEncouragesKindness(Pawn pawn)
+        {
+            if (pawn == null || pawn.story == null || pawn.story.traits == null)
+            {
+                return false;
+            }
+
+            // Kind pawns are more likely to try to make up
+            Trait kindTrait = pawn.story.traits.GetTrait(TraitDefOf.Kind);
+            if (kindTrait != null)
+            {
+                return true;
+            }
+
+            // Check for other positive traits
+            foreach (Trait trait in pawn.story.traits.allTraits)
+            {
+                if (trait != null && trait.def != null)
+                {
+                    string traitLabel = trait.def.defName.ToLower();
+                    string traitLabelDisplay = trait.Label.ToLower();
+
+                    if (traitLabel.Contains("forgiving") ||
+                        traitLabel.Contains("calm") ||
+                        traitLabelDisplay.Contains("forgiving") ||
+                        traitLabelDisplay.Contains("calm"))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if the recipient has negative thoughts about the initiator from past conflicts
+        /// like backstabbing or other negative interactions
+        /// </summary>
+        private static bool HasNegativeModifierFromConflict(Pawn initiator, Pawn recipient)
+        {
+            if (recipient.needs == null || recipient.needs.mood == null || recipient.needs.mood.thoughts == null)
+            {
+                return false;
+            }
+
+            // Check for specific negative thoughts that originated from the initiator
+            List<Thought_Memory> thoughtsList = recipient.needs.mood.thoughts.memories.Memories;
+            foreach (Thought_Memory thought in thoughtsList)
+            {
+                if (thought.otherPawn == initiator)
+                {
+                    // Check if thought is negative and significant enough to warrant reconciliation
+                    if (thought.def.stages != null && thought.def.stages.Count > 0)
+                    {
+                        int opinionOffset = thought.CurStageIndex < thought.def.stages.Count ? 
+                            (int)thought.def.stages[thought.CurStageIndex].baseOpinionOffset : 0;
+                        if (opinionOffset < -5) // If the thought creates a negative opinion offset
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }

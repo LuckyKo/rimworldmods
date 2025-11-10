@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <RulePackDef>
+    <defName>BadmouthingTopic</defName>
+    <rulePack>
+      <rulesStrings>
+        <li>extra_sentence->[about_target_negativity]</li>
+        <li>about_target_negativity->about [TARGET_NAME]</li>
+        <li>about_target_negativity->about [TARGET_NAME]'s flaws</li>
+        <li>about_target_negativity->about [TARGET_NAME]'s behavior</li>
+        <li>about_target_negativity->about [TARGET_NAME]'s actions</li>
+      </rulesStrings>
+    </rulePack>
+  </RulePackDef>
+
+  <RulePackDef>
+    <defName>BackstabbingTopic</defName>
+    <rulePack>
+      <rulesStrings>
+        <li>extra_sentence->[about_target_manipulation]</li>
+        <li>about_target_manipulation->about [TARGET_NAME]</li>
+        <li>about_target_manipulation->about turning against [TARGET_NAME]</li>
+        <li>about_target_manipulation->about [TARGET_NAME]'s relationship</li>
+        <li>about_target_manipulation->about [TARGET_NAME]'s trustworthiness</li>
+      </rulesStrings>
+    </rulePack>
+  </RulePackDef>
+
+</Defs>

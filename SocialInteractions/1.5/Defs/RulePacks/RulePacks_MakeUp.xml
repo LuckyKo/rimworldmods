@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <RulePackDef>
+    <defName>MakeUpSuccessfulReconciliation</defName>
+    <rulePack>
+      <rulesStrings>
+        <li>extra_sentence->[about_clearing_misunderstandings]</li>
+        <li>extra_sentence->[about_making_amends]</li>
+        <li>extra_sentence->[about_apologizing]</li>
+        <li>about_clearing_misunderstandings->about clearing up misunderstandings</li>
+        <li>about_making_amends->about making amends</li>
+        <li>about_apologizing->about apologizing</li>
+      </rulesStrings>
+    </rulePack>
+  </RulePackDef>
+
+  <RulePackDef>
+    <defName>MakeUpFailedReconciliation</defName>
+    <rulePack>
+      <rulesStrings>
+        <li>extra_sentence->[about_unresolved_issues]</li>
+        <li>extra_sentence->[about_unsuccessful_apology]</li>
+        <li>about_unresolved_issues->about unresolved issues</li>
+        <li>about_unsuccessful_apology->about an unsuccessful apology</li>
+      </rulesStrings>
+    </rulePack>
+  </RulePackDef>
+
+</Defs>

@@ -37,6 +37,9 @@
   <!-- Backstabbing Settings -->
   <SocialInteractions_EnableBackstabbing>Enable Strategic Backstabbing</SocialInteractions_EnableBackstabbing>
   <SocialInteractions_EnableBackstabbingDesc>If enabled, pawns may engage in strategic backstabbing after successful badmouthing, where they attempt to turn the target's allies against them.</SocialInteractions_EnableBackstabbingDesc>
+
+  <!-- MakeUp/Apologizing Settings -->
+  <SocialInteractions_MakeUpSettings>Make-Up/Apologizing Settings:</SocialInteractions_MakeUpSettings>
   
   <!-- LLM API Configuration -->
   <SocialInteractions_LLMConfiguration>LLM API Configuration</SocialInteractions_LLMConfiguration>

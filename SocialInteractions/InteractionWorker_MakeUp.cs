@@ -315,12 +315,12 @@ namespace SocialInteractions
         {
             if (successful)
             {
-                return string.Format("{0} successfully apologized to {1} and cleared up misunderstandings, leading to a reconciliation.",
+                return string.Format("{0} is trying to apologize to {1} and clear up misunderstandings, attempting to reconcile.",
                     initiator.LabelShort, recipient.LabelShort);
             }
             else
             {
-                return string.Format("{0} attempted to apologize to {1} but was unsuccessful in clearing up misunderstandings.",
+                return string.Format("{0} is trying to apologize to {1} but is struggling to clear up misunderstandings.",
                     initiator.LabelShort, recipient.LabelShort);
             }
         }

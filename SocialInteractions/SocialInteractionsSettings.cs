@@ -171,6 +171,11 @@ Current event: [pawn1] [subject]
         public bool enableBackstabbing = true; // Whether backstabbing interactions are enabled
         public float baseBackstabbingChance = 0.05f; // Base chance for backstabbing attempts
 
+        // MakeUp/Apologizing interaction settings
+        public float baseMakeUpChance = 0.08f; // Base chance for make-up/apologizing attempts
+        public float makeUpPositiveOpinionMultiplier = 1.5f; // Multiplier when opinion is positive
+        public float makeUpNegativeOpinionMultiplier = 0.7f; // Multiplier when opinion is negative
+
 
         public override void ExposeData()
         {
@@ -278,6 +283,11 @@ Current event: [pawn1] [subject]
             // Backstabbing interaction settings
             Scribe_Values.Look(ref enableBackstabbing, "enableBackstabbing", true);
             Scribe_Values.Look(ref baseBackstabbingChance, "baseBackstabbingChance", 0.05f);
+
+            // MakeUp/Apologizing interaction settings
+            Scribe_Values.Look(ref baseMakeUpChance, "baseMakeUpChance", 0.08f);
+            Scribe_Values.Look(ref makeUpPositiveOpinionMultiplier, "makeUpPositiveOpinionMultiplier", 1.5f);
+            Scribe_Values.Look(ref makeUpNegativeOpinionMultiplier, "makeUpNegativeOpinionMultiplier", 0.7f);
         }
     }
 
@@ -409,6 +419,12 @@ Current event: [pawn1] [subject]
             listingStandard.CheckboxLabeled("SocialInteractions_EnableBackstabbing".Translate(), ref SocialInteractions.Settings.enableBackstabbing, "SocialInteractions_EnableBackstabbingDesc".Translate());
             listingStandard.Label(string.Format("SocialInteractions_BaseChance".Translate() + ": {0:F3}", SocialInteractions.Settings.baseBackstabbingChance));
             SocialInteractions.Settings.baseBackstabbingChance = listingStandard.Slider(SocialInteractions.Settings.baseBackstabbingChance, 0f, 1f);
+
+            // MakeUp/Apologizing settings
+            listingStandard.Gap();
+            listingStandard.Label("SocialInteractions_MakeUpSettings".Translate());
+            listingStandard.Label(string.Format("SocialInteractions_BaseChance".Translate() + ": {0:F3}", SocialInteractions.Settings.baseMakeUpChance));
+            SocialInteractions.Settings.baseMakeUpChance = listingStandard.Slider(SocialInteractions.Settings.baseMakeUpChance, 0f, 1f);
 
             listingStandard.Gap();
             listingStandard.Label("SocialInteractions_LLMConfiguration".Translate());

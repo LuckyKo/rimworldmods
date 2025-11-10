@@ -76,12 +76,17 @@
     <symbol>Things/Mote/SpeechSymbols/Speech</symbol>
     <logRulesInitiator>
       <rulesStrings>
-        <li>r_logentry->[INITIATOR_nameDef] had a conversation with [RECIPIENT_nameDef]</li>
+        <li>r_logentry->[INITIATOR_nameDef] tried to make up with [RECIPIENT_nameDef]</li>
+        <li>r_logentry->[INITIATOR_nameDef] attempted to reconcile with [RECIPIENT_nameDef]</li>
+        <li>r_logentry->[INITIATOR_nameDef] sought forgiveness from [RECIPIENT_nameDef]</li>
+        <li>r_logentry->[INITIATOR_nameDef] tried to apologize to [RECIPIENT_nameDef]</li>
       </rulesStrings>
     </logRulesInitiator>
     <logRulesRecipient>
       <rulesStrings>
-        <li>r_logentry->[RECIPIENT_nameDef] had a conversation with [INITIATOR_nameDef]</li>
+        <li>r_logentry->[RECIPIENT_nameDef] received an apology from [INITIATOR_nameDef]</li>
+        <li>r_logentry->[RECIPIENT_nameDef] was approached by [INITIATOR_nameDef] for reconciliation</li>
+        <li>r_logentry->[RECIPIENT_nameDef] was asked for forgiveness by [INITIATOR_nameDef]</li>
       </rulesStrings>
     </logRulesRecipient>
   </InteractionDef>

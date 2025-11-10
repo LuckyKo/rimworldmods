@@ -27,12 +27,12 @@ Enhance your RimWorld experience with dynamic, AI-generated social interactions,
 - **Personality-Driven**: Different pawn types have unique combat expressions
 - **Configurable Frequency**: Adjust how often taunts occur
 
-### Advanced Drama Systems
-- **Gossip/Badmouthing System**: Pawns share negative opinions about others, potentially forming gossip partnerships and strengthening bonds
-- **Enhanced Insults**: Severity-based insults that escalate based on opinion, with potential for social fight escalation
+### Dramatic Interactions
+- **Gossip/Badmouthing**: Pawns share negative opinions about others, potentially forming gossip partnerships and strengthening bonds
+- **Personal Insults**: Severity-based insults that escalate based on opinion, with potential for social fight escalation
 - **Strategic Backstabbing**: Manipulative pawns can turn allies against each other through deception and social skill
-- **Admiration System**: Low-influence pawns praise leaders based on shared traits/skills to build relationships
-- **Make Up/Apologizing System**: Colonists can initiate reconciliation conversations to resolve conflicts and repair damaged relationships
+- **Admiration/Praising**: Low-influence pawns praise leaders based on shared traits/skills to build relationships
+- **Make Up/Apologizing**: Colonists can initiate reconciliation conversations to resolve conflicts and repair damaged relationships
 
 ### UI Enhancements
 - **Custom Speech Bubbles**: Visually distinct bubbles for different interaction types
