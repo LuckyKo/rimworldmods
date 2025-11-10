@@ -175,6 +175,9 @@ Current event: [pawn1] [subject]
         public float baseMakeUpChance = 0.08f; // Base chance for make-up/apologizing attempts
         public float makeUpPositiveOpinionMultiplier = 1.5f; // Multiplier when opinion is positive
         public float makeUpNegativeOpinionMultiplier = 0.7f; // Multiplier when opinion is negative
+        
+        // Version tracking
+        public string modVersion = "1.1.1"; // Current version of the mod
 
 
         public override void ExposeData()
@@ -288,6 +291,9 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref baseMakeUpChance, "baseMakeUpChance", 0.08f);
             Scribe_Values.Look(ref makeUpPositiveOpinionMultiplier, "makeUpPositiveOpinionMultiplier", 1.5f);
             Scribe_Values.Look(ref makeUpNegativeOpinionMultiplier, "makeUpNegativeOpinionMultiplier", 0.7f);
+
+            // Version tracking
+            Scribe_Values.Look(ref modVersion, "modVersion", "1.1.1");
         }
     }
 
@@ -323,7 +329,8 @@ Current event: [pawn1] [subject]
 
             Listing_Standard listingStandard = new Listing_Standard();
             listingStandard.Begin(viewRect);
-            listingStandard.Label("SocialInteractions_SettingsTitle".Translate());
+            string settingsTitle = string.Format("{0} v{1}", "SocialInteractions_SettingsTitle".Translate(), SocialInteractions.Settings.modVersion);
+            listingStandard.Label(settingsTitle);
             
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("SocialInteractions_PawnsStopOnInteraction".Translate(), ref SocialInteractions.Settings.pawnsStopOnInteraction, "SocialInteractions_PawnsStopOnInteractionDesc".Translate());

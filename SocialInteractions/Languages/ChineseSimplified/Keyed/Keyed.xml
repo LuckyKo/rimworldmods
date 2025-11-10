@@ -2,7 +2,7 @@
 <LanguageData>
   <!-- General -->
   <SocialInteractions_SettingsCategory>社交互动</SocialInteractions_SettingsCategory>
-  <SocialInteractions_SettingsTitle>社交互动设置 v1.1.0</SocialInteractions_SettingsTitle>
+  <SocialInteractions_SettingsTitle>社交互动设置</SocialInteractions_SettingsTitle>
   <SocialInteractions_SettingsDesc>启用后，角色在社交互动期间会停止当前活动。</SocialInteractions_SettingsDesc>
   
   <!-- Feature Toggle Labels -->

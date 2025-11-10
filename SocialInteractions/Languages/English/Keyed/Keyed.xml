@@ -2,7 +2,7 @@
 <LanguageData>
   <!-- General -->
   <SocialInteractions_SettingsCategory>Social Interactions</SocialInteractions_SettingsCategory>
-  <SocialInteractions_SettingsTitle>Social Interactions Settings v1.1.0</SocialInteractions_SettingsTitle>
+  <SocialInteractions_SettingsTitle>Social Interactions Settings</SocialInteractions_SettingsTitle>
   <SocialInteractions_SettingsDesc>If enabled, pawns will stop their current activities during social interactions.</SocialInteractions_SettingsDesc>
   
   <!-- Feature Toggle Labels -->

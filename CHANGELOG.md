@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-11-10
+
+### Added
+- Version tracking system to settings for better compatibility management
+
+## [1.1.0] - 2025-11-10
+
+### Added
+- MakeUp/Apologizing interaction to the drama system
+- Trait-based reconciliation mechanics (kind pawns more likely to initiate)
+- Integration with core social mechanics (thought removal, opinion changes)
+- Present-tense prompt generation for better LLM responses
+- Comprehensive settings and configuration options
+- Translation support for English and Chinese
+- RulePackDef files for reconciliation outcomes
+- Meaningful log entries for reconciliation attempts
+
+### Changed
+- Enhanced InteractionDef for MakeUp to provide meaningful log entries
+- Improved LLM integration that preserves core mechanics when disabled
+
 ## [1.0.2] - 2025-10-19
 
 ### Added
@@ -35,5 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Initial mod structure and architecture
 
+[1.1.1]: https://github.com/LuckyKo/rimworldmods/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/LuckyKo/rimworldmods/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/LuckyKo/rimworldmods/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/LuckyKo/rimworldmods/releases/tag/v1.0.1

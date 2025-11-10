@@ -385,12 +385,13 @@ When debugging RimWorld Harmony patches, if a patch isn't applying, follow these
 - **Target Preservation**: Critical target information is preserved through the job system to prevent the "wrong target" issue where backstabbing would target the wrong pawn
 
 #### Admiration System
-- **Interaction Definition**: Custom `Admiration` interaction defined in `InteractionDefs_Badmouthing.xml` with social-hierarchy-based worker class and log rules
-- **Social Hierarchy Mechanics**: Pawns with low social influence express admiration toward those they perceive as leaders based on shared traits, skills, or roles
-- **Trait/Skill Matching**: Identifies commonalities between initiators and recipients (shared traits, valued skills, leadership roles) that make admiration more likely
-- **Social Skill Impact**: Success of admiration attempts depends on the initiator's social skill level, with higher skill increasing the chance of positive opinion changes
-- **Custom Interaction Worker**: `InteractionWorker_Admiration.cs` handles the core logic of social hierarchy building with skill-based success mechanics
-- **Custom Play Log Entry**: `PlayLogEntry_Admiration.cs` (if exists) provides detailed information about the social hierarchy interaction in the global play log
-- **LLM Integration**: Generates appropriate subject text for LLM dialogue based on the admiration type (shared interests, skill-based, inspirational, or general)
-- **Settings Integration**: Includes toggle to enable/disable admiration and configure success chances and opinion changes
-- **Opinion Dynamics**: Can result in positive opinion changes when executed successfully, or neutral/negative outcomes if poorly executed
+- **Custom Interaction Worker**: `InteractionWorker_Admiration.cs` handles admiration mechanics based on social hierarchy and skill matching
+- **Custom Play Log Entry**: `PlayLogEntry_Admiration.cs` for proper logging with admiration type information
+- **Harmony Patch Integration**: `DramaInteractionPatches.cs` triggers admiration during suitable social interactions
+- **Settings Integration**: Toggle and configuration options in `SocialInteractionsSettings.cs` with localization support
+
+#### MakeUp/Apologizing System
+- **Custom Interaction Worker**: `InteractionWorker_MakeUp.cs` handles reconciliation mechanics including thought removal and opinion changes
+- **Custom Play Log Entry**: `PlayLogEntry_MakeUp.cs` for logging reconciliation attempts with success/failure tracking
+- **Harmony Patch Integration**: `DramaInteractionPatches.cs` triggers make-up interactions during social exchanges when negative modifiers exist
+- **Settings Integration**: Configuration options in `SocialInteractionsSettings.cs` with localization support
