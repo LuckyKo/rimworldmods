@@ -448,28 +448,31 @@ namespace SocialInteractions
         
         private string GenerateBackstabSubject(Pawn initiator, Pawn recipient, Pawn targetPawn, bool success)
         {
+            // Get detailed target description for LLM context
+            string targetDescription = SocialInteractions.GetPawnDescription(targetPawn);
+            
             if (success)
             {
                 // Get original trust level to customize the subject
                 int originalTrust = recipient.relations != null ? recipient.relations.OpinionOf(targetPawn) : 0;
-                
+
                 if (originalTrust > 50)
                 {
                     // Catastrophic betrayal for high-trust relationships
-                    return string.Format("{0} uses deception to turn {1} against {2}. The manipulation is successful and devastating, causing {1} to completely reverse their opinion of {2}, now seeing {2} negatively.", 
-                        initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort);
+                    return string.Format("{0} uses deception to turn {1} against {2} ({3}). The manipulation is successful and devastating, causing {1} to completely reverse their opinion of {2}, now seeing {2} negatively.",
+                        initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort, targetDescription);
                 }
                 else
                 {
                     // Generic manipulation for low/medium-trust relationships
-                    return string.Format("{0} uses deception to turn {1} against {2}. The manipulation is successful, causing {1} to now think worse of {2}.", 
-                        initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort);
+                    return string.Format("{0} uses deception to turn {1} against {2} ({3}). The manipulation is successful, causing {1} to now think worse of {2}.",
+                        initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort, targetDescription);
                 }
             }
             else
             {
-                return string.Format("{0} tries to turn {1} against {2} through deceptive manipulation. However, {1} sees through the deception and the attempt fails.", 
-                    initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort);
+                return string.Format("{0} tries to turn {1} against {2} ({3}) through deceptive manipulation. However, {1} sees through the deception and the attempt fails.",
+                    initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort, targetDescription);
             }
         }
         

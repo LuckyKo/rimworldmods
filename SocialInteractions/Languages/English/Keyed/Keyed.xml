@@ -127,4 +127,7 @@
   
   <!-- UI Buttons -->
   <SocialInteractions_Done>Done</SocialInteractions_Done>
+
+  <!-- Breakup Settings -->
+  <SocialInteractions_EnableBreakups>Breakups</SocialInteractions_EnableBreakups>
 </LanguageData>

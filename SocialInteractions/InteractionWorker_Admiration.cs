@@ -182,47 +182,143 @@ namespace SocialInteractions
         {
             string baseDescription = "";
             string outcomeNarrative = "";
-            
+
+            // Generate base description based on admiration type with multiple variations
             switch (admirationType)
             {
                 case AdmirationType.SharedInterestPraise:
-                    baseDescription = string.Format("{0} expresses appreciation to {1} about their shared interests or values", 
-                        initiator.LabelShort, recipient.LabelShort);
+                    string[] sharedInterestPhrases = {
+                        string.Format("{0} expresses genuine appreciation to {1} about their shared beliefs and common ground", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} bonds with {1} over their mutual values and similar mindset", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} recognizes {1} as someone who shares their worldview", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} commends {1} for their alignment with shared principles", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} finds common cause with {1} in their shared outlook on life", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} feels a connection with {1} due to their compatible values", 
+                            initiator.LabelShort, recipient.LabelShort)
+                    };
+                    baseDescription = sharedInterestPhrases[Rand.Range(0, sharedInterestPhrases.Length)];
                     break;
+
                 case AdmirationType.SkillBasedAdmiration:
-                    baseDescription = string.Format("{0} praises {1} for their exceptional skills in an area where {0} feels less competent", 
-                        initiator.LabelShort, recipient.LabelShort);
+                    string[] skillBasedPhrases = {
+                        string.Format("{0} openly acknowledges {1}'s superior capabilities in a field where {0} lacks experience", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} seeks to learn from {1}, who demonstrates remarkable expertise", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} recognizes {1} as highly skilled in an area where {0} struggles", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} expresses admiration for {1}'s impressive competence", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} looks up to {1} as someone with enviable talents", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} defers to {1}'s proven abilities and experience", 
+                            initiator.LabelShort, recipient.LabelShort)
+                    };
+                    baseDescription = skillBasedPhrases[Rand.Range(0, skillBasedPhrases.Length)];
                     break;
+
                 case AdmirationType.InspirationalPraise:
-                    baseDescription = string.Format("{0} seeks inspiration from {1}, who is seen as a role model or moral example in the community", 
-                        initiator.LabelShort, recipient.LabelShort);
+                    string[] inspirationalPhrases = {
+                        string.Format("{0} looks to {1} as a source of motivation and positive example", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} seeks wisdom and guidance from {1}, who seems to embody ideal behavior", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} views {1} as a moral compass worth following", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} finds inspiration in {1}'s conduct and achievements", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} regards {1} as a beacon of how things should be done", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} turns to {1} as a respected figure to emulate", 
+                            initiator.LabelShort, recipient.LabelShort)
+                    };
+                    baseDescription = inspirationalPhrases[Rand.Range(0, inspirationalPhrases.Length)];
                     break;
+
                 case AdmirationType.GeneralPraise:
                 default:
-                    baseDescription = string.Format("{0} praises {1} casually", 
-                        initiator.LabelShort, recipient.LabelShort);
+                    string[] generalPhrases = {
+                        string.Format("{0} offers casual praise to {1}", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} gives {1} a compliment in passing", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} acknowledges {1} positively", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} speaks well of {1}", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} shows appreciation towards {1}", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("{0} recognizes {1} with a word of praise", 
+                            initiator.LabelShort, recipient.LabelShort)
+                    };
+                    baseDescription = generalPhrases[Rand.Range(0, generalPhrases.Length)];
                     break;
             }
-            
-            // Generate narrative outcome based on the opinion change result
+
+            // Generate outcome narrative based on the opinion change result with variations
             if (opinionChangeResult.success)
             {
-                outcomeNarrative = string.Format("and {1} appreciates the recognition, leading to a positive reception", 
-                    initiator.LabelShort, recipient.LabelShort);
+                string[] successPhrases = {
+                    string.Format("and {1} receives the recognition warmly", 
+                        initiator.LabelShort, recipient.LabelShort),
+                    string.Format("and {1} responds positively to the acknowledgment", 
+                        initiator.LabelShort, recipient.LabelShort),
+                    string.Format("and {1} appreciates being recognized", 
+                        initiator.LabelShort, recipient.LabelShort),
+                    string.Format("resulting in a positive reception from {1}", 
+                        initiator.LabelShort, recipient.LabelShort),
+                    string.Format("with {1} responding with gratitude", 
+                        initiator.LabelShort, recipient.LabelShort),
+                    string.Format("and {1} acknowledges the praise appropriately", 
+                        initiator.LabelShort, recipient.LabelShort)
+                };
+                outcomeNarrative = successPhrases[Rand.Range(0, successPhrases.Length)];
             }
             else
             {
                 if (opinionChangeResult.changeAmount < 0)
                 {
-                    outcomeNarrative = string.Format("but {1} is not impressed with {0}'s praises", 
-                        initiator.LabelShort, recipient.LabelShort);
+                    string[] failureNegativePhrases = {
+                        string.Format("but {1} receives {0}'s praise with skepticism", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("but {1} seems put off by {0}'s compliments", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("but {1} reacts badly to {0}'s attempts at flattery", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("and {1} appears to be turned away by {0}'s praise", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("but {1} is not receptive to {0}'s words", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("and {1} is left unimpressed by {0}'s flattery", 
+                            initiator.LabelShort, recipient.LabelShort)
+                    };
+                    outcomeNarrative = failureNegativePhrases[Rand.Range(0, failureNegativePhrases.Length)];
                 }
                 else
                 {
-                    outcomeNarrative = string.Format("but {1} remains neutral about {0}'s efforts", 
-                        initiator.LabelShort, recipient.LabelShort);
+                    string[] failureNeutralPhrases = {
+                        string.Format("but {1} remains unmoved by {0}'s efforts", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("but {1} doesn't seem to react much to {0}'s praises", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("but {1} shows little response to {0}'s compliments", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("resulting in only a mild response from {1}", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("but {1} shows a neutral reaction to {0}'s words", 
+                            initiator.LabelShort, recipient.LabelShort),
+                        string.Format("and {1} neither accepts nor rejects {0}'s praise", 
+                            initiator.LabelShort, recipient.LabelShort)
+                    };
+                    outcomeNarrative = failureNeutralPhrases[Rand.Range(0, failureNeutralPhrases.Length)];
                 }
             }
+
             
             return string.Format("{0}, {1}.", baseDescription, outcomeNarrative);
         }
@@ -240,11 +336,6 @@ namespace SocialInteractions
             
             // For the initiator (could have thoughts about admiring others or seeking approval)
             ThoughtDef seekingApproval = SI_ThoughtDefOf.SeekingApproval;
-            if (seekingApproval == null)
-            {
-                // Fallback to a standard RimWorld thought if our custom one isn't available
-                seekingApproval = DefDatabase<ThoughtDef>.GetNamedSilentFail("Chitchat");
-            }
             if (seekingApproval != null && initiator.needs != null && initiator.needs.mood != null)
             {
                 initiator.needs.mood.thoughts.memories.TryGainMemory(seekingApproval, recipient);
@@ -256,14 +347,14 @@ namespace SocialInteractions
             switch (admirationType)
             {
                 case AdmirationType.SharedInterestPraise:
-                    return DefDatabase<ThoughtDef>.GetNamedSilentFail("PraisedByFellowBeliever"); // Hypothetical thought
+                    return SI_ThoughtDefOf.AdmiredBySomeone; // Use our specific admiration thought
                 case AdmirationType.SkillBasedAdmiration:
-                    return DefDatabase<ThoughtDef>.GetNamedSilentFail("AppreciatedByLessSkilled"); // Hypothetical thought
+                    return SI_ThoughtDefOf.AdmiredBySomeone; // Use our specific admiration thought
                 case AdmirationType.InspirationalPraise:
-                    return DefDatabase<ThoughtDef>.GetNamedSilentFail("InspirationalFigure"); // Hypothetical thought
+                    return SI_ThoughtDefOf.AdmiredBySomeone; // Use our specific admiration thought
                 case AdmirationType.GeneralPraise:
                 default:
-                    return DefDatabase<ThoughtDef>.GetNamedSilentFail("SomeonePraisedMe"); // Generic thought
+                    return SI_ThoughtDefOf.AdmiredBySomeone; // Use our specific admiration thought
             }
         }
         
@@ -369,6 +460,7 @@ namespace SocialInteractions
             else
             {
                 // Apply a negative thought about the target to decrease recipient's opinion of the target
+                // Use a more fitting thought for when admiration is not well received
                 thought.def = DefDatabase<ThoughtDef>.GetNamedSilentFail("Slighted");
                 if (thought.def == null)
                 {

@@ -24,5 +24,8 @@ namespace SocialInteractions
         public static ThoughtDef WasManipulatedAgainstSomeone;
         public static ThoughtDef WasTargetOfFailedManipulation;
         public static ThoughtDef FailedBackstabAttempt;
+        
+        // Dating thoughts
+        public static ThoughtDef EnjoyedDateWith;
     }
 }

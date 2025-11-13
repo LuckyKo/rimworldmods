@@ -20,6 +20,9 @@ namespace SocialInteractions
 
     public class SocialInteractionsModSettings : ModSettings
     {
+        // Version tracking
+        public string modVersion = "1.1.2"; // Current version of the mod
+
         // Default templates
         public const string DEFAULT_DIALOGUE_TEMPLATE = @"The following is an interaction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
 
@@ -100,6 +103,8 @@ Current event: [pawn1] [subject]
         public bool enableVisitSickPawn = true;
         public bool enableLovin = true;
         public bool enableDating = true;
+        public bool enableBreakups = true; // Whether breakup interactions are enabled
+        public bool useLlmForBreakups = true; // Whether to use LLM for breakup interactions
         
         // String settings
         public string llmStoppingStrings = @"<end>
@@ -176,10 +181,6 @@ Current event: [pawn1] [subject]
         public float makeUpPositiveOpinionMultiplier = 1.5f; // Multiplier when opinion is positive
         public float makeUpNegativeOpinionMultiplier = 0.7f; // Multiplier when opinion is negative
         
-        // Version tracking
-        public string modVersion = "1.1.1"; // Current version of the mod
-
-
         public override void ExposeData()
         {
             base.ExposeData();
@@ -220,6 +221,8 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref enableLovin, "enableLovin", true);
             Scribe_Values.Look(ref enableDating, "enableDating", true);
             Scribe_Values.Look(ref enableDatingFeature, "enableDatingFeature", true);
+            Scribe_Values.Look(ref enableBreakups, "enableBreakups", true);
+            Scribe_Values.Look(ref useLlmForBreakups, "useLlmForBreakups", true);
             Scribe_Values.Look(ref enableDrama, "enableDrama", false);
             Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);
@@ -293,7 +296,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref makeUpNegativeOpinionMultiplier, "makeUpNegativeOpinionMultiplier", 0.7f);
 
             // Version tracking
-            Scribe_Values.Look(ref modVersion, "modVersion", "1.1.1");
+            Scribe_Values.Look(ref modVersion, "modVersion", "1.1.2");
         }
     }
 
@@ -704,6 +707,8 @@ Current event: [pawn1] [subject]
             listingStandard.CheckboxLabeled("SocialInteractions_EnableVisitSickPawn".Translate(), ref SocialInteractions.Settings.enableVisitSickPawn);
             listingStandard.CheckboxLabeled("SocialInteractions_EnableLovin".Translate(), ref SocialInteractions.Settings.enableLovin);
             listingStandard.CheckboxLabeled("SocialInteractions_EnableDating".Translate(), ref SocialInteractions.Settings.enableDating);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableBreakups".Translate(), ref SocialInteractions.Settings.enableBreakups);
+            //listingStandard.CheckboxLabeled("SocialInteractions_UseLlmForBreakups".Translate(), ref SocialInteractions.Settings.useLlmForBreakups);
 
             listingStandard.End();
 

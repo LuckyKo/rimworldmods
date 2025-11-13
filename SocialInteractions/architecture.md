@@ -4,7 +4,7 @@
 
 The SocialInteractions mod enhances RimWorld's social dynamics by integrating LLM-generated dialogue, adding a complex dating and cheating system, and implementing combat taunts. It uses Harmony patches to intercept and modify vanilla game behavior.
 
-## Notes
+## Development Notes
 When debugging RimWorld Harmony patches, if a patch isn't applying, follow these steps:
 1.  Verify the target method signature in the `[HarmonyPatch]` attribute is perfect. Use a decompiler to get the exact signature from the game's assembly.
 2.  The decompiled file very large, use a helper script (like `extract_class.py`) to extract just the class definition needed, or use read_chunk.py to read a portion of it
@@ -15,6 +15,22 @@ When debugging RimWorld Harmony patches, if a patch isn't applying, follow these
 7.  Crucially, always add any new `.cs` source files to the `compile.rsp` response file so they are included in the compilation.
 8.  Going forward, for all logging in the SocialInteractions mod, use the custom SLog class (SLog.Message, SLog.Warning, SLog.Error) instead of Verse.Log. This is to ensure consistency and allow for verbose logging control via mod settings.
 9.  Freely generate and use helper python scrips if the basic CLI tools fail
+
+### Line Replacement Utility
+
+For precise code modifications, a Python tool for code editing that bypasses exact matching using line numbers and patterns has been provided smart_edit.py
+
+Usage:
+    smart_edit.py <file> insert_at_line <line_number> <content_file>
+    smart_edit.py <file> replace_block <start_line> <end_line> <content_file>
+    smart_edit.py <file> insert_after_pattern <pattern> <content_file>
+    smart_edit.py <file> insert_before_pattern <pattern> <content_file>
+    smart_edit.py <file> delete_lines <start_line> <end_line>
+    smart_edit.py <file> wrap_block <start_line> <end_line> <prefix> <suffix>
+    smart_edit.py <file> undo
+
+This utility is especially helpful for making targeted modifications to files when the basic edit tool fails repeatedly
+
 
 ## Core Components
 

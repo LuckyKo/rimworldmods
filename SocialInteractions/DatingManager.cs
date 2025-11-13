@@ -676,6 +676,38 @@ namespace SocialInteractions
                         SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, 
                             SpeechBubbleManager.GetPostDateLovinSubject(date.Initiator, date.Partner), true);
                     }
+
+                    // Apply positive social thoughts for successful date completion (for both lovin' and non-lovin' dates)
+                    // Only apply if both pawns are valid and not dead
+                    if (date.Initiator != null && date.Partner != null && 
+                        !date.Initiator.Dead && !date.Partner.Dead)
+                    {
+                        // Apply positive thoughts to both pawns
+                        if (date.Initiator.needs != null && date.Initiator.needs.mood != null && 
+                            date.Initiator.needs.mood.thoughts != null && date.Initiator.needs.mood.thoughts.memories != null)
+                        {
+                            ThoughtDef enjoyedDateThought = SI_ThoughtDefOf.EnjoyedDateWith;
+                            if (enjoyedDateThought != null)
+                            {
+                                var thought = (Thought_Memory)ThoughtMaker.MakeThought(enjoyedDateThought);
+                                thought.otherPawn = date.Partner;
+                                date.Initiator.needs.mood.thoughts.memories.TryGainMemory(thought, null);
+                            }
+                        }
+                        
+                        if (date.Partner.needs != null && date.Partner.needs.mood != null && 
+                            date.Partner.needs.mood.thoughts != null && date.Partner.needs.mood.thoughts.memories != null)
+                        {
+                            ThoughtDef enjoyedDateThought = SI_ThoughtDefOf.EnjoyedDateWith;
+                            if (enjoyedDateThought != null)
+                            {
+                                var thought = (Thought_Memory)ThoughtMaker.MakeThought(enjoyedDateThought);
+                                thought.otherPawn = date.Initiator;
+                                date.Partner.needs.mood.thoughts.memories.TryGainMemory(thought, null);
+                            }
+                        }
+                    }
+                    
                     EndDate(date);
                     break;
             }

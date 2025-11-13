@@ -222,4 +222,21 @@
     </stages>
   </ThoughtDef>
 
+  <!-- Thoughts related to successful dates -->
+  <ThoughtDef>
+    <defName>EnjoyedDateWith</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>3</durationDays>
+    <stackLimit>1</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>enjoyed date with {0}</label>
+        <description>I really enjoyed spending time with someone special. That was wonderful.</description>
+        <baseMoodEffect>5</baseMoodEffect>
+        <baseOpinionOffset>5</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+
 </Defs>

@@ -152,6 +152,11 @@ namespace SocialInteractions
             return false;
         }
 
+        public static bool IsLlmBreakupEnabled()
+        {
+            return Settings.llmInteractionsEnabled && Settings.enableBreakups && Settings.useLlmForBreakups;
+        }
+
         public static string GenerateDeepTalkPrompt(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
             if (initiator == null || recipient == null || interactionDef == null)

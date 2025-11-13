@@ -90,3 +90,4 @@ JobDriver_BackstabbingApproachTarget.cs
 JobDriver_BackstabbingGatherInfo.cs
 InteractionWorker_MakeUp.cs
 PlayLogEntry_MakeUp.cs
+InteractionWorker_Breakup_Patch.cs

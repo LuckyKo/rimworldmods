@@ -53,7 +53,7 @@ namespace SocialInteractions
             string subject = GenerateMakeUpSubject(initiator, recipient, reconciliationSuccessful);
 
             // Handle the LLM interaction with the generated subject
-            SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, SI_InteractionDefOf.MakeUp, subject);
+            SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, SI_InteractionDefOf.MakeUp, subject, true);
 
             // Add topic-specific sentence rulepacks based on the outcome
             if (extraSentencePacks == null)
@@ -240,12 +240,28 @@ namespace SocialInteractions
                         else
                         {
                             // Further fallback to a similar thought
-                            Thought_Memory thought = new Thought_Memory();
-                            thought.def = DefDatabase<ThoughtDef>.GetNamed("SocialRecreationPartner");
-                            if (thought.def != null)
+                            ThoughtDef fallbackThought = DefDatabase<ThoughtDef>.GetNamedSilentFail("SocialRecreationPartner");
+                            if (fallbackThought != null)
                             {
-                                thought.otherPawn = initiator;
-                                recipient.needs.mood.thoughts.memories.TryGainMemory(thought);
+                                recipient.needs.mood.thoughts.memories.TryGainMemory(fallbackThought, initiator);
+                            }
+                            else
+                            {
+                                // Even further fallback to a positive social thought that is more likely to exist
+                                ThoughtDef socialThought = DefDatabase<ThoughtDef>.GetNamedSilentFail("KindWords");
+                                if (socialThought != null)
+                                {
+                                    recipient.needs.mood.thoughts.memories.TryGainMemory(socialThought, initiator);
+                                }
+                                else
+                                {
+                                    // Ultimate fallback - just use a simple chitchat thought if KindWords isn't available either
+                                    ThoughtDef chitchatThought = DefDatabase<ThoughtDef>.GetNamedSilentFail("Chitchat");
+                                    if (chitchatThought != null)
+                                    {
+                                        recipient.needs.mood.thoughts.memories.TryGainMemory(chitchatThought, initiator);
+                                    }
+                                }
                             }
                         }
                     }
@@ -315,7 +331,7 @@ namespace SocialInteractions
         {
             if (successful)
             {
-                return string.Format("{0} is trying to apologize to {1} and clear up misunderstandings, attempting to reconcile.",
+                return string.Format("{0} is trying to apologize to {1} and clear up misunderstandings. {1} accepts {0}'s apology",
                     initiator.LabelShort, recipient.LabelShort);
             }
             else
