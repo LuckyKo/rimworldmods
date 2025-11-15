@@ -418,3 +418,10 @@ This utility is especially helpful for making targeted modifications to files wh
 - **Settings Integration**: `enableBreakups` setting in `SocialInteractionsSettings.cs` to control the feature
 - **Compatibility**: Uses `AccessTools.Method` to safely access internal RimWorld classes without breaking original functionality
 - **Fallback Handling**: Maintains base game behavior when LLM features are disabled while still showing appropriate speech bubbles
+
+#### Marriage Ceremony Integration
+- **Harmony Patch**: `MarriageCeremonyStart_Patch.cs` intercepts the transition from gathering to actual ceremony phase in `LordJob_Joinable_MarriageCeremony`
+- **Timing**: Triggers when the ceremony officially begins (when pawns move to their designated spots to exchange vows), not during the gathering phase
+- **Efficiency**: Uses reflection to access transition destination and adds the LLM call as a pre-action, ensuring it runs exactly once
+- **Settings Integration**: `enableMarriageCeremony` setting in `SocialInteractionsSettings.cs` with proper localization
+- **LLM Integration**: Generates appropriate subject text for LLM dialogue based on the ceremony context
