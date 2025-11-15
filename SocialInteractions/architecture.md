@@ -411,3 +411,10 @@ This utility is especially helpful for making targeted modifications to files wh
 - **Custom Play Log Entry**: `PlayLogEntry_MakeUp.cs` for logging reconciliation attempts with success/failure tracking
 - **Harmony Patch Integration**: `DramaInteractionPatches.cs` triggers make-up interactions during social exchanges when negative modifiers exist
 - **Settings Integration**: Configuration options in `SocialInteractionsSettings.cs` with localization support
+
+#### Breakup Interaction System
+- **Harmony Patch**: `InteractionWorker_Breakup_Patch.cs` intercepts the base game's breakup interaction to add LLM functionality
+- **Enhanced Experience**: Adds AI-generated dialogue to the breakup event while preserving all original game mechanics (relationship changes, thoughts, letters, etc.)
+- **Settings Integration**: `enableBreakups` setting in `SocialInteractionsSettings.cs` to control the feature
+- **Compatibility**: Uses `AccessTools.Method` to safely access internal RimWorld classes without breaking original functionality
+- **Fallback Handling**: Maintains base game behavior when LLM features are disabled while still showing appropriate speech bubbles

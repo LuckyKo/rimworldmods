@@ -60,7 +60,7 @@ namespace SocialInteractions
             }
 
             // Check if LLM is busy and if we should prevent spam
-            if (SocialInteractions.Settings.preventSpam && SpeechBubbleManager.isLlmBusy)
+            if (SocialInteractions.Settings.preventSpam && SpeechBubbleManager.IsLlmCurrentlyBusy())
             {
                 SLog.Message("[SocialInteractions] Breakup LLM is busy and preventSpam is true, showing default behavior only.");
                 return;

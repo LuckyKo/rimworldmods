@@ -49,7 +49,7 @@ namespace SocialInteractions
                             string prompt = SocialInteractions.GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
                             
                             // Check if LLM is busy and if we should prevent spam
-                            if (SocialInteractions.Settings.preventSpam && SpeechBubbleManager.isLlmBusy)
+                            if (SocialInteractions.Settings.preventSpam && SpeechBubbleManager.IsLlmCurrentlyBusy())
                             {
                                 // SLog.Message(string.Format("[SocialInteractions] Interaction {0} - LLM is busy and preventSpam is true, showing default bubble without creating jobs.", interactionDef.defName));
                                 // Show default bubble when LLM is busy and we're preventing spam

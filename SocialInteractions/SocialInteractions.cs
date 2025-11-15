@@ -152,6 +152,11 @@ namespace SocialInteractions
             return false;
         }
 
+        public static bool IsLlmMarriageCeremonyEnabled()
+        {
+            return Settings.llmInteractionsEnabled && Settings.enableMarriageCeremony;
+        }
+
         public static bool IsLlmBreakupEnabled()
         {
             return Settings.llmInteractionsEnabled && Settings.enableBreakups && Settings.useLlmForBreakups;
@@ -1159,8 +1164,9 @@ namespace SocialInteractions
 
         public static int HandleMonologue(Pawn pawn, string subject, bool skipSpamProtection = false, string topic = "monologue")
         {
-            SLog.Message(string.Format("[SocialInteractions] HandleMonologue called for: {0}. preventSpam: {1}, isLlmBusy: {2}, skipSpamProtection: {3}, topic: {4}", pawn.LabelShort, Settings.preventSpam, SpeechBubbleManager.isLlmBusy, skipSpamProtection, topic));
-            if (!skipSpamProtection && Settings.preventSpam && SpeechBubbleManager.isLlmBusy)
+            bool isCurrentlyBusy = SpeechBubbleManager.IsLlmCurrentlyBusy();
+            SLog.Message(string.Format("[SocialInteractions] HandleMonologue called for: {0}. preventSpam: {1}, isLlmBusy: {2}, skipSpamProtection: {3}, topic: {4}", pawn.LabelShort, Settings.preventSpam, isCurrentlyBusy, skipSpamProtection, topic));
+            if (!skipSpamProtection && Settings.preventSpam && isCurrentlyBusy)
             {
                 // Show default bubble when LLM is busy and we're preventing spam
                 if (!string.IsNullOrEmpty(subject))
@@ -1169,12 +1175,6 @@ namespace SocialInteractions
                 }
                 return -1; // Return -1 to indicate no conversation was started
             }
-
-            // --- Explicitly set LLM busy flag when starting a new interaction ---
-            // This must happen after the spam check and before the async task starts.
-            SpeechBubbleManager.isLlmBusy = true;
-            SLog.Message(string.Format("[SocialInteractions] Set isLlmBusy = true for monologue by {0}", pawn.LabelShort));
-            // --- End Explicitly set LLM busy flag ---
 
             string prompt = GenerateMonologuePrompt(pawn, subject, topic);
 
@@ -1186,13 +1186,13 @@ namespace SocialInteractions
                 {
                     SpeechBubbleManager.ShowDefaultBubble(pawn, subject);
                 }
-                SpeechBubbleManager.isLlmBusy = false; // Unlock LLM
                 return -1; // Return -1 to indicate no conversation was started
             }
 
             SLog.Message(string.Format("[SocialInteractions] HandleMonologue: Prompt generated for pawn {0}", pawn.LabelShort));
 
             // Start the conversation immediately to get the ID
+            // This will make IsLlmCurrentlyBusy() return true, blocking subsequent requests
             int conversationId = SpeechBubbleManager.StartConversation();
             SLog.Message(string.Format("[SocialInteractions] Started conversation ID: {0} for monologue by {1}", conversationId, pawn.LabelShort));
 
@@ -1321,8 +1321,9 @@ namespace SocialInteractions
 
         public static int HandleNonStoppingInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject, bool skipSpamProtection = false, bool clearQueueOnResponse = false)
         {
-            SLog.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}, skipSpamProtection: {3}, clearQueueOnResponse: {4}", interactionDef.defName, Settings.preventSpam, SpeechBubbleManager.isLlmBusy, skipSpamProtection, clearQueueOnResponse));
-            if (!skipSpamProtection && Settings.preventSpam && SpeechBubbleManager.isLlmBusy) 
+            bool isCurrentlyBusy = SpeechBubbleManager.IsLlmCurrentlyBusy();
+            SLog.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction called for: {0}. preventSpam: {1}, isLlmBusy: {2}, skipSpamProtection: {3}, clearQueueOnResponse: {4}", interactionDef.defName, Settings.preventSpam, isCurrentlyBusy, skipSpamProtection, clearQueueOnResponse));
+            if (!skipSpamProtection && Settings.preventSpam && isCurrentlyBusy)
             {
                 // Show default bubble when LLM is busy and we're preventing spam
                 if (!string.IsNullOrEmpty(subject))
@@ -1332,14 +1333,9 @@ namespace SocialInteractions
                 return -1; // Return -1 to indicate no conversation was started
             }
 
-            // --- Explicitly set LLM busy flag when starting a new interaction ---
-            // This must happen after the spam check and before the async task starts.
-            SpeechBubbleManager.isLlmBusy = true;
-            SLog.Message(string.Format("[SocialInteractions] Set isLlmBusy = true for interaction {0}", interactionDef.defName));
-            // --- End Explicitly set LLM busy flag ---
 
             string prompt = GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
-            
+
             // If we can't generate a prompt, show a default bubble and return
             if (string.IsNullOrEmpty(prompt))
             {
@@ -1347,13 +1343,13 @@ namespace SocialInteractions
                 if (!string.IsNullOrEmpty(subject))
                 {
                     SpeechBubbleManager.ShowDefaultBubble(initiator, subject);
-                    
+
                     // Add the event to the chat log with the subject as fallback text
                     // Use appropriate chat log type based on interaction type for proper color coding:
                     // - Red for drama/insult interactions
-                    // - Pink for dating/romance interactions  
+                    // - Pink for dating/romance interactions
                     // - White for casual conversations
-                    if (interactionDef.defName == "Badmouthing" || 
+                    if (interactionDef.defName == "Badmouthing" ||
                         interactionDef == SI_InteractionDefOf.Badmouthing ||
                         interactionDef == SI_InteractionDefOf.EnhancedInsult ||
                         interactionDef == SI_InteractionDefOf.CaughtCheating ||
@@ -1369,8 +1365,8 @@ namespace SocialInteractions
                             ChatLogManager.AddDramaEvent(initiator, recipient, subject, subject); // Use red for conflict events
                         }
                     }
-                    else if (interactionDef == SI_InteractionDefOf.DateAccepted || 
-                             interactionDef == SI_InteractionDefOf.DateRejected || 
+                    else if (interactionDef == SI_InteractionDefOf.DateAccepted ||
+                             interactionDef == SI_InteractionDefOf.DateRejected ||
                              interactionDef == SI_InteractionDefOf.DateLovin ||
                              interactionDef.defName == "GoOnDate" ||
                              interactionDef == SI_InteractionDefOf.DateLovin ||
@@ -1385,10 +1381,9 @@ namespace SocialInteractions
                         ChatLogManager.AddGameEvent(initiator, recipient, subject, subject);
                     }
                 }
-                SpeechBubbleManager.isLlmBusy = false; // Unlock LLM
                 return -1; // Return -1 to indicate no conversation was started
             }
-            
+
             SLog.Message(string.Format("[SocialInteractions] HandleNonStoppingInteraction: Prompt generated for interaction {0}", interactionDef.defName));
 
             // Start the conversation immediately to get the ID
@@ -1404,7 +1399,7 @@ namespace SocialInteractions
                     if (!string.IsNullOrEmpty(prompt))
                     {
                         string llmResponse = await GenerateTextWithApiClient(prompt);
-                        
+
                         // --- For LLM Efficiency Timing ---
                         DateTime endTime = DateTime.UtcNow;
                         TimeSpan responseTime = endTime - startTime;
@@ -1415,7 +1410,7 @@ namespace SocialInteractions
                             SLog.Message(string.Format("[SocialInteractions] LLM Response time for interaction {0}: {1:F2}s", interactionDef.defName, responseSeconds));
                         });
                         // --- End For LLM Efficiency Timing ---
-                        
+
                         if (llmResponse == null)
                         {
                             Log.Warning(string.Format("[SocialInteractions] HandleNonStoppingInteraction: LLM API returned null response for interaction {0}", interactionDef.defName));
@@ -1424,7 +1419,7 @@ namespace SocialInteractions
                             SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
                             return;
                         }
-                        
+
                         // --- Clear queue for high-priority response ---
                         // If this interaction requested to clear the queue upon receiving a response,
                         // and the response is valid, do so before processing the messages.
@@ -1437,7 +1432,7 @@ namespace SocialInteractions
                             });
                         }
                         // --- End Clear queue for high-priority response ---
-                        
+
                         if (!string.IsNullOrEmpty(llmResponse))
                         {
                             // Split the response using multiple possible line break characters
@@ -1447,7 +1442,7 @@ namespace SocialInteractions
                                 // --- For LLM Efficiency Timing ---
                                 float totalDisplaySeconds = 0f;
                                 // --- End For LLM Efficiency Timing ---
-                                
+
                                 for (int i = 0; i < messages.Length; i++)
                                 {
                                     string rawMessage = messages[i].Trim();
@@ -1483,7 +1478,7 @@ namespace SocialInteractions
                                         // --- End Pass conversationId ---
                                     }
                                 }
-                                
+
                                 // --- For LLM Efficiency Unlock ---
                                 // Calculate unlock delay based on last response time estimate and current display time
 								// With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
@@ -1492,7 +1487,7 @@ namespace SocialInteractions
                                 SpeechBubbleManager.EnqueueJob(() => {
                                     SLog.Message(string.Format("[SocialInteractions] Total Display Time: {0:F2}s, Estimated Next Response Time: {1:F2}s", totalDisplaySeconds, lastResponseTimeSeconds));
                                 });
-                                
+
                                 // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
                                 // No need to schedule unlocks anymore
                                 // --- End For LLM Efficiency Unlock ---
@@ -1503,7 +1498,7 @@ namespace SocialInteractions
                                 // Fallback to default interaction text
                                 string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
                                 SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
-                                
+
                                 // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
                                 // No need to schedule unlocks anymore
                                 // --- End For LLM Efficiency Unlock (Fallback) ---
@@ -1516,7 +1511,7 @@ namespace SocialInteractions
                         // Fallback to default interaction text
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
                         SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
-                        
+
                         // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
                         // No need to schedule unlocks anymore
                         // --- End For LLM Efficiency Unlock (Prompt Fail) ---
@@ -1530,7 +1525,7 @@ namespace SocialInteractions
                     {
                         string fallbackText = string.Format("{0} talks with {1}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
                         SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(initiator, fallbackText, 2f, true, conversationId));
-                        
+
                         // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
                         // No need to schedule unlocks anymore
                         // --- End For LLM Efficiency Unlock (Exception) ---
@@ -1546,7 +1541,7 @@ namespace SocialInteractions
                     if (conversationId != -1)
                     {
                         string interactionDefName = (interactionDef != null) ? interactionDef.defName : "Unknown";
-                        
+
                         // Special handling for CaughtCheating interaction
                         // Let the JobDriver_CaughtCheating handle ending the conversation
                         // since it needs to coordinate with the BeTalkedTo job
@@ -1559,12 +1554,12 @@ namespace SocialInteractions
                             SLog.Message(string.Format("[SocialInteractions] Ending conversation ID: {0} for interaction {1}", conversationId, interactionDefName));
                             SpeechBubbleManager.EndConversation(conversationId);
                         }
-                        
+
                         // Note: isLlmBusy will be handled by the scheduled unlock or immediately if delay <= 0
                     }
                 }
             });
-            
+
             // Return the conversation ID
             return conversationId;
         }
@@ -1574,7 +1569,7 @@ namespace SocialInteractions
             // Always show a default bubble immediately
             SpeechBubbleManager.ShowDefaultBubble(initiator, interactionDef.label);
 
-            if (Settings.preventSpam && SpeechBubbleManager.isLlmBusy) return;
+            if (Settings.preventSpam && SpeechBubbleManager.IsLlmCurrentlyBusy()) return;
 
             Task.Run(async () => {
                 KoboldApiClient client = null;

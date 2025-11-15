@@ -17,7 +17,6 @@ namespace SocialInteractions
         private static float pauseStartTime = -1f; // Tracks when the game was paused
         private static int currentConversationId = 0;
         private static HashSet<int> activeConversations = new HashSet<int>();
-        public static bool isLlmBusy = false;
         
         // --- For Job Queue ---
         private static Queue<Action> pendingJobs = new Queue<Action>();
@@ -35,8 +34,7 @@ namespace SocialInteractions
             pauseStartTime = -1f; // Initialize pause tracking
             currentConversationId = 0;
             activeConversations.Clear();
-            isLlmBusy = false;
-            
+
             // Clear the chat log on game load
             ChatLogManager.ClearChatLog();
         }
@@ -64,14 +62,14 @@ namespace SocialInteractions
                 {
                     float pauseDuration = Time.time - pauseStartTime;
                     nextQueuedBubbleDisplayTime += pauseDuration;
-                    
+
                     // Also adjust pawn bubble end times
                     List<Pawn> pawnsToUpdate = new List<Pawn>(pawnBubbleEndTimes.Keys);
                     foreach (Pawn pawn in pawnsToUpdate)
                     {
                         pawnBubbleEndTimes[pawn] += pauseDuration;
                     }
-                    
+
                     pauseStartTime = -1f; // Reset pause tracking
                     SLog.Message("[SocialInteractions] Game unpaused. Resuming speech bubble timers.");
                 }
@@ -144,13 +142,8 @@ namespace SocialInteractions
                 }
             }
 
-            // Set isLlmBusy based on whether there are any active bubbles or conversations
-            // With the removal of ScheduleUnlock, we now use the actual queue state to determine if LLM is busy
-            lock (queueLock)
-            {
-                // isLlmBusy is true if conversations are active or bubbles are queued
-                isLlmBusy = speechBubbleQueue.Count > 0 || activeConversations.Count > 0;
-            }
+            // Note: The IsLlmCurrentlyBusy() method provides real-time queue state for spam protection
+            // The queue state is checked directly when needed rather than maintaining a potentially stale flag
 
             // Process pending jobs
             lock (queueLock)
@@ -215,21 +208,33 @@ namespace SocialInteractions
 
         public static int StartConversation()
         {
-            currentConversationId++;
-            activeConversations.Add(currentConversationId);
+            lock (queueLock)
+            {
+                currentConversationId++;
+                activeConversations.Add(currentConversationId);
+            }
             return currentConversationId;
         }
 
         public static void EndConversation(int conversationId)
         {
-            activeConversations.Remove(conversationId);
-            // With the new queue-based system, isLlmBusy will be updated automatically by GameComponentTick
-            // based on whether there are active conversations or queued bubbles
+            lock (queueLock)
+            {
+                activeConversations.Remove(conversationId);
+            }
         }
 
         public static bool IsConversationActive(int conversationId)
         {
             return activeConversations.Contains(conversationId);
+        }
+
+        public static bool IsLlmCurrentlyBusy()
+        {
+            lock (queueLock)
+            {
+                return speechBubbleQueue.Count > 0 || activeConversations.Count > 0;
+            }
         }
 
         // --- For Queue Management ---
@@ -308,7 +313,7 @@ namespace SocialInteractions
                 fallbackText = string.Format("{0} talks with {1}.", speaker.Name.ToStringShort, recipient.Name.ToStringShort);
             }
             ChatLogManager.AddMessage(new ChatMessage(speaker, recipient, rawMessage, messageType, conversationId, messageColor, fallbackText, formattedMessage));
-            
+
             lock (queueLock)
             {
                 speechBubbleQueue.Enqueue(new SpeechBubble(speaker, wrappedMessage, duration, conversationId, false, null, useCustomMote));
@@ -347,7 +352,7 @@ namespace SocialInteractions
             // Add to chat log as a monologue message
             string fallbackText = string.Format("{0} thinks to themselves.", speaker.Name.ToStringShort);
             ChatLogManager.AddMessage(new ChatMessage(speaker, null, text, MessageType.LLMChat, conversationId, color ?? Color.grey, fallbackText, text));
-            
+
             lock (queueLock)
             {
                 speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color, useCustomMote));

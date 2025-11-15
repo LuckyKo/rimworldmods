@@ -103,6 +103,7 @@
   <SocialInteractions_EnableVisitSickPawn>探望病人</SocialInteractions_EnableVisitSickPawn>
   <SocialInteractions_EnableLovin>求爱</SocialInteractions_EnableLovin>
   <SocialInteractions_EnableDating>约会</SocialInteractions_EnableDating>
+  <SocialInteractions_EnableMarriageCeremony>婚礼仪式</SocialInteractions_EnableMarriageCeremony>
   <SocialInteractions_EnableBreakups>分手</SocialInteractions_EnableBreakups>
   
   <!-- Date Settings -->

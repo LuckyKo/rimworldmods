@@ -62,9 +62,9 @@ namespace SocialInteractions
             getLlmResponseToil.initAction = () => {
                 SLog.Message("[SocialInteractions] JobDriver_HaveDeepTalk: Starting LLM response toil.");
                 
-                // Set the LLM busy flag
-                SpeechBubbleManager.isLlmBusy = true;
-                SLog.Message("[SocialInteractions] JobDriver_HaveDeepTalk: Set isLlmBusy = true");
+                // Start a conversation to indicate LLM activity, so subsequent calls will be blocked by spam protection
+                this.conversationId = SpeechBubbleManager.StartConversation();
+                SLog.Message(string.Format("[SocialInteractions] JobDriver_HaveDeepTalk: Started conversation ID: {0}", this.conversationId));
                 
                 if (this.job == null) {
                     SLog.Error("Job is null. Ending job.");
@@ -280,8 +280,11 @@ namespace SocialInteractions
             };
             waitForConversationToil.defaultCompleteMode = ToilCompleteMode.Never;
             waitForConversationToil.AddFinishAction(() => {
-                SpeechBubbleManager.isLlmBusy = false;
-                SLog.Message("[SocialInteractions] JobDriver_HaveDeepTalk: Set isLlmBusy = false in finish action");
+                // End the conversation that was started for this interaction
+                if (this.conversationId != -1) {
+                    SpeechBubbleManager.EndConversation(this.conversationId);
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_HaveDeepTalk: Ended conversation ID: {0}", this.conversationId));
+                }
             });
             yield return waitForConversationToil;
         }

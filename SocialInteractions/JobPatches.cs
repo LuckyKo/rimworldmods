@@ -165,7 +165,9 @@ namespace SocialInteractions
                 {
                     lastToil.AddFinishAction(() =>
                     {
-                        SpeechBubbleManager.isLlmBusy = false;
+                        // End any active conversation for this job completion
+                        // The specific conversation would have been ended by the job's completion logic
+                        // but we ensure the busy state is properly managed by the queue system
 
                         // Check if pawns are on a date and advance the stage
                         if (initiator != null && DatingManager.IsOnDate(initiator))

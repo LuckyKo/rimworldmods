@@ -103,6 +103,7 @@
   <SocialInteractions_EnableVisitSickPawn>VisitSickPawn</SocialInteractions_EnableVisitSickPawn>
   <SocialInteractions_EnableLovin>Lovin</SocialInteractions_EnableLovin>
   <SocialInteractions_EnableDating>Dating</SocialInteractions_EnableDating>
+  <SocialInteractions_EnableMarriageCeremony>Marriage Ceremony</SocialInteractions_EnableMarriageCeremony>
   
   <!-- Date Settings -->
   <SocialInteractions_JoyThresholdForDate>Joy threshold for date (0.0 - 1.0):</SocialInteractions_JoyThresholdForDate>

@@ -91,3 +91,4 @@ JobDriver_BackstabbingGatherInfo.cs
 InteractionWorker_MakeUp.cs
 PlayLogEntry_MakeUp.cs
 InteractionWorker_Breakup_Patch.cs
+MarriageCeremonyStart_Patch.cs

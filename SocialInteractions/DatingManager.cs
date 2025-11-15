@@ -944,43 +944,55 @@ namespace SocialInteractions
                     return 0f;
                 }
 
-                // Gender compatibility based on traits
-                if (!pawn1.story.traits.HasTrait(TraitDefOf.Bisexual) && !pawn2.story.traits.HasTrait(TraitDefOf.Bisexual))
+                // Check gender compatibility based on traits
+                // For any pawn that is NOT bisexual, their gender preference must be satisfied
+                bool pawn1IsGay = pawn1.story.traits.HasTrait(TraitDefOf.Gay);
+                bool pawn2IsGay = pawn2.story.traits.HasTrait(TraitDefOf.Gay);
+                bool pawn1IsBisexual = pawn1.story.traits.HasTrait(TraitDefOf.Bisexual);
+                bool pawn2IsBisexual = pawn2.story.traits.HasTrait(TraitDefOf.Bisexual);
+
+                // If pawn1 is NOT bisexual, their orientation must be satisfied
+                if (!pawn1IsBisexual)
                 {
-                    // Neither is bisexual, so check if they're compatible
-                    if (pawn1.story.traits.HasTrait(TraitDefOf.Gay) && pawn2.story.traits.HasTrait(TraitDefOf.Gay))
+                    if (pawn1IsGay)
                     {
-                        // Both are gay, they need to be the same gender
+                        // pawn1 is gay, so they need same gender as pawn2
                         if (pawn1.gender != pawn2.gender)
                         {
                             return 0f;
                         }
                     }
-                    else if (pawn1.story.traits.HasTrait(TraitDefOf.Gay))
+                    else // pawn1 is straight
                     {
-                        // pawn1 is gay, pawn2 needs to be the same gender
-                        if (pawn2.gender != pawn1.gender)
-                        {
-                            return 0f;
-                        }
-                    }
-                    else if (pawn2.story.traits.HasTrait(TraitDefOf.Gay))
-                    {
-                        // pawn2 is gay, pawn1 needs to be the same gender
-                        if (pawn1.gender != pawn2.gender)
-                        {
-                            return 0f;
-                        }
-                    }
-                    else
-                    {
-                        // Both are straight, they need to be different genders
+                        // pawn1 is straight, so they need different gender from pawn2
                         if (pawn1.gender == pawn2.gender)
                         {
                             return 0f;
                         }
                     }
                 }
+
+                // If pawn2 is NOT bisexual, their orientation must be satisfied
+                if (!pawn2IsBisexual)
+                {
+                    if (pawn2IsGay)
+                    {
+                        // pawn2 is gay, so they need same gender as pawn1
+                        if (pawn1.gender != pawn2.gender)
+                        {
+                            return 0f;
+                        }
+                    }
+                    else // pawn2 is straight
+                    {
+                        // pawn2 is straight, so they need different gender from pawn1
+                        if (pawn1.gender == pawn2.gender)
+                        {
+                            return 0f;
+                        }
+                    }
+                }
+                // If both are bisexual, any gender combination is acceptable
             }
 
             // Age check (both must be at least 16)
