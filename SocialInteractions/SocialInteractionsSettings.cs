@@ -21,7 +21,7 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        public string modVersion = "1.1.3"; // Current version of the mod
+        public string modVersion = "1.2.0"; // Current version of the mod
 
         // Default templates
         public const string DEFAULT_DIALOGUE_TEMPLATE = @"The following is an interaction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
@@ -173,9 +173,14 @@ Current event: [pawn1] [subject]
         public float admirationOpinionDecreaseOnFail = -1f; // Opinion change when admiration fails poorly
         public float admirationNegativeImpactChance = 0.1f; // Chance of slight negative impact when admiration fails
 
-        // Backstabbing interaction settings 
+        // Backstabbing interaction settings
         public bool enableBackstabbing = true; // Whether backstabbing interactions are enabled
         public float baseBackstabbingChance = 0.05f; // Base chance for backstabbing attempts
+
+        // Children misbehavior settings
+        public bool enableChildrenMisbehavior = true; // Whether children misbehavior is enabled
+        public float baseChildrenMisbehaviorChance = 0.1f; // Base chance for children misbehavior
+        public float childrenMisbehaviorParentOpinionImpact = 0.5f; // How much parental opinion affects misbehavior chance (higher = more impact)
 
         // MakeUp/Apologizing interaction settings
         public float baseMakeUpChance = 0.08f; // Base chance for make-up/apologizing attempts
@@ -292,13 +297,18 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref enableBackstabbing, "enableBackstabbing", true);
             Scribe_Values.Look(ref baseBackstabbingChance, "baseBackstabbingChance", 0.05f);
 
+            // Children misbehavior settings
+            Scribe_Values.Look(ref enableChildrenMisbehavior, "enableChildrenMisbehavior", true);
+            Scribe_Values.Look(ref baseChildrenMisbehaviorChance, "baseChildrenMisbehaviorChance", 0.1f);
+            Scribe_Values.Look(ref childrenMisbehaviorParentOpinionImpact, "childrenMisbehaviorParentOpinionImpact", 0.5f);
+
             // MakeUp/Apologizing interaction settings
             Scribe_Values.Look(ref baseMakeUpChance, "baseMakeUpChance", 0.08f);
             Scribe_Values.Look(ref makeUpPositiveOpinionMultiplier, "makeUpPositiveOpinionMultiplier", 1.5f);
             Scribe_Values.Look(ref makeUpNegativeOpinionMultiplier, "makeUpNegativeOpinionMultiplier", 0.7f);
 
             // Version tracking
-            Scribe_Values.Look(ref modVersion, "modVersion", "1.1.3");
+            Scribe_Values.Look(ref modVersion, "modVersion", "1.2.0");
         }
     }
 
@@ -354,6 +364,12 @@ Current event: [pawn1] [subject]
             listingStandard.Label(string.Format("SocialInteractions_BaseLovinChance".Translate() + " {0}", SocialInteractions.Settings.baseLovinChance.ToString("F2")));
             SocialInteractions.Settings.baseLovinChance = listingStandard.Slider(SocialInteractions.Settings.baseLovinChance, 0f, 1f);
             
+            // Children misbehavior settings
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableChildrenMisbehavior".Translate(), ref SocialInteractions.Settings.enableChildrenMisbehavior, "SocialInteractions_EnableChildrenMisbehaviorDesc".Translate());
+            listingStandard.Label(string.Format("SocialInteractions_BaseChance".Translate() + ": {0:F3}", SocialInteractions.Settings.baseChildrenMisbehaviorChance));
+            SocialInteractions.Settings.baseChildrenMisbehaviorChance = listingStandard.Slider(SocialInteractions.Settings.baseChildrenMisbehaviorChance, 0f, 1f);
+
             // Add a button to open the chat log window
             if (listingStandard.ButtonText("SocialInteractions_OpenChatLogWindow".Translate()))
             {

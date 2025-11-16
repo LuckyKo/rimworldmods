@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+    <InteractionDef>
+        <defName>ChildAnnoying</defName>
+        <label>child annoying</label>
+        <symbol>Things/Mote/SpeechSymbols/Speech</symbol>
+        <logRulesInitiator>
+            <rulesStrings>
+                <li>r_logentry(p=8)->[INITIATOR_nameDef] annoyed [RECIPIENT_nameDef] by pestering them</li>
+                <li>r_logentry(p=2)->[INITIATOR_nameDef] bothered [RECIPIENT_nameDef] with annoying questions</li>
+                <li>r_logentry(p=1)->[INITIATOR_nameDef] persistently annoyed [RECIPIENT_nameDef]</li>
+            </rulesStrings>
+        </logRulesInitiator>
+        <logRulesRecipient>
+            <rulesStrings>
+                <li>r_logentry->[RECIPIENT_nameDef] was pestered by [INITIATOR_nameDef]</li>
+                <li>r_logentry->[RECIPIENT_nameDef] was annoyed by [INITIATOR_nameDef]'s questions</li>
+            </rulesStrings>
+        </logRulesRecipient>
+    </InteractionDef>
+
+</Defs>

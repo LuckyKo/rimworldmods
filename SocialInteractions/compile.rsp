@@ -92,3 +92,8 @@ InteractionWorker_MakeUp.cs
 PlayLogEntry_MakeUp.cs
 InteractionWorker_Breakup_Patch.cs
 MarriageCeremonyStart_Patch.cs
+ChildrenMisbehaviorManager.cs
+ChildrenMisbehaviorTracker_MapComponent.cs
+ChildThoughtDefOf.cs
+JobDriver_ChildAnnoyAdult.cs
+JobDriver_ChildPlayWithItem.cs

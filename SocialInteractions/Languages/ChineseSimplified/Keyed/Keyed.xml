@@ -38,6 +38,10 @@
   <SocialInteractions_EnableBackstabbing>启用策略性背后捅刀</SocialInteractions_EnableBackstabbing>
   <SocialInteractions_EnableBackstabbingDesc>启用后，角色在成功背后议论后可能会进行策略性背后捅刀，设法让目标的盟友反对他们。</SocialInteractions_EnableBackstabbingDesc>
 
+  <!-- Children Misbehavior Settings -->
+  <SocialInteractions_EnableChildrenMisbehavior>启用儿童恶作剧</SocialInteractions_EnableChildrenMisbehavior>
+  <SocialInteractions_EnableChildrenMisbehaviorDesc>启用后，儿童会进行恶作剧行为，比如烦扰成人和乱放物品。</SocialInteractions_EnableChildrenMisbehaviorDesc>
+
   <!-- MakeUp/Apologizing Settings -->
   <SocialInteractions_MakeUpSettings>和解/道歉设置：</SocialInteractions_MakeUpSettings>
   

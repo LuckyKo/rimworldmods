@@ -13,5 +13,7 @@ namespace SocialInteractions
         public static JobDef HaveChatWith;
         public static JobDef BackstabbingApproachTarget;
         public static JobDef BackstabbingGatherInfo;
+        public static JobDef ChildAnnoyAdult;
+        public static JobDef ChildPlayWithItem;
     }
 }

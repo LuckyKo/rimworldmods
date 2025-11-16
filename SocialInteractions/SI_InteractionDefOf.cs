@@ -23,6 +23,7 @@ namespace SocialInteractions
         public static InteractionDef Admiration;
         public static InteractionDef Backstabbing;
         public static InteractionDef MakeUp;
-        
+        public static InteractionDef ChildAnnoying;
+
     }
 }
