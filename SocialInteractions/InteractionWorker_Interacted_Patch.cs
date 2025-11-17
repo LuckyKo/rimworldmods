@@ -12,20 +12,40 @@ namespace SocialInteractions
         public static void Postfix(InteractionWorker __instance, Pawn initiator, Pawn recipient, List<RulePackDef> extraSentencePacks, string letterText, string letterLabel, LetterDef letterDef, LookTargets lookTargets)
         {
             // SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Interacted_Patch.Postfix called. pawnsStopOnInteraction: {0}", SocialInteractions.Settings.pawnsStopOnInteraction));
-            
+
+            // Check if the recipient is a child and the interaction is an insult, and misbehavior is enabled
+            if (recipient != null && recipient.RaceProps.Humanlike && ChildrenMisbehaviorManager.IsChild(recipient) && SocialInteractions.Settings.enableChildrenMisbehavior)
+            {
+                // Get the interaction definition from the __instance parameter
+                InteractionDef interactionDef = __instance.interaction;
+
+                if (interactionDef != null)
+                {
+                    // Check if this is an insult interaction
+                    if (IsInsultInteraction(interactionDef))
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Child {0} received insult from {1}: {2}",
+                            recipient.LabelShort, initiator.LabelShort, interactionDef.defName));
+
+                        // Give the child a chance to go cry to their parent about being insulted
+                        TryStartCryingToParent(recipient, initiator, interactionDef);
+                    }
+                }
+            }
+
             // Only handle interactions when pawns stop on interaction (stopping interactions)
             if (SocialInteractions.Settings.pawnsStopOnInteraction)
             {
                 // SLog.Message("[SocialInteractions] pawnsStopOnInteraction is true, proceeding with job creation.");
-                
+
                 // Get the interaction definition from the __instance parameter
                 InteractionDef interactionDef = __instance.interaction;
                 // SLog.Message(string.Format("[SocialInteractions] InteractionDef retrieved: {0}", interactionDef != null ? interactionDef.defName : "NULL"));
-                
+
                 if (interactionDef != null)
                 {
                     // SLog.Message(string.Format("[SocialInteractions] Checking if interaction should be handled: {0}", interactionDef.defName));
-                    
+
                     if ((interactionDef == InteractionDefOf.Chitchat && SocialInteractions.Settings.enableChitchat) ||
                         (interactionDef == InteractionDefOf.RomanceAttempt && SocialInteractions.Settings.enableRomanceAttempt) ||
                         (interactionDef == InteractionDefOf.DeepTalk && SocialInteractions.Settings.enableDeepTalk) ||
@@ -36,19 +56,19 @@ namespace SocialInteractions
                         (interactionDef == SI_InteractionDefOf.ChildAnnoying && SocialInteractions.Settings.enableChildrenMisbehavior))
                     {
                         // SLog.Message(string.Format("[SocialInteractions] Interaction {0} matches criteria, checking if LLM interaction is enabled.", interactionDef.defName));
-                        
+
                         // Create a PlayLogEntry_Interaction to get the social log message
                         PlayLogEntry_Interaction entry = new PlayLogEntry_Interaction(interactionDef, initiator, recipient, extraSentencePacks);
                         string subject = SocialInteractions.RemoveRichTextTags(entry.ToGameStringFromPOV(initiator));
-                        
+
                         // Check if LLM interaction is enabled for this interaction type
                         bool isLlmEnabled = SocialInteractions.IsLlmInteractionEnabled(interactionDef);
-                        
+
                         if (isLlmEnabled)
                         {
                             // For LLM-enabled interactions, check if we can generate a prompt
                             string prompt = SocialInteractions.GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
-                            
+
                             // Check if LLM is busy and if we should prevent spam
                             if (SocialInteractions.Settings.preventSpam && SpeechBubbleManager.IsLlmCurrentlyBusy())
                             {
@@ -60,12 +80,12 @@ namespace SocialInteractions
                                 }
                                 return;
                             }
-                            
+
                             // Only create jobs if we can generate a prompt (i.e., an actual LLM request will be sent)
                             if (!string.IsNullOrEmpty(prompt))
                             {
                                 SLog.Message(string.Format("[SocialInteractions] InteractionWorker_Interacted_Patch. Interaction {0} has a valid prompt, creating jobs.", interactionDef.defName));
-                                
+
                                 // For LLM-enabled interactions, format the text with rich text formatting
                                 string formattedSubject = SpeechBubbleManager.FormatSpeakerName(initiator, subject);
                                 SpeechBubbleManager.ShowDefaultBubble(initiator, formattedSubject);
@@ -77,7 +97,7 @@ namespace SocialInteractions
 
                                 Job recipientJob = JobMaker.MakeJob(DefDatabase<JobDef>.GetNamed("BeTalkedTo"), initiator);
                                 recipient.jobs.TryTakeOrderedJob(recipientJob, JobTag.Misc);
-                                
+
                                 // SLog.Message("[SocialInteractions] InteractionWorker_Interacted_Patch. Jobs created successfully.");
                             }
                             else
@@ -108,6 +128,82 @@ namespace SocialInteractions
             {
                 // SLog.Message("[SocialInteractions] InteractionWorker_Interacted_Patch. pawnsStopOnInteraction is false, using default behavior.");
             }
+        }
+
+        private static bool IsInsultInteraction(InteractionDef interactionDef)
+        {
+            // Check if this is any type of insult interaction
+            return interactionDef == InteractionDefOf.Insult ||
+                   interactionDef == SI_InteractionDefOf.EnhancedInsult ||
+                   interactionDef.defName.Contains("Insult"); // Generic check for insult-related interactions
+        }
+
+        private static void TryStartCryingToParent(Pawn child, Pawn insulter, InteractionDef interactionDef)
+        {
+            // Give the child a chance to go cry to their parent (for now, let's say 70% chance)
+            if (Rand.Value < 0.7f) // 70% chance for now, can be configurable
+            {
+                // Find the child's parent or most liked pawn
+                Pawn parent = FindParentOrMostLikedPawn(child);
+
+                if (parent != null && parent != insulter) // Don't go to the insulter
+                {
+                    // Create the job for the child to go cry to the parent
+                    Job cryJob = JobMaker.MakeJob(SI_JobDefOf.ChildGoCryToParent, parent);
+                    cryJob.count = 0; // 0 = insult-related distress
+                    child.jobs.TryTakeOrderedJob(cryJob);
+
+                    SLog.Message(string.Format("[SocialInteractions] TryStartCryingToParent: Child {0} is going to cry to parent {1} after being insulted by {2}",
+                        child.LabelShort, parent.LabelShort, insulter.LabelShort));
+                }
+                else if (parent == null)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] TryStartCryingToParent: Child {0} has no parent to cry to after being insulted", child.LabelShort));
+                }
+                else
+                {
+                    SLog.Message(string.Format("[SocialInteractions] TryStartCryingToParent: Child {0} cannot cry to insulter {1}", child.LabelShort, parent.LabelShort));
+                }
+            }
+        }
+
+        private static Pawn FindParentOrMostLikedPawn(Pawn child)
+        {
+            if (child.relations == null)
+            {
+                return null;
+            }
+
+            // First, look for parents
+            foreach (Pawn potentialParent in child.Map.mapPawns.FreeColonistsAndPrisoners)
+            {
+                if (potentialParent != null && !potentialParent.Dead && potentialParent.Spawned)
+                {
+                    if (child.relations.DirectRelationExists(PawnRelationDefOf.Parent, potentialParent))
+                    {
+                        return potentialParent;
+                    }
+                }
+            }
+
+            // If no parents found, look for the most liked pawn (highest opinion of the child)
+            Pawn mostLiked = null;
+            int highestOpinion = int.MinValue;
+
+            foreach (Pawn potentialPawn in child.Map.mapPawns.FreeColonistsAndPrisoners)
+            {
+                if (potentialPawn != null && !potentialPawn.Dead && potentialPawn.Spawned && potentialPawn != child)
+                {
+                    int opinion = (child.relations != null) ? child.relations.OpinionOf(potentialPawn) : 0;
+                    if (opinion > highestOpinion)
+                    {
+                        highestOpinion = opinion;
+                        mostLiked = potentialPawn;
+                    }
+                }
+            }
+
+            return mostLiked;
         }
     }
 }

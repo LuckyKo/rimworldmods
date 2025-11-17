@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+    <MentalStateDef>
+        <defName>ChildFleeInTerror</defName>
+        <stateClass>SocialInteractions.MentalState_ChildFleeInTerror</stateClass>
+        <label>fleeing in terror</label>
+        <category>Aggro</category>
+        <minTicksBeforeRecovery>300</minTicksBeforeRecovery>
+        <maxTicksBeforeRecovery>600</maxTicksBeforeRecovery>
+        <recoveryMessage>{0} is no longer fleeing in terror.</recoveryMessage>
+        <baseInspectLine>Fleeing in terror</baseInspectLine>
+        <recoverFromSleep>false</recoverFromSleep>
+    </MentalStateDef>
+
+</Defs>

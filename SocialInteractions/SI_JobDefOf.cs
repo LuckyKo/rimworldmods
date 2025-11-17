@@ -15,5 +15,6 @@ namespace SocialInteractions
         public static JobDef BackstabbingGatherInfo;
         public static JobDef ChildAnnoyAdult;
         public static JobDef ChildPlayWithItem;
+        public static JobDef ChildGoCryToParent;
     }
 }

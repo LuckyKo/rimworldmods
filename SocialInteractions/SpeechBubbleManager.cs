@@ -347,10 +347,12 @@ namespace SocialInteractions
         }
 
         // New method for monologue messages that adds them to the chat log
-        public static void EnqueueMonologue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId, Color? color = null, bool useCustomMote = false)
+        public static void EnqueueMonologue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId, Color? color = null, bool useCustomMote = false, string subject = null)
         {
             // Add to chat log as a monologue message
-            string fallbackText = string.Format("{0} thinks to themselves.", speaker.Name.ToStringShort);
+            string fallbackText = string.IsNullOrEmpty(subject)
+                ? string.Format("{0} thinks to themselves.", speaker.Name.ToStringShort)
+                : string.Format("{0} ponders about {1}", speaker.Name.ToStringShort, subject);
             ChatLogManager.AddMessage(new ChatMessage(speaker, null, text, MessageType.LLMChat, conversationId, color ?? Color.grey, fallbackText, text));
 
             lock (queueLock)

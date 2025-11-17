@@ -355,7 +355,7 @@ namespace SocialInteractions
             }
 
             // Find valuable items in storage zones near the child that they can take
-            Thing itemToTake = FindValuableItemInStorage(child, child.Map, 100); // Look in 10-cell radius
+            Thing itemToTake = FindValuableItemInStorage(child, child.Map, 50); // Look in 50-cell radius
 
             if (itemToTake != null)
             {
@@ -372,8 +372,8 @@ namespace SocialInteractions
                         child.LabelShort, itemToTake.Label, playLocation));
 
                     // Show message to player
-                    Messages.Message(string.Format("{0} (child) is taking {1} to play with!", child.LabelShort, itemToTake.Label),
-                        new LookTargets(child, itemToTake), MessageTypeDefOf.CautionInput);
+                    // Messages.Message(string.Format("{0} (child) is taking {1} to play with!", child.LabelShort, itemToTake.Label),
+                        // new LookTargets(child, itemToTake), MessageTypeDefOf.CautionInput);
                 }
                 else
                 {
@@ -592,23 +592,40 @@ namespace SocialInteractions
                 return null;
             }
 
-            // Find colonists that are not currently busy
+            // Find colonists in an XY region around the child
+            // Using GenRadial.RadialCellsAround to get cells in a circular area around the child
             List<Pawn> candidates = new List<Pawn>();
-            
-            foreach (Pawn pawn in child.Map.mapPawns.FreeColonists)
+
+            // Define the region around the child to search for adults
+            int searchRadius = 20;
+            IntVec3 centerPos = child.Position;
+
+            // Search for nearby colonists within a circular area around the child
+            // Using a more efficient approach with GenRadial.RadialCellsAround
+            foreach (IntVec3 cell in GenRadial.RadialCellsAround(centerPos, searchRadius, true))
             {
-                if (pawn != null && pawn != child && IsAdult(pawn) && !pawn.Dead && pawn.Spawned)
+                if (!cell.InBounds(child.Map))
                 {
-                    // Only consider adults who are idle or doing non-critical work
-                    if (pawn.CurJob == null || 
-                        pawn.CurJob.def == JobDefOf.Wait || 
-                        pawn.CurJob.def == JobDefOf.Wait_Wander || 
-                        pawn.CurJob.def == JobDefOf.GotoWander)
+                    continue;
+                }
+
+                // Get pawns at this cell
+                List<Thing> things = cell.GetThingList(child.Map);
+                foreach (Thing thing in things)
+                {
+                    Pawn pawn = thing as Pawn;
+                    if (pawn != null && pawn.Faction == child.Faction && !pawn.Dead && pawn.Spawned)
                     {
-                        float dist = (pawn.Position - child.Position).LengthHorizontal;
-                        if (dist <= 50f) // Within reasonable distance
+                        if (pawn != child && IsAdult(pawn))
                         {
-                            candidates.Add(pawn);
+                            // Only consider adults who are idle or doing non-critical work
+                            if (pawn.CurJob == null ||
+                                pawn.CurJob.def == JobDefOf.Wait ||
+                                pawn.CurJob.def == JobDefOf.Wait_Wander ||
+                                pawn.CurJob.def == JobDefOf.GotoWander)
+                            {
+                                candidates.Add(pawn);
+                            }
                         }
                     }
                 }
@@ -707,7 +724,7 @@ namespace SocialInteractions
             return Mathf.Clamp(traitInfluence, -0.5f, 0.5f);
         }
 
-        private static bool IsChild(Pawn pawn)
+        public static bool IsChild(Pawn pawn)
         {
             if (pawn == null || pawn.ageTracker == null)
             {

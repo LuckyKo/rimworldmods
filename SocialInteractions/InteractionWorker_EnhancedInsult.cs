@@ -32,6 +32,16 @@ namespace SocialInteractions
                 return;
             }
 
+            // Check if the recipient is a child and misbehavior is enabled for insult triggering
+            if (recipient.RaceProps.Humanlike && ChildrenMisbehaviorManager.IsChild(recipient) && SocialInteractions.Settings.enableChildrenMisbehavior)
+            {
+                SLog.Message(string.Format("[SocialInteractions] Child {0} received enhanced insult from {1}",
+                    recipient.LabelShort, initiator.LabelShort));
+
+                // Give the child a chance to go cry to their parent about being insulted
+                TryStartCryingToParent(recipient, initiator);
+            }
+
             // Determine the severity of the insult based on the initiator's opinion of the recipient
             InsultSeverity severity = DetermineInsultSeverity(initiator, recipient);
             
@@ -399,8 +409,76 @@ namespace SocialInteractions
             
             return false;
         }
+
+        private void TryStartCryingToParent(Pawn child, Pawn insulter)
+        {
+            // Give the child a chance to go cry to their parent (for now, let's say 70% chance)
+            if (Rand.Value < 0.7f) // 70% chance for now, can be configurable
+            {
+                // Find the child's parent or most liked pawn
+                Pawn parent = FindParentOrMostLikedPawn(child);
+
+                if (parent != null && parent != insulter) // Don't go to the insulter
+                {
+                    // Create the job for the child to go cry to the parent
+                    Job cryJob = JobMaker.MakeJob(SI_JobDefOf.ChildGoCryToParent, parent);
+                    cryJob.count = 0; // 0 = insult-related distress
+                    child.jobs.TryTakeOrderedJob(cryJob);
+
+                    SLog.Message(string.Format("[SocialInteractions] Child {0} is going to cry to parent {1} after being insulted by {2}",
+                        child.LabelShort, parent.LabelShort, insulter.LabelShort));
+                }
+                else if (parent == null)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] Child {0} has no parent to cry to after being insulted", child.LabelShort));
+                }
+                else
+                {
+                    SLog.Message(string.Format("[SocialInteractions] Child {0} cannot cry to insulter {1}", child.LabelShort, parent.LabelShort));
+                }
+            }
+        }
+
+        private Pawn FindParentOrMostLikedPawn(Pawn child)
+        {
+            if (child.relations == null)
+            {
+                return null;
+            }
+
+            // First, look for parents
+            foreach (Pawn potentialParent in child.Map.mapPawns.FreeColonistsAndPrisoners)
+            {
+                if (potentialParent != null && !potentialParent.Dead && potentialParent.Spawned)
+                {
+                    if (child.relations.DirectRelationExists(PawnRelationDefOf.Parent, potentialParent))
+                    {
+                        return potentialParent;
+                    }
+                }
+            }
+
+            // If no parents found, look for the most liked pawn (highest opinion of the child)
+            Pawn mostLiked = null;
+            int highestOpinion = int.MinValue;
+
+            foreach (Pawn potentialPawn in child.Map.mapPawns.FreeColonistsAndPrisoners)
+            {
+                if (potentialPawn != null && !potentialPawn.Dead && potentialPawn.Spawned && potentialPawn != child)
+                {
+                    int opinion = (child.relations != null) ? child.relations.OpinionOf(potentialPawn) : 0;
+                    if (opinion > highestOpinion)
+                    {
+                        highestOpinion = opinion;
+                        mostLiked = potentialPawn;
+                    }
+                }
+            }
+
+            return mostLiked;
+        }
     }
-    
+
     /// <summary>
     /// Enum for different levels of insult severity
     /// </summary>

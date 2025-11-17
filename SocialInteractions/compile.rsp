@@ -97,3 +97,7 @@ ChildrenMisbehaviorTracker_MapComponent.cs
 ChildThoughtDefOf.cs
 JobDriver_ChildAnnoyAdult.cs
 JobDriver_ChildPlayWithItem.cs
+JobDriver_ChildGoCryToParent.cs
+MentalState_ChildFleeInTerror.cs
+SI_MentalStateDefOf.cs
+Pawn_TakeDamage_Patch.cs

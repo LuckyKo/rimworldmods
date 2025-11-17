@@ -1223,8 +1223,10 @@ namespace SocialInteractions
                         {
                             Log.Warning(string.Format("[SocialInteractions] HandleMonologue: LLM API returned null response for pawn {0}", pawn.LabelShort));
                             // Fallback to default monologue text
-                            string fallbackText = string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort);
-                            SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(pawn, fallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
+                            string fallbackText = string.IsNullOrEmpty(subject)
+                                ? string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort)
+                                : string.Format("{0} ponders about {1}", pawn.Name.ToStringShort, subject);
+                            SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, fallbackText, 2f, true, conversationId, null, false, subject)); // Use monologue method
                             return;
                         }
 
@@ -1253,9 +1255,10 @@ namespace SocialInteractions
                                         totalDisplaySeconds += duration;
                                         // --- End For LLM Efficiency Timing ---
                                         // --- Pass conversationId ---
-                                        // Capture the loop variable to avoid closure issues
+                                        // Capture the variables to avoid closure issues
                                         int currentIndex = i;
-                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, wrappedMessage, duration, currentIndex == 0, conversationId, null, true)); // Orange for high priority
+                                        string capturedSubject = subject; // Capture the subject for the monologue
+                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, wrappedMessage, duration, currentIndex == 0, conversationId, null, true, capturedSubject)); // Orange for high priority
                                         // --- End Pass conversationId ---
                                     }
                                 }
@@ -1268,9 +1271,11 @@ namespace SocialInteractions
                             {
                                 SLog.Warning(string.Format("[SocialInteractions] HandleMonologue: LLM API returned empty messages for pawn {0}", pawn.LabelShort));
                                 // Fallback to default monologue text
-                                string fallbackText = string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort);
+                                string fallbackText = string.IsNullOrEmpty(subject)
+                                    ? string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort)
+                                    : string.Format("{0} ponders about {1}", pawn.Name.ToStringShort, subject);
                                 string wrappedFallbackText = SocialInteractions.WrapText(fallbackText, SocialInteractions.Settings.wordsPerLineLimit);
-                                SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
+                                SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false, subject)); // Use monologue method
 
                                 // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
                                 // No need to schedule unlocks anymore
@@ -1282,9 +1287,11 @@ namespace SocialInteractions
                     {
                         Log.Warning(string.Format("[SocialInteractions] HandleMonologue: Failed to generate prompt for pawn {0}", pawn.LabelShort));
                         // Fallback to default monologue text
-                        string fallbackText = string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort);
+                        string fallbackText = string.IsNullOrEmpty(subject)
+                            ? string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort)
+                            : string.Format("{0} ponders about {1}", pawn.Name.ToStringShort, subject);
                         string wrappedFallbackText = SocialInteractions.WrapText(fallbackText, SocialInteractions.Settings.wordsPerLineLimit);
-                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
+                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false, subject)); // Use monologue method
 
                         // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
                         // No need to schedule unlocks anymore
@@ -1297,9 +1304,11 @@ namespace SocialInteractions
                     // Fallback to default monologue text
                     try
                     {
-                        string fallbackText = string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort);
+                        string fallbackText = string.IsNullOrEmpty(subject)
+                            ? string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort)
+                            : string.Format("{0} ponders about {1}", pawn.Name.ToStringShort, subject);
                         string wrappedFallbackText = SocialInteractions.WrapText(fallbackText, SocialInteractions.Settings.wordsPerLineLimit);
-                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.Enqueue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false)); // Use standard mote for fallback
+                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false, subject)); // Use monologue method
                     }
                     catch (Exception fallbackEx)
                     {
@@ -1345,43 +1354,7 @@ namespace SocialInteractions
                 if (!string.IsNullOrEmpty(subject))
                 {
                     SpeechBubbleManager.ShowDefaultBubble(initiator, subject);
-
-                    // Add the event to the chat log with the subject as fallback text
-                    // Use appropriate chat log type based on interaction type for proper color coding:
-                    // - Red for drama/insult interactions
-                    // - Pink for dating/romance interactions
-                    // - White for casual conversations
-                    if (interactionDef.defName == "Badmouthing" ||
-                        interactionDef == SI_InteractionDefOf.Badmouthing ||
-                        interactionDef == SI_InteractionDefOf.EnhancedInsult ||
-                        interactionDef == SI_InteractionDefOf.CaughtCheating ||
-                        interactionDef == InteractionDefOf.Insult)
-                    {
-                        // Determine if this is gossip (positive bonding) vs badmouthing (negative)
-                        if (subject.Contains("bond over") || subject.Contains("gossip") || subject.Contains("shared negative opinions"))
-                        {
-                            ChatLogManager.AddDateEvent(initiator, recipient, subject, subject); // Use pink for bonding events
-                        }
-                        else
-                        {
-                            ChatLogManager.AddDramaEvent(initiator, recipient, subject, subject); // Use red for conflict events
-                        }
-                    }
-                    else if (interactionDef == SI_InteractionDefOf.DateAccepted ||
-                             interactionDef == SI_InteractionDefOf.DateRejected ||
-                             interactionDef == SI_InteractionDefOf.DateLovin ||
-                             interactionDef.defName == "GoOnDate" ||
-                             interactionDef == SI_InteractionDefOf.DateLovin ||
-                             interactionDef == SI_InteractionDefOf.Lovin ||
-                             interactionDef == InteractionDefOf.RomanceAttempt ||
-                             interactionDef == InteractionDefOf.MarriageProposal)
-                    {
-                        ChatLogManager.AddDateEvent(initiator, recipient, subject, subject);
-                    }
-                    else
-                    {
-                        ChatLogManager.AddGameEvent(initiator, recipient, subject, subject);
-                    }
+                    // Don't add to chat log when there's no actual LLM interaction - only show default bubble
                 }
                 return -1; // Return -1 to indicate no conversation was started
             }

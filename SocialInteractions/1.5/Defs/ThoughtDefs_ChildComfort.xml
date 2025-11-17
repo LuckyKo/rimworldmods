@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+    <ThoughtDef>
+        <defName>FailedToComfortChild</defName>
+        <thoughtClass>Thought_MemorySocial</thoughtClass>
+        <durationDays>0.5</durationDays>
+        <stackLimit>3</stackLimit>
+        <stages>
+            <li>
+                <label>failed to comfort child</label>
+                <description>I tried to comfort a distressed child but failed to make them feel better. I feel like a failure as a parent.</description>
+                <baseMoodEffect>-5</baseMoodEffect>
+            </li>
+        </stages>
+    </ThoughtDef>
+
+    <ThoughtDef>
+        <defName>ChildStillDistressed</defName>
+        <thoughtClass>Thought_Memory</thoughtClass>
+        <durationDays>0.5</durationDays>
+        <stackLimit>3</stackLimit>
+        <stages>
+            <li>
+                <label>child still distressed</label>
+                <description>The child I tried to comfort is still in distress. It's heartbreaking to see them suffer and not be able to help.</description>
+                <baseMoodEffect>-3</baseMoodEffect>
+            </li>
+        </stages>
+    </ThoughtDef>
+
+</Defs>

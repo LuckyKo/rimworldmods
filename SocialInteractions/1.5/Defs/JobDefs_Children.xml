@@ -5,14 +5,18 @@
         <defName>ChildAnnoyAdult</defName>
         <driverClass>SocialInteractions.JobDriver_ChildAnnoyAdult</driverClass>
         <reportString>annoying TargetA.</reportString>
-        <allowOpportunisticPrefix>true</allowOpportunisticPrefix>
     </JobDef>
 
     <JobDef>
         <defName>ChildPlayWithItem</defName>
         <driverClass>SocialInteractions.JobDriver_ChildPlayWithItem</driverClass>
         <reportString>playing with TargetA.</reportString>
-        <allowOpportunisticPrefix>true</allowOpportunisticPrefix>
+    </JobDef>
+
+    <JobDef>
+        <defName>ChildGoCryToParent</defName>
+        <driverClass>SocialInteractions.JobDriver_ChildGoCryToParent</driverClass>
+        <reportString>crying to TargetA.</reportString>
     </JobDef>
 
 </Defs>

@@ -90,8 +90,8 @@ namespace SocialInteractions
                     child.LabelShort, item.Label));
 
                 // Show message to player about the child playing
-                Messages.Message(string.Format("{0} (child) is playing with {1}!", child.LabelShort, item.Label),
-                    new LookTargets(child, item), MessageTypeDefOf.CautionInput);
+                // Messages.Message(string.Format("{0} (child) is playing with {1}!", child.LabelShort, item.Label),
+                    // new LookTargets(child, item), MessageTypeDefOf.CautionInput);
 
                 bool itemWasDamaged = false;
 
@@ -135,11 +135,11 @@ namespace SocialInteractions
                 string subject;
                 if (itemWasDamaged)
                 {
-                    subject = string.Format("I'm playing with {0}, and I accidentally broke it!", item.LabelCap);
+                    subject = string.Format("playing with {1} and accidentally broke it!", child.LabelShort, item.LabelCap);
                 }
                 else
                 {
-                    subject = string.Format("I'm playing with {0}, and it's fun!", item.LabelCap);
+                    subject = string.Format("playing with {1} and it's fun!", child.LabelShort, item.LabelCap);
                 }
 
                 // Trigger a monologue for the child about playing with the item
