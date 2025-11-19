@@ -1,5 +1,6 @@
 using RimWorld;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Verse;
 
@@ -32,33 +33,23 @@ namespace SocialInteractions
 
         private void ProcessChildrenMisbehavior()
         {
-            // Iterate through all colonist children on the map
-            List<Pawn> children = new List<Pawn>();
-
-            foreach (Pawn pawn in map.mapPawns.FreeColonists)
+            // Iterate through all colonist children on the map, checking for misbehavior in a single pass
+            // Use ToList() to create a copy of the collection to avoid "Collection was modified" exception
+            foreach (Pawn pawn in map.mapPawns.FreeColonists.ToList())
             {
-                if (pawn != null && pawn.ageTracker != null && pawn.ageTracker.AgeBiologicalYears >= 3 && pawn.ageTracker.AgeBiologicalYears < 13 &&
-                    pawn.RaceProps.Humanlike && !pawn.Dead && pawn.Spawned && pawn.Awake())
-                {
-                    // Additional check to make sure pawn is still valid after all the checks
-                    if (pawn.LabelShort != null)  // This will catch potential issues with the pawn reference
-                    {
-                        children.Add(pawn);
-                    }
-                }
-            }
-
-            // Check each child for potential misbehavior
-            foreach (Pawn child in children)
-            {
-                // Do a more comprehensive check for the child's validity
-                if (child != null && child.ageTracker != null && child.ageTracker.AgeBiologicalYears >= 3 && child.ageTracker.AgeBiologicalYears < 13 &&
-                    child.RaceProps.Humanlike && !child.Dead && child.Spawned && child.Awake())
+                // Validate pawn in single check
+                if (pawn != null &&
+                    pawn.ageTracker != null &&
+                    ChildrenMisbehaviorManager.IsChild(pawn) &&  // Use existing IsChild method for consistency
+                    pawn.RaceProps.Humanlike &&
+                    !pawn.Dead &&
+                    pawn.Spawned &&
+                    pawn.Awake())
                 {
                     float misbehaviorLevel;
-                    if (ChildrenMisbehaviorManager.ShouldChildMisbehave(child, out misbehaviorLevel))
+                    if (ChildrenMisbehaviorManager.ShouldChildMisbehave(pawn, out misbehaviorLevel))
                     {
-                        ChildrenMisbehaviorManager.ExecuteMisbehavior(child, misbehaviorLevel);
+                        ChildrenMisbehaviorManager.ExecuteMisbehavior(pawn, misbehaviorLevel);
                     }
                 }
             }

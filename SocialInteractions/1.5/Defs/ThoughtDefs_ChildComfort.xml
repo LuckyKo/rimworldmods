@@ -8,7 +8,7 @@
         <stackLimit>3</stackLimit>
         <stages>
             <li>
-                <label>failed to comfort child</label>
+                <label>Failed to comfort child</label>
                 <description>I tried to comfort a distressed child but failed to make them feel better. I feel like a failure as a parent.</description>
                 <baseMoodEffect>-5</baseMoodEffect>
             </li>
@@ -22,8 +22,8 @@
         <stackLimit>3</stackLimit>
         <stages>
             <li>
-                <label>child still distressed</label>
-                <description>The child I tried to comfort is still in distress. It's heartbreaking to see them suffer and not be able to help.</description>
+                <label>Distressed</label>
+                <description>I was hurt and all the adults are useless!!.</description>
                 <baseMoodEffect>-3</baseMoodEffect>
             </li>
         </stages>

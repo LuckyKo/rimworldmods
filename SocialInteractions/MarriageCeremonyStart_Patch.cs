@@ -18,30 +18,20 @@ namespace SocialInteractions
             // TransitionAction_Message with "MessageMarriageCeremonyStarts"
             foreach (var transition in __result.transitions)
             {
-                // Check if this transition has a pre-action with the marriage ceremony message
-                if (transition.preActions != null)
+                // Check if this transition targets the marriage ceremony toil
+                if (transition.target is LordToil_MarriageCeremony)
                 {
-                    foreach (var preAction in transition.preActions)
+                    SLog.Message("[SocialInteractions] Found transition to LordToil_MarriageCeremony");
+                    
+                    // This is the transition from party to marriage ceremony - add our LLM trigger
+                    transition.AddPreAction(new TransitionAction_Custom(() =>
                     {
-                        // We could try to identify the specific message action, but let's just target
-                        // any transition that leads to the marriage ceremony toil
-                        // In the original code, the marriage ceremony toil is the destination
-                        // We'll use reflection to check the transition's destination toil
-                        var destinationField = typeof(Transition).GetField("destToil", BindingFlags.NonPublic | BindingFlags.Instance);
-                        if (destinationField != null)
-                        {
-                            var destinationToil = destinationField.GetValue(transition) as LordToil;
-                            if (destinationToil is LordToil_MarriageCeremony)
-                            {
-                                // This is the transition from party to marriage ceremony - add our LLM trigger
-                                transition.AddPreAction(new TransitionAction_Custom(() =>
-                                {
-                                    TriggerMarriageCeremonyLLM(__instance);
-                                }));
-                                break; // Only add to the first matching transition
-                            }
-                        }
-                    }
+                        TriggerMarriageCeremonyLLM(__instance);
+                    }));
+                    // We don't break here because there might be multiple transitions leading to the ceremony
+                    // (e.g. from different states), though usually there's just one main one.
+                    // But to be safe against multiple triggers, we might want to ensure we only add it once per instance runtime,
+                    // but since this is CreateGraph, it runs once when the LordJob is created.
                 }
             }
         }
@@ -76,24 +66,8 @@ namespace SocialInteractions
             string subject = string.Format("{0} and {1} are exchanging vows in their marriage ceremony.", 
                 firstPawn.LabelShort, secondPawn.LabelShort);
 
-            // Generate LLM prompt and handle interaction
-            string prompt = SocialInteractions.GenerateDeepTalkPrompt(firstPawn, secondPawn, null, subject);
-
-            if (!string.IsNullOrEmpty(prompt))
-            {
-                SLog.Message("[SocialInteractions] Marriage ceremony has a valid prompt, creating LLM interaction.");
-
-                // Handle the interaction using the same approach as other LLM interactions
-                int conversationId = SocialInteractions.HandleNonStoppingInteraction(firstPawn, secondPawn, null, subject, true, true);
-
-                // Show a default bubble to indicate the ceremony is happening if LLM doesn't respond quickly
-                string formattedSubject = SpeechBubbleManager.FormatSpeakerName(firstPawn, "Exchanging vows...");
-                SpeechBubbleManager.ShowDefaultBubble(firstPawn, formattedSubject);
-            }
-            else
-            {
-                SLog.Message("[SocialInteractions] Marriage ceremony does not have a valid prompt, proceeding with default behavior.");
-            }
+            // Handle the interaction using the same approach as other LLM interactions
+            SocialInteractions.HandleNonStoppingInteraction(firstPawn, secondPawn, null, subject, true, true);
         }
     }
 }

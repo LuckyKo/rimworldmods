@@ -18,7 +18,7 @@ namespace SocialInteractions
             if (def == TaleDefOf.GaveBirth)
             {
                 SLog.Message(string.Format("[SocialInteractions] TaleRecorder_RecordTale_Patch.Postfix called with TaleDef: {0}", def != null ? def.defName : "null"));
-                SLog.Message("[SocialInteractions] Detected GaveBirth tale");
+                // SLog.Message("[SocialInteractions] Detected GaveBirth tale");
                 
                 // Try to cast the arguments to pawns
                 Pawn mother = null;
@@ -27,13 +27,13 @@ namespace SocialInteractions
                 // The arguments are passed as an object array
                 if (args != null && args.Length >= 2)
                 {
-                    SLog.Message(string.Format("[SocialInteractions] args array has {0} elements", args.Length));
+                    // SLog.Message(string.Format("[SocialInteractions] args array has {0} elements", args.Length));
                     mother = args[0] as Pawn;
                     baby = args[1] as Pawn;
                     
-                    SLog.Message(string.Format("[SocialInteractions] Mother: {0}, Baby: {1}", 
-                        mother != null ? mother.LabelShort : "null",
-                        baby != null ? baby.LabelShort : "null"));
+                    // SLog.Message(string.Format("[SocialInteractions] Mother: {0}, Baby: {1}", 
+                    //     mother != null ? mother.LabelShort : "null",
+                    //     baby != null ? baby.LabelShort : "null"));
                 }
                 else
                 {
@@ -42,12 +42,12 @@ namespace SocialInteractions
                 
                 if (mother != null && baby != null)
                 {
-                    SLog.Message("[SocialInteractions] Found mother and baby, looking for doctor");
+                    // SLog.Message("[SocialInteractions] Found mother and baby, looking for doctor");
                     
                     // Try to find the doctor who delivered the baby
                     Pawn doctor = FindDoctorWhoDeliveredBaby(mother);
                     
-                    SLog.Message(string.Format("[SocialInteractions] Found doctor: {0}", doctor != null ? doctor.LabelShort : "null"));
+                    // SLog.Message(string.Format("[SocialInteractions] Found doctor: {0}", doctor != null ? doctor.LabelShort : "null"));
                     
                     // If we found a doctor and it's not the mother herself, trigger the LLM interaction
                     if (doctor != null && doctor != mother)

@@ -14,22 +14,9 @@ namespace SocialInteractions
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             // Child should be able to reserve the item and the target location
-            Pawn pawn = this.pawn;
-            Job job = this.job;
-            
-            // Reserve the item to be played with
-            if (!pawn.Reserve(job.GetTarget(TargetIndex.A), job, 1, -1, null, errorOnFailed))
-            {
-                return false;
-            }
-
-            // Reserve the play location
-            if (!pawn.Reserve(job.GetTarget(TargetIndex.B), job, 1, -1, null, errorOnFailed))
-            {
-                return false;
-            }
-
-            return true;
+            // Use the standardized reservation method
+            return pawn.Reserve(job.GetTarget(TargetIndex.A), job, errorOnFailed: errorOnFailed) &&
+                   pawn.Reserve(job.GetTarget(TargetIndex.B), job, errorOnFailed: errorOnFailed);
         }
 
         protected override IEnumerable<Toil> MakeNewToils()

@@ -150,7 +150,7 @@ namespace SocialInteractions
                     }
                     catch (System.Exception e)
                     {
-                        SLog.Warning(string.Format("[SocialInteractions] Failed to add ChildStillDistressed thought: {0}", e.Message));
+                        SLog.Warning(string.Format("[SocialInteractions] JobDriver_ChildGoCryToParent: Failed to add ChildStillDistressed thought: {0}", e.Message));
                     }
                 }
 
@@ -167,7 +167,7 @@ namespace SocialInteractions
                     }
                     catch (System.Exception e)
                     {
-                        SLog.Warning(string.Format("[SocialInteractions] Failed to add FailedToComfortChild thought: {0}", e.Message));
+                        SLog.Warning(string.Format("[SocialInteractions] JobDriver_ChildGoCryToParent: Failed to add FailedToComfortChild thought: {0}", e.Message));
                     }
                 }
 

@@ -101,3 +101,6 @@ JobDriver_ChildGoCryToParent.cs
 MentalState_ChildFleeInTerror.cs
 SI_MentalStateDefOf.cs
 Pawn_TakeDamage_Patch.cs
+JobDriver_ChildPlayWithWeapon.cs
+JobDriver_ChildTrampleCrops.cs
+JobDriver_ChildLightFire.cs
