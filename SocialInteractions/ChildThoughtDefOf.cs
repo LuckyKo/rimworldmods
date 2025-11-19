@@ -10,6 +10,10 @@ namespace SocialInteractions
         public static ThoughtDef ChildMisbehaved;
         public static ThoughtDef ChildBoredom;
         public static ThoughtDef ChildCrying;
+        public static ThoughtDef ChildDestructive;
+        public static ThoughtDef ChildMischievous;
+        public static ThoughtDef ChildRiskTaking;
+        public static ThoughtDef ChildReckless;
 
         static ChildThoughtDefOf()
         {

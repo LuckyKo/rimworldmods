@@ -16,5 +16,8 @@ namespace SocialInteractions
         public static JobDef ChildAnnoyAdult;
         public static JobDef ChildPlayWithItem;
         public static JobDef ChildGoCryToParent;
+        public static JobDef ChildPlayWithWeapon;
+        public static JobDef ChildTrampleCrops;
+        public static JobDef ChildLightFire;
     }
 }

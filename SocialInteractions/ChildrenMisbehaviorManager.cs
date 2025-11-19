@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEngine;
 using Verse;
 using Verse.AI;
+using HarmonyLib;
 
 namespace SocialInteractions
 {
@@ -15,14 +16,15 @@ namespace SocialInteractions
         private const float MinMisbehaviorFactor = 0.0f;
         private const float BaseParentalOpinionThreshold = 20f; // Opinion below this increases misbehavior
         private const int ChildAgeLimit = 13; // Pawns under this age are considered children for misbehavior (12 and under)
+        private const int ChildMinAge = 3; // Minimum age to be considered for misbehavior
         private const int TeenagerAgeLimit = 17; // Pawns under this age may have different behavior patterns
         private const int MaxTimeSinceParentInteraction = 180000; // 5 days in ticks, after which misbehavior increases
         
         // Misbehavior level thresholds
-        private const float Level1Threshold = 0.02f; // Annoying adults
-        private const float Level2Threshold = 0.05f; // Misplacing items
-        private const float Level3Threshold = 0.7f; // Damaging property
-        private const float Level4Threshold = 0.9f; // Dangerous behavior
+        private const float Level1Threshold = 0.1f; // Annoying adults
+        private const float Level2Threshold = 0.3f; // Misplacing items
+        private const float Level3Threshold = 0.5f; // Damaging property
+        private const float Level4Threshold = 0.8f; // Dangerous behavior
 
         // Track ongoing misbehavior activities to prevent spam
         private static Dictionary<Pawn, int> lastMisbehaviorTick = new Dictionary<Pawn, int>();
@@ -152,18 +154,20 @@ namespace SocialInteractions
         {
             misbehaviorLevel = 0f;
 
-            // SLog.Message(string.Format("[SocialInteractions] ShouldChildMisbehave called for: {0}", child != null ? child.LabelShort : "null"));
-
-            if (child == null || !IsChild(child))
+            if (child == null)
             {
-                SLog.Message(string.Format("[SocialInteractions] ShouldChildMisbehave: child {0} is null or not a child", child.LabelShort));
+                return false;
+            }
+
+            if (!IsChild(child))
+            {
+                SLog.Message(string.Format("[SocialInteractions] ShouldChildMisbehave: pawn {0} is not a child", child.LabelShort));
                 return false;
             }
 
             // Check if children misbehavior is enabled in settings
             if (!SocialInteractions.Settings.enableChildrenMisbehavior)
             {
-                // SLog.Message(string.Format("[SocialInteractions] ShouldChildMisbehave: children misbehavior is disabled in settings"));
                 return false;
             }
 
@@ -173,7 +177,6 @@ namespace SocialInteractions
                 int lastTick = lastMisbehaviorTick[child];
                 if (Find.TickManager.TicksGame - lastTick < misbehaviorCheckInterval)
                 {
-                    // SLog.Message(string.Format("[SocialInteractions] ShouldChildMisbehave: child {0} is still in cooldown", child.LabelShort));
                     return false;
                 }
             }
@@ -183,19 +186,15 @@ namespace SocialInteractions
             {
                 if (child.CurJob.def != JobDefOf.GotoWander && child.CurJob.def != JobDefOf.Wait_Wander)
                 {
-                    // SLog.Message(string.Format("[SocialInteractions] ShouldChildMisbehave: child {0} is in job {1}, not allowed to misbehave",
-                        // child.LabelShort, child.CurJob.def.defName));
                     return false;
                 }
             }
 
             // Calculate misbehavior factor
             float misbehaviorFactor = CalculateMisbehaviorFactor(child);
-            // SLog.Message(string.Format("[SocialInteractions] ShouldChildMisbehave: Child {0} misbehavior factor: {1:F3}", child.LabelShort, misbehaviorFactor));
 
             // Apply base chance from settings
             float baseChance = SocialInteractions.Settings.baseChildrenMisbehaviorChance;
-            // SLog.Message(string.Format("[SocialInteractions] Base chance from settings: {0:F3}", baseChance));
 
             // Calculate the total probability
             float totalChance = baseChance * misbehaviorFactor;
@@ -204,16 +203,11 @@ namespace SocialInteractions
             // Use a random chance based on the base chance and misbehavior factor
             if (randomValue < totalChance)
             {
-                SLog.Message(string.Format("[SocialInteractions] ShouldChildMisbehave: Child {0} will misbehave! (chance {1:F3} > random {2:F3})",
-                    child.LabelShort, totalChance, randomValue));
+                SLog.Message(string.Format("[SocialInteractions] ShouldChildMisbehave: Child {0} with misbehavior factor {1} will misbehave! (chance {2:F3} > random {3:F3})",
+                    child.LabelShort, misbehaviorFactor, totalChance, randomValue));
                 misbehaviorLevel = misbehaviorFactor;
                 lastMisbehaviorTick[child] = Find.TickManager.TicksGame;
                 return true;
-            }
-            else
-            {
-                // SLog.Message(string.Format("[SocialInteractions] ShouldChildMisbehave: Child {0} will NOT misbehave (chance {1:F3} <= random {2:F3})",
-                    // child.LabelShort, totalChance, randomValue));
             }
 
             return false;
@@ -225,14 +219,21 @@ namespace SocialInteractions
         /// </summary>
         public static void ExecuteMisbehavior(Pawn child, float misbehaviorLevel)
         {
-            if (child == null || !IsChild(child))
+            if (child == null)
             {
+                return;
+            }
+
+            if (!IsChild(child))
+            {
+                SLog.Message(string.Format("[SocialInteractions] ExecuteMisbehavior: pawn {0} is not a child", child.LabelShort));
                 return;
             }
 
             // Check if misbehavior level is too low first
             if (misbehaviorLevel < Level1Threshold)
             {
+                SLog.Message(string.Format("[SocialInteractions] ExecuteMisbehavior: Child {0} with misbehavior factor {1} is too low to misbehave", child.LabelShort, misbehaviorLevel));
                 return; // No behaviors executed
             }
 
@@ -283,8 +284,6 @@ namespace SocialInteractions
 
         private static void AnnoyAdults(Pawn child)
         {
-            SLog.Message(string.Format("[SocialInteractions] AnnoyAdults method called for child: {0}", child != null ? child.LabelShort : "null"));
-
             if (child == null || child.Map == null)
             {
                 SLog.Warning("[SocialInteractions] AnnoyAdults: child is null or map is null");
@@ -298,12 +297,12 @@ namespace SocialInteractions
 
             if (targetAdult != null)
             {
+                // Show warning message to player that child is about to pester an adult
+                Messages.Message(string.Format("{0} (child) is about to pester {1} (adult) with annoying questions!", child.LabelShort, targetAdult.LabelShort),
+                    new LookTargets(child, targetAdult), MessageTypeDefOf.CautionInput);
+
                 // Log the action
                 SLog.Message(string.Format("[SocialInteractions] AnnoyAdults: Child {0} is annoying adult {1}", child.LabelShort, targetAdult.LabelShort));
-
-                // Show message to player
-                Messages.Message(string.Format("{0} (child) is pestering {1} (adult) with annoying questions!", child.LabelShort, targetAdult.LabelShort),
-                    new LookTargets(child, targetAdult), MessageTypeDefOf.CautionInput);
 
                 // Create the ChildAnnoyAdult job for the child to follow and pester the adult
                 Job annoyJob = JobMaker.MakeJob(SI_JobDefOf.ChildAnnoyAdult, targetAdult);
@@ -330,7 +329,7 @@ namespace SocialInteractions
                 }
 
                 // Trigger LLM monologue about being bored with proper subject formatting
-                string subject = string.Format("I'm bored because there's nobody to play with", child.LabelShort);
+                string subject = "Is bored because there's nobody to play with";
                 SLog.Message(string.Format("[SocialInteractions] AnnoyAdults: Triggering monologue for bored child: {0}", subject));
                 SocialInteractions.HandleMonologue(child, subject);
             }
@@ -338,7 +337,7 @@ namespace SocialInteractions
 
         private static void ApplyNegativeMoodToAdult(Pawn adult, Pawn child)
         {
-            if (adult == null || adult.needs == null || adult.needs.mood == null)
+            if (adult == null || adult.needs == null || adult.needs.mood == null || child == null)
             {
                 return;
             }
@@ -349,8 +348,9 @@ namespace SocialInteractions
 
         private static void MisplaceItems(Pawn child)
         {
-            if (child == null || child.Map == null)
+            if (child == null || child.Map == null || child.jobs == null)
             {
+                SLog.Warning("[SocialInteractions] MisplaceItems: child is null, map is null, or jobs is null");
                 return;
             }
 
@@ -359,6 +359,10 @@ namespace SocialInteractions
 
             if (itemToTake != null)
             {
+                // Show warning message to player that child is about to misplace items
+                Messages.Message(string.Format("{0} (child) is about to take {1} to play with!", child.LabelShort, itemToTake.Label),
+                    new LookTargets(child, itemToTake), MessageTypeDefOf.CautionInput);
+
                 // Find a random location for the child to go play with the item
                 IntVec3 playLocation = FindRandomPlayLocation(child, child.Map);
 
@@ -370,10 +374,6 @@ namespace SocialInteractions
 
                     SLog.Message(string.Format("[SocialInteractions] MisplaceItems: Child {0} is taking item {1} to play with at location {2}",
                         child.LabelShort, itemToTake.Label, playLocation));
-
-                    // Show message to player
-                    // Messages.Message(string.Format("{0} (child) is taking {1} to play with!", child.LabelShort, itemToTake.Label),
-                        // new LookTargets(child, itemToTake), MessageTypeDefOf.CautionInput);
                 }
                 else
                 {
@@ -398,9 +398,9 @@ namespace SocialInteractions
             {
                 if (!c.InBounds(map)) continue;
 
-                // Only check cells that are in storage zones
-                Zone zone = map.zoneManager.ZoneAt(c);
-                if (zone is Zone_Stockpile)
+                // Check if this cell is part of any storage (Stockpile zone or Building_Storage like shelves)
+                SlotGroup slotGroup = map.haulDestinationManager.SlotGroupAt(c);
+                if (slotGroup != null)
                 {
                     foreach (Thing thing in c.GetThingList(map))
                     {
@@ -410,7 +410,7 @@ namespace SocialInteractions
                             thing.Spawned &&
                             thing.MarketValue > 10f) // Only items worth more than 10 silver
                         {
-                            // Consider items that are in stockpile zones as "valuable"
+                            // Consider items that are in storage as "valuable"
                             potentialItems.Add(thing);
                         }
                     }
@@ -517,14 +517,571 @@ namespace SocialInteractions
 
         private static void DamageProperty(Pawn child)
         {
-            // Placeholder for property damage logic
-            SLog.Message(string.Format("[SocialInteractions] DamageProperty: Child {0} is damaging property", child.LabelShort));
+            if (child == null || child.Map == null)
+            {
+                SLog.Warning("[SocialInteractions] DamageProperty: child is null or map is null");
+                return;
+            }
+
+            // Show warning message to player that child is about to do mischief
+            Messages.Message(string.Format("{0} (child) is about to do some mischievous property damage!", child.LabelShort),
+                new LookTargets(child), MessageTypeDefOf.CautionInput);
+
+            // Randomly choose between trampling crops and destroying property
+            bool success = false;
+            if (Rand.Value < 0.5f)
+            {
+                success = TrampleCrops(child);
+            }
+            else
+            {
+                success = DestroyRandomProperty(child);
+            }
+
+            if (!success)
+            {
+                SLog.Message(string.Format("[SocialInteractions] DamageProperty: Child {0} found no property to destroy, becoming mischievous", child.LabelShort));
+                // If no property found to damage, child expresses mischief
+                if (child.needs != null && child.needs.mood != null)
+                {
+                    child.needs.mood.thoughts.memories.TryGainMemory(ChildThoughtDefOf.ChildMischievous, null);
+                }
+
+                string subject = "wanted to do something mischievous but couldn't find anything to destroy";
+                SocialInteractions.HandleMonologue(child, subject);
+            }
+        }
+
+        private static bool TrampleCrops(Pawn child)
+        {
+            if (child == null || child.Map == null)
+            {
+                return false;
+            }
+
+            // Find a growing zone or area with crops to trample
+            IntVec3 trampleArea = FindGrowingAreaWithCrops(child);
+
+            if (trampleArea != IntVec3.Invalid)
+            {
+                // Create the job for the child to go to the area and trample crops there
+                Job trampleJob = JobMaker.MakeJob(SI_JobDefOf.ChildTrampleCrops, trampleArea);
+                bool jobTaken = child.jobs.TryTakeOrderedJob(trampleJob);
+
+                if (jobTaken)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] TrampleCrops: Child {0} is going to trample crops in area {1}",
+                        child.LabelShort, trampleArea));
+
+                    return true;
+                }
+                else
+                {
+                    SLog.Message(string.Format("[SocialInteractions] TrampleCrops: Child {0} failed to take trample crops job",
+                        child.LabelShort));
+                }
+            }
+
+            return false;
+        }
+
+        private static IntVec3 FindGrowingAreaWithCrops(Pawn child)
+        {
+            if (child == null || child.Map == null)
+            {
+                return IntVec3.Invalid;
+            }
+
+            int searchRadius = 25;
+            IntVec3 bestArea = IntVec3.Invalid;
+            int closestDistance = int.MaxValue;
+
+            foreach (IntVec3 c in GenRadial.RadialCellsAround(child.Position, searchRadius, true))
+            {
+                if (!c.InBounds(child.Map)) continue;
+
+                // Check if this cell is in a growing zone OR has a plant grower building (hydroponics)
+                bool isGrowingArea = false;
+                Zone zone = child.Map.zoneManager.ZoneAt(c);
+                if (zone is Zone_Growing)
+                {
+                    isGrowingArea = true;
+                }
+                else
+                {
+                    Building edifice = c.GetEdifice(child.Map);
+                    if (edifice is Building_PlantGrower)
+                    {
+                        isGrowingArea = true;
+                    }
+                }
+
+                if (isGrowingArea)
+                {
+                    // Count the number of mature crops in this area
+                    int cropCount = CountMatureCropsInArea(c, child.Map, 5); // Check 5-cell radius around this point
+
+                    if (cropCount > 0)
+                    {
+                        int distance = (int)(c - child.Position).LengthHorizontal;
+                        if (distance < closestDistance)
+                        {
+                            closestDistance = distance;
+                            bestArea = c;
+                        }
+                    }
+                }
+            }
+
+            // If we didn't find a specific growing zone/building, look for any area with mature crops
+            if (bestArea == IntVec3.Invalid)
+            {
+                foreach (IntVec3 c in GenRadial.RadialCellsAround(child.Position, searchRadius, true))
+                {
+                    if (!c.InBounds(child.Map)) continue;
+
+                    // Count mature crops in this area (even if not in a zone)
+                    int cropCount = CountMatureCropsInArea(c, child.Map, 5);
+
+                    if (cropCount > 0)
+                    {
+                        int distance = (int)(c - child.Position).LengthHorizontal;
+                        if (distance < closestDistance)
+                        {
+                            closestDistance = distance;
+                            bestArea = c;
+                        }
+                    }
+                }
+            }
+
+            return bestArea;
+        }
+
+        private static int CountMatureCropsInArea(IntVec3 center, Map map, int radius)
+        {
+            int count = 0;
+
+            foreach (IntVec3 c in GenRadial.RadialCellsAround(center, radius, true))
+            {
+                if (!c.InBounds(map)) continue;
+
+                List<Thing> things = c.GetThingList(map);
+                foreach (Thing thing in things)
+                {
+                    Plant plant = thing as Plant;
+                    if (plant != null && !plant.Destroyed && plant.Spawned)
+                    {
+                        // Check if it's a crop (not wild plants)
+                        if (plant.def.plant != null && plant.def.plant.Sowable && plant.Growth >= 0.1f)
+                        {
+                            count++;
+                        }
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        private static bool DestroyRandomProperty(Pawn child)
+        {
+            if (child == null || child.Map == null)
+            {
+                return false;
+            }
+
+            // Find other destructible property (buildings, items)
+            int searchRadius = 20;
+            List<Thing> destructibleItems = new List<Thing>();
+
+            // Check for buildings/apparel that can be damaged
+            foreach (IntVec3 c in GenRadial.RadialCellsAround(child.Position, searchRadius, true))
+            {
+                if (!c.InBounds(child.Map)) continue;
+
+                // Check for buildings
+                Thing edifice = c.GetEdifice(child.Map);
+                if (edifice != null)
+                {
+                    // Check if it's a buildable structure that a child might damage
+                    if (edifice.def.category == ThingCategory.Building &&
+                        edifice.def.passability != Traversability.Impassable &&
+                        edifice.def.useHitPoints &&
+                        edifice.HitPoints > 1)
+                    {
+                        // Only target items that are not critical infrastructure
+                        if (edifice.def.defName != "Door" && edifice.def.defName != "Autodoor") // Don't damage doors
+                        {
+                            destructibleItems.Add(edifice);
+                        }
+                    }
+                }
+
+                // Check for items on the ground
+                List<Thing> things = c.GetThingList(child.Map);
+                foreach (Thing thing in things)
+                {
+                    if (thing.def.useHitPoints && thing.HitPoints > 1 &&
+                        (thing.def.IsApparel || thing.def.thingClass == typeof(Building)))
+                    {
+                        destructibleItems.Add(thing);
+                    }
+                }
+            }
+
+            if (destructibleItems.Count > 0)
+            {
+                // Randomly select an item to damage
+                Thing itemToDamage = destructibleItems[Rand.Range(0, destructibleItems.Count)];
+
+                // Apply damage to the item
+                int damageAmount = Mathf.Min(5, itemToDamage.MaxHitPoints / 4); // Damage up to 25% of max HP
+                if (damageAmount < 1) damageAmount = 1;
+
+                itemToDamage.TakeDamage(new DamageInfo(DamageDefOf.Deterioration, damageAmount));
+
+                SLog.Message(string.Format("[SocialInteractions] DestroyRandomProperty: Child {0} damaged {1} at {2}",
+                    child.LabelShort, itemToDamage.Label, itemToDamage.Position));
+
+                // Show message to player
+                // Messages.Message(string.Format("{0} (child) damaged {1}!", child.LabelShort, itemToDamage.Label),
+                //     new LookTargets(child, itemToDamage), MessageTypeDefOf.NegativeEvent);
+
+                // Add a thought to the child about being destructive
+                if (child.needs != null && child.needs.mood != null)
+                {
+                    child.needs.mood.thoughts.memories.TryGainMemory(ChildThoughtDefOf.ChildDestructive, null);
+                }
+
+                // Trigger LLM interaction about damaging property
+                string subject = string.Format("damaged some property, sorry about that!");
+                SocialInteractions.HandleMonologue(child, subject);
+
+                return true;
+            }
+
+            return false;
         }
 
         private static void DangerousBehavior(Pawn child)
         {
-            // Placeholder for dangerous behavior logic
-            SLog.Message(string.Format("[SocialInteractions] DamageProperty: Child {0} is engaging in dangerous behavior", child.LabelShort));
+            if (child == null || child.Map == null)
+            {
+                SLog.Warning("[SocialInteractions] DangerousBehavior: child is null or map is null");
+                return;
+            }
+
+            // Show warning message to player that child is about to do something dangerous
+            Messages.Message(string.Format("{0} (child) is about to do something dangerous!", child.LabelShort),
+                new LookTargets(child), MessageTypeDefOf.ThreatBig);
+
+            // Randomly choose between lighting fire and other dangerous behavior
+            bool success = false;
+            if (Rand.Value < 0.05f)
+            {
+                success = LightFire(child);
+            }
+            else
+            {
+                success = PlayWithWeapon(child);
+            }
+
+            if (!success)
+            {
+                SLog.Message(string.Format("[SocialInteractions] DangerousBehavior: Child {0} found no way to engage in dangerous behavior", child.LabelShort));
+                // If no dangerous behavior possible, child expresses risky intent
+                if (child.needs != null && child.needs.mood != null)
+                {
+                    child.needs.mood.thoughts.memories.TryGainMemory(ChildThoughtDefOf.ChildRiskTaking, null);
+                }
+
+                string subject = "wanted to do something really dangerous but couldn't figure out how";
+                SocialInteractions.HandleMonologue(child, subject);
+            }
+        }
+
+        private static bool LightFire(Pawn child)
+        {
+            if (child == null || child.Map == null)
+            {
+                return false;
+            }
+
+            // Find a flammable target to ignite
+            Thing flammableTarget = FindFlammableTarget(child);
+
+            if (flammableTarget != null)
+            {
+                // Show warning message to player that child is about to light a fire
+                // Messages.Message(string.Format("{0} (child) is about to light a fire on {1}!", child.LabelShort, flammableTarget.Label),
+                    // new LookTargets(child, flammableTarget), MessageTypeDefOf.ThreatBig);
+
+                // Create the job for the child to go to the flammable target and light it
+                Job lightFireJob = JobMaker.MakeJob(SI_JobDefOf.ChildLightFire, flammableTarget);
+                bool jobTaken = child.jobs.TryTakeOrderedJob(lightFireJob);
+
+                if (jobTaken)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] LightFire: Child {0} is going to light a fire on {1}",
+                        child.LabelShort, flammableTarget.Label));
+
+                    return true;
+                }
+                else
+                {
+                    SLog.Message(string.Format("[SocialInteractions] LightFire: Child {0} failed to take light fire job",
+                        child.LabelShort));
+                }
+            }
+
+            return false;
+        }
+
+        private static Thing FindFlammableTarget(Pawn child)
+        {
+            if (child == null || child.Map == null)
+            {
+                return null;
+            }
+
+            int searchRadius = 20;
+
+            foreach (IntVec3 c in GenRadial.RadialCellsAround(child.Position, searchRadius, true))
+            {
+                if (!c.InBounds(child.Map)) continue;
+
+                // Get all things at this cell
+                List<Thing> things = c.GetThingList(child.Map);
+                foreach (Thing thing in things)
+                {
+                    // Check if the thing is flammable, not burning, and appropriate for this
+                    if ((thing.def.category == ThingCategory.Building ||
+                         thing.def.category == ThingCategory.Item ||
+                         thing.def.category == ThingCategory.Plant) &&
+                        thing.FlammableNow &&
+                        !thing.IsBurning() &&
+                        !thing.Position.Fogged(child.Map) && // Make sure it's not fogged
+                        thing.Spawned)
+                    {
+                        // Prefer flammable items first, then buildings, then plants
+                        if (thing.def.category == ThingCategory.Item)
+                        {
+                            // Additional check: make sure it's a valuable/flammable item
+                            if (thing.def.BaseMarketValue > 0)
+                            {
+                                return thing;
+                            }
+                        }
+                        else if (thing.def.category == ThingCategory.Building ||
+                                 thing.def.category == ThingCategory.Plant)
+                        {
+                            return thing; // Accept buildings and plants too
+                        }
+                    }
+                }
+            }
+
+            return null; // No suitable flammable target found
+        }
+
+        private static IntVec3 FindSafeFireLocation(Pawn child)
+        {
+            if (child.Map == null) return IntVec3.Invalid;
+
+            // Look for locations that are flammable but not critical infrastructure
+            int searchRadius = 20;
+
+            foreach (IntVec3 c in GenRadial.RadialCellsAround(child.Position, searchRadius, true))
+            {
+                if (!c.InBounds(child.Map)) continue;
+
+                // Find a location that is walkable and doesn't contain critical objects
+                if (c.Walkable(child.Map) && !c.Fogged(child.Map))
+                {
+                    // Check if there are flammable things at the location
+                    List<Thing> things = c.GetThingList(child.Map);
+                    bool hasFlammableThing = false;
+
+                    foreach (Thing thing in things)
+                    {
+                        if (thing.def.category == ThingCategory.Item &&
+                            (thing.def.defName == "WoodLog" || thing.def.defName.Contains("Hay") || thing.def.defName.Contains("Plant") || thing.def.IsCorpse) &&
+                            thing.def.BaseMarketValue > 0) // Make sure it's a valuable item
+                        {
+                            hasFlammableThing = true;
+                            break;
+                        }
+                    }
+
+                    // If we found a flammable thing or an open area that could support a fire
+                    if (hasFlammableThing || c.GetTerrain(child.Map).burnedDef == null)
+                    {
+                        // Ensure nothing critical is at this location
+                        if (c.GetEdifice(child.Map) == null || c.GetEdifice(child.Map).def.defName.Contains("Fence")) // Allow placing fire near low-priority structures
+                        {
+                            return c;
+                        }
+                    }
+                }
+            }
+
+            // If no specific location with flammable items found, return an arbitrary open space
+            foreach (IntVec3 c in GenRadial.RadialCellsAround(child.Position, searchRadius, true))
+            {
+                if (c.InBounds(child.Map) &&
+                    c.Walkable(child.Map) &&
+                    !c.Fogged(child.Map) &&
+                    c.GetEdifice(child.Map) == null)
+                {
+                    // Avoid critical areas (near medical beds, food storage, etc.)
+                    if (!IsCriticalArea(child.Map, c))
+                    {
+                        return c;
+                    }
+                }
+            }
+
+            return IntVec3.Invalid; // No safe location found
+        }
+
+        private static bool IsCriticalArea(Map map, IntVec3 c)
+        {
+            // Check if the cell is near critical infrastructure
+            foreach (IntVec3 checkCell in GenRadial.RadialCellsAround(c, 5, true))
+            {
+                if (!checkCell.InBounds(map)) continue;
+
+                // Check for critical buildings
+                Building building = checkCell.GetEdifice(map) as Building;
+                if (building != null)
+                {
+                    // Check for critical building types
+                    if (building.def.defName.Contains("Bed") ||
+                        building.def.defName.Contains("Hospital") ||
+                        building.def.defName.Contains("Shelf") ||
+                        building.def.defName.Contains("Cooler") ||
+                        building.def.defName.Contains("CryptosleepCasket"))
+                    {
+                        return true; // This is a critical area
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool PlayWithWeapon(Pawn child)
+        {
+            // For now, we'll implement additional dangerous behaviors like:
+            // - Attempting to use weapons
+            // - Attempting to go to dangerous zones
+
+            if (child == null || child.Map == null)
+            {
+                return false;
+            }
+
+            Thing weaponToUse = null;
+
+            // 1. Check if child already has a ranged weapon equipped
+            if (child.equipment != null && child.equipment.Primary != null && child.equipment.Primary.def.IsRangedWeapon)
+            {
+                weaponToUse = child.equipment.Primary;
+                SLog.Message(string.Format("[SocialInteractions] PlayWithWeapon: Child {0} already has ranged weapon {1} equipped.", child.LabelShort, weaponToUse.Label));
+            }
+            else
+            {
+                // 2. Find a ranged weapon on the map
+                IntVec3 weaponLocation = FindNearbyRangedWeapon(child);
+
+                if (weaponLocation != IntVec3.Invalid)
+                {
+                    List<Thing> things = weaponLocation.GetThingList(child.Map);
+                    foreach (Thing thing in things)
+                    {
+                        if (thing.def.IsRangedWeapon && thing.def.equipmentType == EquipmentType.Primary)
+                        {
+                            weaponToUse = thing;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (weaponToUse != null)
+            {
+                // Show warning message to player that child is about to play with a weapon unsafely
+                // Messages.Message(string.Format("{0} (child) is about to play with {1} unsafely!", child.LabelShort, weaponToUse.Label),
+                //     new LookTargets(child, weaponToUse), MessageTypeDefOf.ThreatBig);
+
+                // Create the job for the child to go play with the weapon unsafely
+                Job weaponPlayJob = JobMaker.MakeJob(SI_JobDefOf.ChildPlayWithWeapon, weaponToUse);
+                bool jobTaken = child.jobs.TryTakeOrderedJob(weaponPlayJob);
+
+                if (jobTaken)
+                {
+                    SLog.Message(string.Format("[SocialInteractions] PlayWithWeapon: Child {0} is going to play with weapon {1}",
+                        child.LabelShort, weaponToUse.Label));
+
+                    return true;
+                }
+                else
+                {
+                    SLog.Message(string.Format("[SocialInteractions] PlayWithWeapon: Child {0} failed to take weapon play job",
+                        child.LabelShort));
+                }
+            }
+
+            return false;
+        }
+
+        private static IntVec3 FindNearbyRangedWeapon(Pawn child)
+        {
+            if (child.Map == null) return IntVec3.Invalid;
+
+            // Find weapons in a radius around the child
+            int searchRadius = 35;
+
+            foreach (IntVec3 c in GenRadial.RadialCellsAround(child.Position, searchRadius, true))
+            {
+                if (!c.InBounds(child.Map)) continue;
+
+                List<Thing> things = c.GetThingList(child.Map);
+                foreach (Thing thing in things)
+                {
+                    if (thing.def.IsRangedWeapon && thing.def.equipmentType == EquipmentType.Primary) // It's a ranged weapon
+                    {
+                        return c; // Found a weapon
+                    }
+                }
+            }
+
+            return IntVec3.Invalid;
+        }
+
+        private static IntVec3 FindNearbyWeapon(Pawn child)
+        {
+            if (child.Map == null) return IntVec3.Invalid;
+
+            // Find weapons in a radius around the child
+            int searchRadius = 15;
+
+            foreach (IntVec3 c in GenRadial.RadialCellsAround(child.Position, searchRadius, true))
+            {
+                if (!c.InBounds(child.Map)) continue;
+
+                List<Thing> things = c.GetThingList(child.Map);
+                foreach (Thing thing in things)
+                {
+                    if (thing.def.IsWeapon && thing.def.equipmentType == EquipmentType.Primary) // It's a weapon
+                    {
+                        return c; // Found a weapon
+                    }
+                }
+            }
+
+            return IntVec3.Invalid; // No weapon found
         }
 
         private static string GetMisbehaviorLevelDescription(float misbehaviorLevel)
@@ -587,7 +1144,7 @@ namespace SocialInteractions
 
         private static Pawn FindNearbyAnnoyableAdult(Pawn child)
         {
-            if (child.Map == null)
+            if (child == null || child.Map == null)
             {
                 return null;
             }
@@ -614,18 +1171,20 @@ namespace SocialInteractions
                 foreach (Thing thing in things)
                 {
                     Pawn pawn = thing as Pawn;
-                    if (pawn != null && pawn.Faction == child.Faction && !pawn.Dead && pawn.Spawned)
+                    if (pawn != null &&
+                        pawn.Faction == child.Faction &&
+                        !pawn.Dead &&
+                        pawn.Spawned &&
+                        pawn != child &&
+                        IsAdult(pawn))
                     {
-                        if (pawn != child && IsAdult(pawn))
+                        // Only consider adults who are idle or doing non-critical work
+                        if (pawn.CurJob == null ||
+                            pawn.CurJob.def == JobDefOf.Wait ||
+                            pawn.CurJob.def == JobDefOf.Wait_Wander ||
+                            pawn.CurJob.def == JobDefOf.GotoWander)
                         {
-                            // Only consider adults who are idle or doing non-critical work
-                            if (pawn.CurJob == null ||
-                                pawn.CurJob.def == JobDefOf.Wait ||
-                                pawn.CurJob.def == JobDefOf.Wait_Wander ||
-                                pawn.CurJob.def == JobDefOf.GotoWander)
-                            {
-                                candidates.Add(pawn);
-                            }
+                            candidates.Add(pawn);
                         }
                     }
                 }
@@ -732,9 +1291,9 @@ namespace SocialInteractions
             }
 
             // Using the standard RimWorld age classification
-            // Only process pawns that are between 3-12 years old (exclude toddlers under 3)
+            // Only process pawns that are between ChildMinAge-ChildAgeLimit (3-12 years old, exclude toddlers under 3)
             int age = pawn.ageTracker.AgeBiologicalYears;
-            return age >= 3 && age < ChildAgeLimit;
+            return age >= ChildMinAge && age < ChildAgeLimit;
         }
 
         private static bool IsAdult(Pawn pawn)
@@ -743,7 +1302,7 @@ namespace SocialInteractions
             {
                 return false;
             }
-            
+
             return pawn.ageTracker.AgeBiologicalYears >= ChildAgeLimit;
         }
 

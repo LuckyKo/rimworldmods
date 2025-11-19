@@ -425,3 +425,44 @@ This utility is especially helpful for making targeted modifications to files wh
 - **Efficiency**: Uses reflection to access transition destination and adds the LLM call as a pre-action, ensuring it runs exactly once
 - **Settings Integration**: `enableMarriageCeremony` setting in `SocialInteractionsSettings.cs` with proper localization
 - **LLM Integration**: Generates appropriate subject text for LLM dialogue based on the ceremony context
+
+#### Child Misbehavior System
+- **Comprehensive Misbehavior System**: Complete system for children engaging in various misbehavior activities based on relationship with parents/guardians and other factors
+- **Misbehavior Factor Calculation**: `ChildrenMisbehaviorManager.CalculateMisbehaviorFactor` calculates likelihood of misbehavior based on parental opinion (lower opinion = higher misbehavior), child's mood, and character traits
+- **Four Levels of Misbehavior**:
+  - Level 1 - Annoying Adults: Child approaches adults during work and asks annoying questions (triggers negative mood)
+  - Level 2 - Item Misplacement: Child takes valuable items from storage and plays with them, potentially damaging them
+  - Level 3 - Property Damage: Child damages crops by trampling (`JobDriver_ChildTrampleCrops`), breaks weapons/apparel stored inappropriately
+  - Level 4 - Dangerous Behavior: 
+    - **Weapon Play**: Child picks up and plays with weapons (`JobDriver_ChildPlayWithWeapon`). Includes logic to pick up unequipped weapons. Features a 20% chance of accidental discharge causing self-harm (10 damage, high AP).
+    - **Fire Lighting**: Child attempts to light fires in dangerous or inappropriate locations (`JobDriver_ChildLightFire`).
+- **ChildrenMisbehaviorManager.cs**: Core logic manager for misbehavior calculations, level selection, and behavior execution. Includes logic for finding suitable targets (crops, weapons, flammable objects) with configurable search radii.
+- **ChildrenMisbehaviorTracker_MapComponent.cs**: MapComponent that periodically checks for children misbehavior opportunities (every 600 ticks)
+- **Custom Job Drivers**: 
+  - `JobDriver_ChildAnnoyAdult.cs`: Annoying adults at work.
+  - `JobDriver_ChildPlayWithItem.cs`: Playing with and potentially damaging items.
+  - `JobDriver_ChildPlayWithWeapon.cs`: Dangerous weapon play with self-harm mechanics.
+  - `JobDriver_ChildTrampleCrops.cs`: Destroying crops in growing zones.
+  - `JobDriver_ChildLightFire.cs`: Lighting fires on flammable objects.
+- **Settings Integration**: `enableChildrenMisbehavior` and `baseChildrenMisbehaviorChance` settings in `SocialInteractionsSettings.cs` with localization support
+- **Trait Integration**: Considers child traits like Rebellious (+20%), Kind (-20%), Psychopath (+30%) that affect misbehavior likelihood
+- **LLM Integration**: Misbehavior activities can trigger LLM monologues or interactions based on the specific behavior
+
+### Mental State and Child Comfort System
+- **MentalState_ChildFleeInTerror.cs**: Custom mental state for children who flee in terror after taking damage, based on the TODO requirement for children to flee when taking damage
+- **Pawn_TakeDamage_Patch.cs**: Harmony patch on `ThingWithComps.PreApplyDamage` that triggers flee in terror mental state for children based on their shooting/melee skills (very low chance once skills are past 10)
+- **Dynamic Flee Chance**: Lower-skilled children have higher chance (80% base) to flee when taking damage, with chance decreasing based on combined shooting/melee skills (down to 5% minimum)
+- **Comfort Mechanics**: After fleeing, children attempt to find a parent or most liked pawn to cry to, with `JobDriver_ChildGoCryToParent.cs` handling the comfort-seeking behavior
+- **Custom Job Driver**: `JobDriver_ChildGoCryToParent.cs` creates a job where children follow their parent and attempt to comfort themselves based on parent's social skill level
+- **Thought System**: Children gain ChildCrying thought when in flee in terror state, with conditional thoughts added based on comfort success/failure
+- **Social Skill-Based Comfort**: Success of comfort attempts depends on parent's social skill level (20% to 80% success chance based on skill)
+- **Custom Thought Definitions**: New thought definitions in XML files (ChildCrying, ChildBoredom, etc.) for the child misbehavior system
+
+### Breakup Interaction System
+- **Harmony Patch**: `InteractionWorker_Breakup_Patch.cs` intercepts the base game's breakup interaction using `AccessTools.Method` to safely access internal RimWorld classes
+- **LLM Enhancement**: Adds AI-generated dialogue to the breakup event while preserving all original game mechanics (relationship changes, thoughts, letters, etc.)
+- **Settings Integration**: `enableBreakups` and `useLlmForBreakups` settings in `SocialInteractionsSettings.cs` to control the feature
+- **Fallback Handling**: Maintains base game behavior when LLM features are disabled while still showing appropriate speech bubbles
+- **Spam Prevention**: Respects the mod's spam prevention system to avoid overlapping breakups with other LLM interactions
+- **Dynamic Subject Creation**: Creates appropriate subject text for LLM dialogue based on the specific breakup context
+- **Reflection-based Access**: Uses reflection to access the InteractionWorker_Breakup type since it's not publicly accessible

@@ -19,4 +19,22 @@
         <reportString>crying to TargetA.</reportString>
     </JobDef>
 
+    <JobDef>
+        <defName>ChildPlayWithWeapon</defName>
+        <driverClass>SocialInteractions.JobDriver_ChildPlayWithWeapon</driverClass>
+        <reportString>playing with a weapon unsafely.</reportString>
+    </JobDef>
+
+    <JobDef>
+        <defName>ChildTrampleCrops</defName>
+        <driverClass>SocialInteractions.JobDriver_ChildTrampleCrops</driverClass>
+        <reportString>trampling crops.</reportString>
+    </JobDef>
+
+    <JobDef>
+        <defName>ChildLightFire</defName>
+        <driverClass>SocialInteractions.JobDriver_ChildLightFire</driverClass>
+        <reportString>lighting a fire unsafely.</reportString>
+    </JobDef>
+
 </Defs>
