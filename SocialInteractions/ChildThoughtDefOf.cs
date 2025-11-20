@@ -14,6 +14,8 @@ namespace SocialInteractions
         public static ThoughtDef ChildMischievous;
         public static ThoughtDef ChildRiskTaking;
         public static ThoughtDef ChildReckless;
+        public static ThoughtDef ChildSpying;
+        public static ThoughtDef ChildSpyingDisrupted;
 
         static ChildThoughtDefOf()
         {

@@ -104,3 +104,5 @@ Pawn_TakeDamage_Patch.cs
 JobDriver_ChildPlayWithWeapon.cs
 JobDriver_ChildTrampleCrops.cs
 JobDriver_ChildLightFire.cs
+JobDriver_ModifyCarriedThingDrawPos_Patch.cs
+JobDriver_ChildSpyOnLovin.cs

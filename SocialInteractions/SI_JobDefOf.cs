@@ -19,5 +19,6 @@ namespace SocialInteractions
         public static JobDef ChildPlayWithWeapon;
         public static JobDef ChildTrampleCrops;
         public static JobDef ChildLightFire;
+        public static JobDef ChildSpyOnLovin;
     }
 }

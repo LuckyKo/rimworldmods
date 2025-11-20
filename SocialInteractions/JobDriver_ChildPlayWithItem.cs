@@ -10,6 +10,7 @@ namespace SocialInteractions
     {
         private const int BasePlayDuration = 1800; // 30 seconds in ticks
         private const float ItemDamageChance = 0.3f; // 30% chance of damaging the item during play
+        public bool isPlaying = false;
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
@@ -58,11 +59,12 @@ namespace SocialInteractions
             // Go to the play location
             yield return Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.OnCell);
 
-            // Play with the item - this is where the damage chance occurs
-            Toil playToil = new Toil();
-            playToil.initAction = delegate
+            // First half: Play with the item (tossing it around)
+            Toil firstHalfPlayToil = new Toil();
+            firstHalfPlayToil.initAction = delegate
             {
-                Pawn child = pawn; // 'pawn' is a property of JobDriver
+                isPlaying = true;
+                Pawn child = pawn;
                 Thing item = (Thing)job.GetTarget(TargetIndex.A).Thing;
                 
                 if (item == null)
@@ -73,14 +75,35 @@ namespace SocialInteractions
                 }
 
                 // Log the play session
-                SLog.Message(string.Format("[SocialInteractions] Child {0} is playing with item {1}", 
+                SLog.Message(string.Format("[SocialInteractions] Child {0} started playing with item {1}", 
                     child.LabelShort, item.Label));
+            };
+            
+            firstHalfPlayToil.tickAction = delegate
+            {
+                // Animation is handled in JobDriver_ModifyCarriedThingDrawPos_Patch
+            };
+            
+            firstHalfPlayToil.defaultCompleteMode = ToilCompleteMode.Delay;
+            firstHalfPlayToil.defaultDuration = BasePlayDuration / 2; // Half the duration
+            firstHalfPlayToil.socialMode = RandomSocialMode.Off;
+            yield return firstHalfPlayToil;
 
-                // Show message to player about the child playing
-                // Messages.Message(string.Format("{0} (child) is playing with {1}!", child.LabelShort, item.Label),
-                    // new LookTargets(child, item), MessageTypeDefOf.CautionInput);
+            // Midpoint: Check if item breaks
+            Toil midpointCheckToil = new Toil();
+            midpointCheckToil.initAction = delegate
+            {
+                Pawn child = pawn;
+                Thing item = (Thing)job.GetTarget(TargetIndex.A).Thing;
+                
+                if (item == null)
+                {
+                    SLog.Warning("[SocialInteractions] JobDriver_ChildPlayWithItem: Item is null at midpoint, ending job");
+                    EndJobWith(JobCondition.Incompletable);
+                    return;
+                }
 
-                bool itemWasDamaged = false;
+                bool itemBroke = false;
 
                 // There's a chance the child will damage the item during play
                 if (Rand.Value < ItemDamageChance)
@@ -89,7 +112,7 @@ namespace SocialInteractions
                     ThingWithComps thingWithComps = item as ThingWithComps;
                     if (thingWithComps != null)
                     {
-                        // Apply damage to the item (damage type could be "Scratch" or similar)
+                        // Apply damage to the item
                         DamageInfo dinfo = new DamageInfo(DamageDefOf.Deterioration, item.MaxHitPoints / 4, 1f, -1f, null, null, null, DamageInfo.SourceCategory.ThingOrUnknown);
                         thingWithComps.TakeDamage(dinfo);
 
@@ -100,7 +123,7 @@ namespace SocialInteractions
                         Messages.Message(string.Format("{0} (child) damaged {1} while playing!", child.LabelShort, item.Label),
                             new LookTargets(child, item), MessageTypeDefOf.NegativeEvent);
 
-                        itemWasDamaged = true;
+                        itemBroke = true;
                     }
                     else if (item.def.useHitPoints)
                     {
@@ -114,36 +137,100 @@ namespace SocialInteractions
                         Messages.Message(string.Format("{0} (child) damaged {1} while playing!", child.LabelShort, item.Label),
                             new LookTargets(child, item), MessageTypeDefOf.NegativeEvent);
 
-                        itemWasDamaged = true;
+                        itemBroke = true;
                     }
                 }
 
                 // Create appropriate subject based on whether the item was damaged
                 string subject;
-                if (itemWasDamaged)
+                if (itemBroke)
                 {
-                    subject = string.Format("playing with {1} and accidentally broke it!", child.LabelShort, item.LabelCap);
+                    subject = string.Format("playing with {0} and accidentally broke it!", item.LabelCap);
                 }
                 else
                 {
-                    subject = string.Format("playing with {1} and it's fun!", child.LabelShort, item.LabelCap);
+                    subject = string.Format("playing with {0} and it's fun!", item.LabelCap);
                 }
 
-                // Trigger a monologue for the child about playing with the item
+                // Trigger LLM call at midpoint
                 SocialInteractions.HandleMonologue(child, subject);
+
+                // Store the result in job data for the next toil
+                job.count = itemBroke ? 1 : 0;
+            };
+            midpointCheckToil.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return midpointCheckToil;
+
+            // Conditional: Either flee or continue playing
+            Toil conditionalToil = new Toil();
+            conditionalToil.initAction = delegate
+            {
+                bool itemBroke = (job.count == 1);
+                
+                if (itemBroke)
+                {
+                    // Item broke - drop it and flee
+                    Pawn child = pawn;
+                    Thing item = child.carryTracker.CarriedThing;
+                    
+                    if (item != null)
+                    {
+                        // Drop the item
+                        IntVec3 dropLocation = child.Position;
+                        Thing droppedThing;
+                        child.carryTracker.TryDropCarriedThing(dropLocation, ThingPlaceMode.Near, out droppedThing);
+                        
+                        SLog.Message(string.Format("[SocialInteractions] Child {0} dropped broken item {1} and is fleeing",
+                            child.LabelShort, item.Label));
+                    }
+                    
+                    isPlaying = false;
+                    
+                    // Add exclamation mote
+                    MoteMaker.MakeColonistActionOverlay(pawn, ThingDefOf.Mote_ColonistFleeing);
+                    
+                    // Flee to a nearby location (not too far)
+                    IntVec3 fleeDest = CellFinderLoose.GetFleeDest(pawn, new List<Thing>{item}, 20f);
+                    if (fleeDest != IntVec3.Invalid)
+                    {
+                        Job fleeJob = JobMaker.MakeJob(JobDefOf.Goto, fleeDest);
+                        fleeJob.locomotionUrgency = LocomotionUrgency.Sprint;
+                        pawn.jobs.StartJob(fleeJob, JobCondition.InterruptForced);
+                    }
+                    else
+                    {
+                        EndJobWith(JobCondition.Succeeded);
+                    }
+                }
+                else
+                {
+                    // Item didn't break - continue to second half of play
+                    ReadyForNextToil();
+                }
+            };
+            conditionalToil.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return conditionalToil;
+
+            // Second half: Continue playing (only if item didn't break)
+            Toil secondHalfPlayToil = new Toil();
+            secondHalfPlayToil.tickAction = delegate
+            {
+                // Animation is handled in JobDriver_ModifyCarriedThingDrawPos_Patch
             };
             
-            playToil.defaultCompleteMode = ToilCompleteMode.Delay;
-            playToil.defaultDuration = BasePlayDuration;
-            playToil.socialMode = RandomSocialMode.Off; // Child is focused on playing with the item
-            yield return playToil;
+            secondHalfPlayToil.AddFinishAction(() => isPlaying = false);
             
-            // Drop the item where the child is
+            secondHalfPlayToil.defaultCompleteMode = ToilCompleteMode.Delay;
+            secondHalfPlayToil.defaultDuration = BasePlayDuration / 2; // Remaining half
+            secondHalfPlayToil.socialMode = RandomSocialMode.Off;
+            yield return secondHalfPlayToil;
+            
+            // Drop the item where the child is (only reached if item didn't break)
             Toil dropToil = new Toil();
             dropToil.initAction = delegate
             {
                 Pawn child = pawn;
-                Thing item = (Thing)job.GetTarget(TargetIndex.A).Thing;
+                Thing item = child.carryTracker.CarriedThing;
                 
                 if (item == null)
                 {
@@ -151,20 +238,16 @@ namespace SocialInteractions
                     return;
                 }
 
-                // Drop the item at the current location (where the child has been playing)
+                // Drop the item at the current location
                 IntVec3 dropLocation = child.Position;
 
                 if (dropLocation.IsValid && dropLocation.InBounds(Map))
                 {
-                    // Actually drop the item
-                    Thing droppedThing = child.carryTracker.CarriedThing;
-                    if (droppedThing != null)
-                    {
-                        child.carryTracker.TryDropCarriedThing(dropLocation, ThingPlaceMode.Near, out droppedThing);
+                    Thing droppedThing;
+                    child.carryTracker.TryDropCarriedThing(dropLocation, ThingPlaceMode.Near, out droppedThing);
 
-                        SLog.Message(string.Format("[SocialInteractions] Child {0} dropped item {1} at {2}",
-                            child.LabelShort, droppedThing.Label, dropLocation));
-                    }
+                    SLog.Message(string.Format("[SocialInteractions] Child {0} dropped item {1} at {2}",
+                        child.LabelShort, droppedThing.Label, dropLocation));
                 }
             };
             

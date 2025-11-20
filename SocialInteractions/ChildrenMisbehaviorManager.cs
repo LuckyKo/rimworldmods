@@ -21,14 +21,14 @@ namespace SocialInteractions
         private const int MaxTimeSinceParentInteraction = 180000; // 5 days in ticks, after which misbehavior increases
         
         // Misbehavior level thresholds
-        private const float Level1Threshold = 0.1f; // Annoying adults
-        private const float Level2Threshold = 0.3f; // Misplacing items
+        private const float Level1Threshold = 0.01f; // Annoying adults
+        private const float Level2Threshold = 0.03f; // Misplacing items
         private const float Level3Threshold = 0.5f; // Damaging property
         private const float Level4Threshold = 0.8f; // Dangerous behavior
 
         // Track ongoing misbehavior activities to prevent spam
         private static Dictionary<Pawn, int> lastMisbehaviorTick = new Dictionary<Pawn, int>();
-        private static int misbehaviorCheckInterval = 3000; // Check every 3000 ticks (~5 min)
+        private static int misbehaviorCheckInterval = 3000; // Check every 3000 ticks
 
         /// <summary>
         /// Calculates the misbehavior factor for a child pawn based on parental relationship quality and other factors
@@ -248,6 +248,7 @@ namespace SocialInteractions
             if (misbehaviorLevel >= Level2Threshold)
             {
                 eligibleBehaviors.Add(() => MisplaceItems(child));
+                eligibleBehaviors.Add(() => SpyOnCouples(child));
             }
 
             if (misbehaviorLevel >= Level3Threshold)
@@ -385,6 +386,72 @@ namespace SocialInteractions
             {
                 SLog.Message(string.Format("[SocialInteractions] MisplaceItems: Child {0} found no valuable items to take", child.LabelShort));
             }
+        }
+
+        private static void SpyOnCouples(Pawn child)
+        {
+            if (child == null || child.Map == null)
+            {
+                SLog.Warning("[SocialInteractions] SpyOnCouples: child is null or map is null");
+                return;
+            }
+
+            // Find a couple engaging in Lovin'
+            Pawn target = FindCoupleLovin(child);
+
+            if (target != null)
+            {
+                // Show warning message
+                Messages.Message(string.Format("{0} (child) is going to spy on {1}!", child.LabelShort, target.LabelShort),
+                    new LookTargets(child, target), MessageTypeDefOf.CautionInput);
+
+                SLog.Message(string.Format("[SocialInteractions] SpyOnCouples: Child {0} is spying on {1}", child.LabelShort, target.LabelShort));
+
+                // Find a spot to watch from
+                IntVec3 watchSpot = CellFinder.RandomClosewalkCellNear(target.Position, child.Map, 4, (IntVec3 c) => 
+                    c.Standable(child.Map) && 
+                    !c.IsForbidden(child) && 
+                    GenSight.LineOfSight(c, target.Position, child.Map) &&
+                    c.DistanceTo(target.Position) >= 2f); // Don't get too close
+
+                if (watchSpot != IntVec3.Invalid)
+                {
+                    Job spyJob = JobMaker.MakeJob(SI_JobDefOf.ChildSpyOnLovin, target, watchSpot);
+                    child.jobs.TryTakeOrderedJob(spyJob);
+                }
+                else
+                {
+                    SLog.Message("[SocialInteractions] SpyOnCouples: Could not find a good watch spot.");
+                }
+            }
+        }
+
+        private static Pawn FindCoupleLovin(Pawn child)
+        {
+            if (child == null || child.Map == null) return null;
+
+            List<Pawn> potentialTargets = new List<Pawn>();
+
+            foreach (Pawn p in child.Map.mapPawns.FreeColonistsSpawned)
+            {
+                if (p == child) continue;
+                
+                // Check distance
+                if (p.Position.DistanceTo(child.Position) > 30f) continue;
+
+                // Check if doing Lovin'
+                if (p.CurJob != null && (p.CurJob.def == JobDefOf.Lovin || p.CurJob.def == SI_JobDefOf.DateLovin))
+                {
+                    potentialTargets.Add(p);
+                }
+            }
+
+            if (potentialTargets.Count > 0)
+            {
+                return potentialTargets.RandomElement();
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -778,7 +845,7 @@ namespace SocialInteractions
 
             // Randomly choose between lighting fire and other dangerous behavior
             bool success = false;
-            if (Rand.Value < 0.05f)
+            if (Rand.Value < 0.5f)
             {
                 success = LightFire(child);
             }

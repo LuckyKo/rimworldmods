@@ -139,4 +139,32 @@
         </stages>
     </ThoughtDef>
 
+    <ThoughtDef>
+        <defName>ChildSpying</defName>
+        <thoughtClass>Thought_Memory</thoughtClass>
+        <durationDays>0.5</durationDays>
+        <stackLimit>1</stackLimit>
+        <stages>
+            <li>
+                <label>sneaky spying</label>
+                <description>Hehe, I saw them doing something weird!</description>
+                <baseMoodEffect>3</baseMoodEffect>
+            </li>
+        </stages>
+    </ThoughtDef>
+
+    <ThoughtDef>
+        <defName>ChildSpyingDisrupted</defName>
+        <thoughtClass>Thought_Memory</thoughtClass>
+        <durationDays>1.0</durationDays>
+        <stackLimit>1</stackLimit>
+        <stages>
+            <li>
+                <label>caught peeping tom</label>
+                <description>A child was watching us during an intimate moment. It was incredibly awkward.</description>
+                <baseMoodEffect>-10</baseMoodEffect>
+            </li>
+        </stages>
+    </ThoughtDef>
+
 </Defs>

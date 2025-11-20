@@ -37,4 +37,10 @@
         <reportString>lighting a fire unsafely.</reportString>
     </JobDef>
 
+    <JobDef>
+        <defName>ChildSpyOnLovin</defName>
+        <driverClass>SocialInteractions.JobDriver_ChildSpyOnLovin</driverClass>
+        <reportString>spying on TargetA.</reportString>
+    </JobDef>
+
 </Defs>
