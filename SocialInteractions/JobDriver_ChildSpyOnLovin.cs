@@ -9,7 +9,7 @@ namespace SocialInteractions
     public class JobDriver_ChildSpyOnLovin : JobDriver
     {
         private const int WatchDuration = 1000; // ~16 seconds
-        private const float DisruptionChance = 0.01f; // Chance per check to disrupt
+        private const float DisruptionChance = 0.05f; // Chance per check to disrupt
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
@@ -39,7 +39,7 @@ namespace SocialInteractions
             watchToil.initAction = delegate
             {
                 SLog.Message(string.Format("[SocialInteractions] Child {0} started spying on {1}", pawn.LabelShort, job.GetTarget(TargetIndex.A).Thing.LabelShort));
-                Messages.Message(string.Format("{0} was caught spying on {1}!", pawn.LabelShort, job.GetTarget(TargetIndex.A).Thing.LabelShort), new LookTargets(pawn, job.GetTarget(TargetIndex.A).Thing), MessageTypeDefOf.NegativeEvent);
+                // Messages.Message(string.Format("{0} started spying on {1}!", pawn.LabelShort, job.GetTarget(TargetIndex.A).Thing.LabelShort), new LookTargets(pawn, job.GetTarget(TargetIndex.A).Thing), MessageTypeDefOf.NegativeEvent);
             };
             
             watchToil.tickAction = delegate
@@ -83,14 +83,51 @@ namespace SocialInteractions
                 string partnerName = "";
                 if (target != null && target.CurJob != null)
                 {
-                    Pawn partner = target.CurJob.GetTarget(TargetIndex.A).Thing as Pawn;
+                    SLog.Message(string.Format("[SocialInteractions] Target {0} has job {1}", target.LabelShort, target.CurJob.def.defName));
+                    
+                    // In vanilla Lovin, we need to find the other pawn
+                    // TargetIndex.A could be either the partner (if target is initiator) or the initiator (if target is partner)
+                    // TargetIndex.B is always the bed
+                    Pawn partner = null;
+                    
+                    // Check TargetIndex.A - if it's a Pawn and not the target, it's the partner
+                    Thing targetA = target.CurJob.GetTarget(TargetIndex.A).Thing;
+                    if (targetA is Pawn && targetA != target)
+                    {
+                        partner = targetA as Pawn;
+                        SLog.Message(string.Format("[SocialInteractions] Found partner at TargetIndex.A: {0}", partner.LabelShort));
+                    }
+                    else
+                    {
+                        // If TargetIndex.A is not a pawn or is the target itself, check the bed for other occupants
+                        Thing targetB = target.CurJob.GetTarget(TargetIndex.B).Thing;
+                        if (targetB is Building_Bed)
+                        {
+                            Building_Bed bed = targetB as Building_Bed;
+                            foreach (Pawn occupant in bed.CurOccupants)
+                            {
+                                if (occupant != target && occupant.CurJob != null && 
+                                    (occupant.CurJob.def == JobDefOf.Lovin || occupant.CurJob.def == SI_JobDefOf.DateLovin))
+                                {
+                                    partner = occupant;
+                                    SLog.Message(string.Format("[SocialInteractions] Found partner in bed: {0}", partner.LabelShort));
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
                     if (partner != null)
                     {
                         partnerName = " with " + partner.LabelShort;
                     }
+                    else
+                    {
+                        SLog.Message("[SocialInteractions] Could not find partner");
+                    }
                 }
                 
-                string subject = string.Format("saw {0} doing something weird in bed{1}", target.LabelShort, partnerName);
+                string subject = string.Format("peeping on {0} doing something naughty in bed{1}", target.LabelShort, partnerName);
                 SocialInteractions.HandleMonologue(pawn, subject);
             });
             
@@ -149,8 +186,8 @@ namespace SocialInteractions
                 new LookTargets(pawn, target), MessageTypeDefOf.NegativeEvent);
 
             // LLM Monologue
-            string subject = string.Format("got caught spying on {0} doing the deed with {1}!", target.LabelShort, partner != null ? partner.LabelShort : "someone");
-            SocialInteractions.HandleMonologue(pawn, subject);
+            string subject = string.Format("{0} got caught peeping on {1} doing the deed with {2}!", pawn.LabelShort, target.LabelShort, partner != null ? partner.LabelShort : "someone");
+            SocialInteractions.HandleNonStoppingInteraction(pawn, target, SI_InteractionDefOf.ChildAnnoying, subject);
 
             // Maybe make the couple stop?
             target.jobs.EndCurrentJob(JobCondition.InterruptForced);

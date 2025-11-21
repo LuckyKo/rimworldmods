@@ -20,5 +20,8 @@ namespace SocialInteractions
         public static JobDef ChildTrampleCrops;
         public static JobDef ChildLightFire;
         public static JobDef ChildSpyOnLovin;
+        public static JobDef SI_InviteToPlayTag;
+        public static JobDef SI_PlayTagRunner;
+        public static JobDef SI_PlayTagChaser;
     }
 }

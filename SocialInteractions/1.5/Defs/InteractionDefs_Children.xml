@@ -20,4 +20,20 @@
         </logRulesRecipient>
     </InteractionDef>
 
+    <InteractionDef>
+        <defName>ChildPlayTag</defName>
+        <label>playing tag</label>
+        <symbol>Things/Mote/SpeechSymbols/Speech</symbol>
+        <logRulesInitiator>
+            <rulesStrings>
+                <li>r_logentry->[INITIATOR_nameDef] invited [RECIPIENT_nameDef] to play tag</li>
+            </rulesStrings>
+        </logRulesInitiator>
+        <logRulesRecipient>
+            <rulesStrings>
+                <li>r_logentry->[RECIPIENT_nameDef] was invited to play tag by [INITIATOR_nameDef]</li>
+            </rulesStrings>
+        </logRulesRecipient>
+    </InteractionDef>
+
 </Defs>

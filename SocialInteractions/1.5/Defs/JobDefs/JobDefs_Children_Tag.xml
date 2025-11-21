@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <JobDef>
+    <defName>SI_InviteToPlayTag</defName>
+    <driverClass>SocialInteractions.JobDriver_InviteToPlayTag</driverClass>
+    <reportString>inviting TargetA to play tag.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+    <allowOpportunisticPrefix>false</allowOpportunisticPrefix>
+  </JobDef>
+
+  <JobDef>
+    <defName>SI_PlayTagRunner</defName>
+    <driverClass>SocialInteractions.JobDriver_PlayTagRunner</driverClass>
+    <reportString>playing tag.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+    <allowOpportunisticPrefix>false</allowOpportunisticPrefix>
+    <suspendable>false</suspendable>
+  </JobDef>
+
+  <JobDef>
+    <defName>SI_PlayTagChaser</defName>
+    <driverClass>SocialInteractions.JobDriver_PlayTagChaser</driverClass>
+    <reportString>chasing TargetA.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+    <allowOpportunisticPrefix>false</allowOpportunisticPrefix>
+    <suspendable>false</suspendable>
+  </JobDef>
+
+</Defs>

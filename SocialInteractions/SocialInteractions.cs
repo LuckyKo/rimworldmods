@@ -127,6 +127,8 @@ namespace SocialInteractions
             if (interactionDef == InteractionDefOf.MarriageProposal && Settings.enableMarriageProposal) return true;
             if (interactionDef == InteractionDefOf.Reassure && Settings.enableReassure) return true;
             if (interactionDef == InteractionDefOf.DisturbingChat && Settings.enableDisturbingChat) return true;
+            if (interactionDef == SI_InteractionDefOf.TendPatient && Settings.enableTendPatient) return true;
+            if (interactionDef == SI_InteractionDefOf.Lovin && Settings.enableLovin) return true;
             if (interactionDef.defName == "GoOnDate" && Settings.enableDating) return true;
             if (interactionDef == SI_InteractionDefOf.DateRejected && Settings.enableDating) return true;
             if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) return true;
@@ -139,6 +141,7 @@ namespace SocialInteractions
             if (interactionDef == SI_InteractionDefOf.Backstabbing && Settings.enableDrama) return true;
             if (interactionDef == SI_InteractionDefOf.MakeUp && Settings.enableDrama) return true;
             if (interactionDef == SI_InteractionDefOf.ChildAnnoying && Settings.enableChildrenMisbehavior) return true;
+            if (interactionDef == SI_InteractionDefOf.ChildPlayTag && Settings.enableChildrenMisbehavior) return true;
             return false;
         }
 
@@ -193,27 +196,10 @@ namespace SocialInteractions
                 // (like for Marriage Ceremony which calls this with null def)
                 isEnabled = true;
             }
-            else if (interactionDef == InteractionDefOf.Chitchat && Settings.enableChitchat) isEnabled = true;
-            else if (interactionDef == InteractionDefOf.DeepTalk && Settings.enableDeepTalk) isEnabled = true;
-            else if (interactionDef == InteractionDefOf.Insult && Settings.enableInsult) isEnabled = true;
-            else if (interactionDef == InteractionDefOf.RomanceAttempt && Settings.enableRomanceAttempt) isEnabled = true;
-            else if (interactionDef == InteractionDefOf.MarriageProposal && Settings.enableMarriageProposal) isEnabled = true;
-            else if (interactionDef == InteractionDefOf.Reassure && Settings.enableReassure) isEnabled = true;
-            else if (interactionDef == InteractionDefOf.DisturbingChat && Settings.enableDisturbingChat) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.TendPatient && Settings.enableTendPatient) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.Lovin && Settings.enableLovin) isEnabled = true;
-            else if (interactionDef.defName == "GoOnDate" && Settings.enableDating) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.DateRejected && Settings.enableDating) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.DateAccepted && Settings.enableDating) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.DateLovin && Settings.enableDating && Settings.enableLovin) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.CaughtCheating && Settings.enableDating) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.ManualChat && Settings.enableManualChat) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.Badmouthing && Settings.enableDrama) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.EnhancedInsult && Settings.enableDrama) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.Admiration && Settings.enableDrama) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.Backstabbing && Settings.enableDrama) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.MakeUp && Settings.enableDrama) isEnabled = true;
-            else if (interactionDef == SI_InteractionDefOf.ChildAnnoying && Settings.enableChildrenMisbehavior) isEnabled = true;
+            else
+            {
+                isEnabled = IsLlmInteractionEnabled(interactionDef);
+            }
 
             string defName = interactionDef != null ? interactionDef.defName : "Custom";
             SLog.Message(string.Format("[SocialInteractions] GenerateDeepTalkPrompt: isEnabled for {0}: {1}", defName, isEnabled));

@@ -466,3 +466,26 @@ This utility is especially helpful for making targeted modifications to files wh
 - **Spam Prevention**: Respects the mod's spam prevention system to avoid overlapping breakups with other LLM interactions
 - **Dynamic Subject Creation**: Creates appropriate subject text for LLM dialogue based on the specific breakup context
 - **Reflection-based Access**: Uses reflection to access the InteractionWorker_Breakup type since it's not publicly accessible
+
+### Child Play Tag System
+- **New Job System**: Three new specialized job drivers for tag gameplay:
+  - `JobDriver_InviteToPlayTag.cs`: Manages the invitation process where one child asks another to play tag
+  - `JobDriver_PlayTagRunner.cs`: Handles the "it" child who runs around to different locations
+  - `JobDriver_PlayTagChaser.cs`: Manages the chasing child who follows the runner
+- **XML Definitions**: New job definitions in `1.5/Defs/JobDefs/JobDefs_Children_Tag.xml` with proper defNames (`SI_InviteToPlayTag`, `SI_PlayTagRunner`, `SI_PlayTagChaser`)
+- **Interaction Definition**: New `ChildPlayTag` interaction defined in `InteractionDefs_Children.xml` with appropriate log rules
+- **DefOf Integration**: New definitions added to `SI_InteractionDefOf.cs` and `SI_JobDefOf.cs` for type safety
+- **Misbehavior Integration**: Added as a Level 2 misbehavior option in `ChildrenMisbehaviorManager.cs`, triggered when children have sufficient misbehavior factor
+- **Gameplay Flow**: Child A invites Child B to play tag; if accepted, Child A becomes the runner and Child B becomes the chaser; runner moves to random locations while chaser follows
+- **Settings Control**: Integrated with the existing children misbehavior system settings
+
+### Child Spying System
+- **Job Driver**: `JobDriver_ChildSpyOnLovin.cs` handles children sneaking to watch other pawns engaged in intimate activities
+- **Interruption Mechanism**: Includes logic to potentially disrupt the intimate activity with configurable chance
+- **Thought System**: Adds specific thoughts for disrupted couples and the spying child
+- **LLM Integration**: Generates appropriate monologue text about what the child observed
+- **Def Integration**: Added to `SI_JobDefOf.cs` and associated with `ChildAnnoying` interaction type
+- **Misbehavior Level**: Implemented as part of Level 2 misbehavior in the children system
+- **Target Detection**: Includes logic to identify pawns engaged in both vanilla Lovin' and modded DateLovin' activities
+- **Disruption Handling**: Properly interrupts the intimate activity and sends both participants fleeing if caught
+- **Mood Effects**: Applies appropriate mood changes to all involved pawns when disrupting intimate moments

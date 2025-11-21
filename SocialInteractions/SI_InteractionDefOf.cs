@@ -24,6 +24,7 @@ namespace SocialInteractions
         public static InteractionDef Backstabbing;
         public static InteractionDef MakeUp;
         public static InteractionDef ChildAnnoying;
+        public static InteractionDef ChildPlayTag;
 
     }
 }

@@ -242,13 +242,14 @@ namespace SocialInteractions
 
             if (misbehaviorLevel >= Level1Threshold)
             {
-                eligibleBehaviors.Add(() => AnnoyAdults(child));
+                // eligibleBehaviors.Add(() => AnnoyAdults(child));
             }
 
             if (misbehaviorLevel >= Level2Threshold)
             {
-                eligibleBehaviors.Add(() => MisplaceItems(child));
+                // eligibleBehaviors.Add(() => MisplaceItems(child));
                 eligibleBehaviors.Add(() => SpyOnCouples(child));
+                // eligibleBehaviors.Add(() => PlayTag(child));
             }
 
             if (misbehaviorLevel >= Level3Threshold)
@@ -448,6 +449,78 @@ namespace SocialInteractions
 
             if (potentialTargets.Count > 0)
             {
+                return potentialTargets.RandomElement();
+            }
+
+            return null;
+        }
+
+        private static void PlayTag(Pawn child)
+        {
+            if (child == null || child.Map == null)
+            {
+                SLog.Warning("[SocialInteractions] PlayTag: child is null or map is null");
+                return;
+            }
+
+            // Find another child to play with
+            Pawn targetChild = FindTagTarget(child);
+
+            if (targetChild != null)
+            {
+                // Show warning message
+                Messages.Message(string.Format("{0} (child) wants to play tag with {1}!", child.LabelShort, targetChild.LabelShort),
+                    new LookTargets(child, targetChild), MessageTypeDefOf.NeutralEvent);
+
+                SLog.Message(string.Format("[SocialInteractions] PlayTag: Child {0} is inviting {1} to play tag", child.LabelShort, targetChild.LabelShort));
+
+                // Create invite job
+                Job inviteJob = JobMaker.MakeJob(SI_JobDefOf.SI_InviteToPlayTag, targetChild);
+                child.jobs.TryTakeOrderedJob(inviteJob);
+            }
+            else
+            {
+                SLog.Message(string.Format("[SocialInteractions] PlayTag: Child {0} found no one to play tag with", child.LabelShort));
+                
+                // Fallback to boredom if no one to play with
+                if (child.needs != null && child.needs.mood != null)
+                {
+                    child.needs.mood.thoughts.memories.TryGainMemory(ChildThoughtDefOf.ChildBoredom, null);
+                }
+                string subject = "Is bored because there's nobody to play tag with";
+                SocialInteractions.HandleMonologue(child, subject);
+            }
+        }
+
+        private static Pawn FindTagTarget(Pawn child)
+        {
+            if (child == null || child.Map == null) return null;
+
+            List<Pawn> potentialTargets = new List<Pawn>();
+
+            foreach (Pawn p in child.Map.mapPawns.FreeColonistsSpawned)
+            {
+                if (p == child) continue;
+                
+                // Must be a child
+                if (!IsChild(p)) continue;
+
+                // Must be awake and capable
+                if (!p.Awake() || p.Downed || p.Dead || p.InMentalState) continue;
+
+                // Check distance (within 40 cells)
+                if (p.Position.DistanceTo(child.Position) > 40f) continue;
+
+                // Check if busy with something critical? 
+                // For now, just check if they are not drafted or doing something emergency
+                if (p.Drafted) continue;
+
+                potentialTargets.Add(p);
+            }
+
+            if (potentialTargets.Count > 0)
+            {
+                // Prefer friends?
                 return potentialTargets.RandomElement();
             }
 

@@ -106,3 +106,6 @@ JobDriver_ChildTrampleCrops.cs
 JobDriver_ChildLightFire.cs
 JobDriver_ModifyCarriedThingDrawPos_Patch.cs
 JobDriver_ChildSpyOnLovin.cs
+JobDriver_InviteToPlayTag.cs
+JobDriver_PlayTagRunner.cs
+JobDriver_PlayTagChaser.cs
