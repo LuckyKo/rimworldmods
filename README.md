@@ -34,6 +34,15 @@ Enhance your RimWorld experience with dynamic, AI-generated social interactions,
 - **Admiration/Praising**: Low-influence pawns praise leaders based on shared traits/skills to build relationships
 - **Make Up/Apologizing**: Colonists can initiate reconciliation conversations to resolve conflicts and repair damaged relationships
 
+### Children Misbehavior System
+- **Four Levels of Misbehavior**: Children can engage in increasingly problematic behaviors based on their misbehavior factor
+  - **Level 1 - Annoying Adults**: Children approach adults during work and ask annoying questions, triggering negative mood changes
+  - **Level 2 - Item Misplacement/Spying/Playing Tag**: Children take valuable items from storage and play with them (potentially damaging them), spy on intimate moments, or play tag with other children
+  - **Level 3 - Property Damage**: Children damage crops by trampling them during play or break workbenches and other furniture
+  - **Level 4 - Dangerous Behavior**: Children light fires in inappropriate places, play with weapons (with chance of self-harm), leak colony location to raiders via radio (triggering raids)
+- **Misbehavior Factor Calculation**: System calculates likelihood based on parental opinion (lower opinion = higher misbehavior), child's mood, relationship with caregivers, and character traits
+- **Flee in Terror Mechanic**: When children take damage, they may flee in terror and seek comfort from parents or most liked pawn based on their social skills
+
 ### UI Enhancements
 - **Custom Speech Bubbles**: Visually distinct bubbles for different interaction types
 - **Chat Log**: Review all interactions in a dedicated chat log window
