@@ -23,5 +23,7 @@ namespace SocialInteractions
         public static JobDef SI_InviteToPlayTag;
         public static JobDef SI_PlayTagRunner;
         public static JobDef SI_PlayTagChaser;
+        public static JobDef ChildPlayWithRadio;
+        public static JobDef ChildBreakBuilding;
     }
 }

@@ -109,3 +109,5 @@ JobDriver_ChildSpyOnLovin.cs
 JobDriver_InviteToPlayTag.cs
 JobDriver_PlayTagRunner.cs
 JobDriver_PlayTagChaser.cs
+JobDriver_ChildPlayWithRadio.cs
+JobDriver_ChildBreakBuilding.cs

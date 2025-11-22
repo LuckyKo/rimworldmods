@@ -426,6 +426,15 @@ This utility is especially helpful for making targeted modifications to files wh
 - **Settings Integration**: `enableMarriageCeremony` setting in `SocialInteractionsSettings.cs` with proper localization
 - **LLM Integration**: Generates appropriate subject text for LLM dialogue based on the ceremony context
 
+### Breakup Interaction System
+- **Harmony Patch**: `InteractionWorker_Breakup_Patch.cs` intercepts the base game's breakup interaction using `AccessTools.Method` to safely access internal RimWorld classes
+- **LLM Enhancement**: Adds AI-generated dialogue to the breakup event while preserving all original game mechanics (relationship changes, thoughts, letters, etc.)
+- **Settings Integration**: `enableBreakups` and `useLlmForBreakups` settings in `SocialInteractionsSettings.cs` to control the feature
+- **Fallback Handling**: Maintains base game behavior when LLM features are disabled while still showing appropriate speech bubbles
+- **Spam Prevention**: Respects the mod's spam prevention system to avoid overlapping breakups with other LLM interactions
+- **Dynamic Subject Creation**: Creates appropriate subject text for LLM dialogue based on the specific breakup context
+- **Reflection-based Access**: Uses reflection to access the InteractionWorker_Breakup type since it's not publicly accessible
+
 #### Child Misbehavior System
 - **Comprehensive Misbehavior System**: Complete system for children engaging in various misbehavior activities based on relationship with parents/guardians and other factors
 - **Misbehavior Factor Calculation**: `ChildrenMisbehaviorManager.CalculateMisbehaviorFactor` calculates likelihood of misbehavior based on parental opinion (lower opinion = higher misbehavior), child's mood, and character traits
@@ -458,15 +467,6 @@ This utility is especially helpful for making targeted modifications to files wh
 - **Social Skill-Based Comfort**: Success of comfort attempts depends on parent's social skill level (20% to 80% success chance based on skill)
 - **Custom Thought Definitions**: New thought definitions in XML files (ChildCrying, ChildBoredom, etc.) for the child misbehavior system
 
-### Breakup Interaction System
-- **Harmony Patch**: `InteractionWorker_Breakup_Patch.cs` intercepts the base game's breakup interaction using `AccessTools.Method` to safely access internal RimWorld classes
-- **LLM Enhancement**: Adds AI-generated dialogue to the breakup event while preserving all original game mechanics (relationship changes, thoughts, letters, etc.)
-- **Settings Integration**: `enableBreakups` and `useLlmForBreakups` settings in `SocialInteractionsSettings.cs` to control the feature
-- **Fallback Handling**: Maintains base game behavior when LLM features are disabled while still showing appropriate speech bubbles
-- **Spam Prevention**: Respects the mod's spam prevention system to avoid overlapping breakups with other LLM interactions
-- **Dynamic Subject Creation**: Creates appropriate subject text for LLM dialogue based on the specific breakup context
-- **Reflection-based Access**: Uses reflection to access the InteractionWorker_Breakup type since it's not publicly accessible
-
 ### Child Play Tag System
 - **New Job System**: Three new specialized job drivers for tag gameplay:
   - `JobDriver_InviteToPlayTag.cs`: Manages the invitation process where one child asks another to play tag
@@ -489,3 +489,21 @@ This utility is especially helpful for making targeted modifications to files wh
 - **Target Detection**: Includes logic to identify pawns engaged in both vanilla Lovin' and modded DateLovin' activities
 - **Disruption Handling**: Properly interrupts the intimate activity and sends both participants fleeing if caught
 - **Mood Effects**: Applies appropriate mood changes to all involved pawns when disrupting intimate moments
+
+### Child Building Breaking System
+- **Job Driver**: `JobDriver_ChildBreakBuilding.cs` allows children to target buildings with breakdownable components and break them
+- **Mechanics**: Uses melee attack animations to "bonk" the building for a duration, then triggers the breakdown effect
+- **Target Selection**: Finds buildings with `CompBreakdownable` component (workbenches, furniture, etc.) excluding critical infrastructure like doors and walls
+- **Def Integration**: Added as `ChildBreakBuilding` job def in `SI_JobDefOf.cs` and XML definition in `JobDefs/JobDefs_Children_BreakBuilding.xml`
+- **Misbehavior Level**: Integrated as part of Level 3 misbehavior (property damage) in `ChildrenMisbehaviorManager.cs`
+- **Feedback System**: Includes messages to the player, mood effects, LLM monologue generation, and thought memories
+- **Safety Checks**: Excludes critical infrastructure (doors, walls, vents) from being broken by children
+
+### Child Radio Leaking System
+- **Job Driver**: `JobDriver_ChildPlayWithRadio.cs` enables children to play with comms consoles with risk of leaking colony location
+- **Mechanics**: Child plays with radio for 15 seconds, then has a chance based on social skill to leak location (0 skill = 100% chance, decreasing by 9% per skill level, min 10%)
+- **Raid Trigger**: If location is leaked, schedules a raid to occur in ~1 day with warning message to the player
+- **Def Integration**: Added as `ChildPlayWithRadio` job def in `SI_JobDefOf.cs` and XML definition in `JobDefs/JobDefs_Children_Radio.xml`
+- **Misbehavior Level**: Implemented as part of Level 4 misbehavior (dangerous behavior) in `ChildrenMisbehaviorManager.cs`
+- **Target Finding**: Uses `GenClosest.ClosestThingReachable` to find available comms consoles
+- **Skill-Based Outcome**: Chance of leaking location decreases with higher social skill of the child

@@ -21,10 +21,10 @@ namespace SocialInteractions
         private const int MaxTimeSinceParentInteraction = 180000; // 5 days in ticks, after which misbehavior increases
         
         // Misbehavior level thresholds
-        private const float Level1Threshold = 0.01f; // Annoying adults
-        private const float Level2Threshold = 0.03f; // Misplacing items
-        private const float Level3Threshold = 0.5f; // Damaging property
-        private const float Level4Threshold = 0.8f; // Dangerous behavior
+        private const float Level1Threshold = 0.1f; // Annoying adults
+        private const float Level2Threshold = 0.2f; // Misplacing items
+        private const float Level3Threshold = 0.3f; // Damaging property
+        private const float Level4Threshold = 0.5f; // Dangerous behavior
 
         // Track ongoing misbehavior activities to prevent spam
         private static Dictionary<Pawn, int> lastMisbehaviorTick = new Dictionary<Pawn, int>();
@@ -242,24 +242,27 @@ namespace SocialInteractions
 
             if (misbehaviorLevel >= Level1Threshold)
             {
-                // eligibleBehaviors.Add(() => AnnoyAdults(child));
+                eligibleBehaviors.Add(() => AnnoyAdults(child));
+                eligibleBehaviors.Add(() => SpyOnCouples(child));
             }
 
             if (misbehaviorLevel >= Level2Threshold)
             {
-                // eligibleBehaviors.Add(() => MisplaceItems(child));
-                eligibleBehaviors.Add(() => SpyOnCouples(child));
-                // eligibleBehaviors.Add(() => PlayTag(child));
+                eligibleBehaviors.Add(() => MisplaceItems(child));
+                eligibleBehaviors.Add(() => PlayTag(child));
             }
 
             if (misbehaviorLevel >= Level3Threshold)
             {
-                eligibleBehaviors.Add(() => DamageProperty(child));
+                eligibleBehaviors.Add(() => TrampleCrops(child));
+                eligibleBehaviors.Add(() => DestroyRandomProperty(child));
             }
 
             if (misbehaviorLevel >= Level4Threshold)
             {
-                eligibleBehaviors.Add(() => DangerousBehavior(child));
+                 eligibleBehaviors.Add(() => LightFire(child));
+                 eligibleBehaviors.Add(() => PlayWithWeapon(child));
+                 eligibleBehaviors.Add(() => LeakLocation(child));
             }
 
             // Select one behavior randomly from the eligible options
@@ -282,6 +285,18 @@ namespace SocialInteractions
                 SLog.Message(string.Format("[SocialInteractions] ExecuteMisbehavior: No eligible behaviors found for child misbehavior"));
             }
             // No fallback monologue - each behavior that needs dialogue handles it internally
+        }
+
+        private static void HandleMisbehaviorFailure(Pawn child, string subject, ThoughtDef thoughtDef)
+        {
+            SLog.Message(string.Format("[SocialInteractions] Misbehavior failed: Child {0} could not perform action. Subject: {1}", child.LabelShort, subject));
+            
+            if (child.needs != null && child.needs.mood != null && thoughtDef != null)
+            {
+                child.needs.mood.thoughts.memories.TryGainMemory(thoughtDef, null);
+            }
+
+            SocialInteractions.HandleMonologue(child, subject);
         }
 
         private static void AnnoyAdults(Pawn child)
@@ -655,43 +670,6 @@ namespace SocialInteractions
             return IntVec3.Invalid;
         }
 
-        private static void DamageProperty(Pawn child)
-        {
-            if (child == null || child.Map == null)
-            {
-                SLog.Warning("[SocialInteractions] DamageProperty: child is null or map is null");
-                return;
-            }
-
-            // Show warning message to player that child is about to do mischief
-            Messages.Message(string.Format("{0} (child) is about to do some mischievous property damage!", child.LabelShort),
-                new LookTargets(child), MessageTypeDefOf.CautionInput);
-
-            // Randomly choose between trampling crops and destroying property
-            bool success = false;
-            if (Rand.Value < 0.5f)
-            {
-                success = TrampleCrops(child);
-            }
-            else
-            {
-                success = DestroyRandomProperty(child);
-            }
-
-            if (!success)
-            {
-                SLog.Message(string.Format("[SocialInteractions] DamageProperty: Child {0} found no property to destroy, becoming mischievous", child.LabelShort));
-                // If no property found to damage, child expresses mischief
-                if (child.needs != null && child.needs.mood != null)
-                {
-                    child.needs.mood.thoughts.memories.TryGainMemory(ChildThoughtDefOf.ChildMischievous, null);
-                }
-
-                string subject = "wanted to do something mischievous but couldn't find anything to destroy";
-                SocialInteractions.HandleMonologue(child, subject);
-            }
-        }
-
         private static bool TrampleCrops(Pawn child)
         {
             if (child == null || child.Map == null)
@@ -704,6 +682,10 @@ namespace SocialInteractions
 
             if (trampleArea != IntVec3.Invalid)
             {
+                // Show warning message
+                Messages.Message(string.Format("{0} (child) is about to trample some crops!", child.LabelShort),
+                    new LookTargets(child), MessageTypeDefOf.CautionInput);
+
                 // Create the job for the child to go to the area and trample crops there
                 Job trampleJob = JobMaker.MakeJob(SI_JobDefOf.ChildTrampleCrops, trampleArea);
                 bool jobTaken = child.jobs.TryTakeOrderedJob(trampleJob);
@@ -722,6 +704,7 @@ namespace SocialInteractions
                 }
             }
 
+            HandleMisbehaviorFailure(child, "wanted to trample some crops but couldn't find any", ChildThoughtDefOf.ChildMischievous);
             return false;
         }
 
@@ -831,11 +814,10 @@ namespace SocialInteractions
                 return false;
             }
 
-            // Find other destructible property (buildings, items)
+            // Find buildings with breakdown component (workbenches, furniture, etc.)
             int searchRadius = 20;
-            List<Thing> destructibleItems = new List<Thing>();
+            List<Thing> breakableBuildings = new List<Thing>();
 
-            // Check for buildings/apparel that can be damaged
             foreach (IntVec3 c in GenRadial.RadialCellsAround(child.Position, searchRadius, true))
             {
                 if (!c.InBounds(child.Map)) continue;
@@ -844,101 +826,40 @@ namespace SocialInteractions
                 Thing edifice = c.GetEdifice(child.Map);
                 if (edifice != null)
                 {
-                    // Check if it's a buildable structure that a child might damage
-                    if (edifice.def.category == ThingCategory.Building &&
-                        edifice.def.passability != Traversability.Impassable &&
-                        edifice.def.useHitPoints &&
-                        edifice.HitPoints > 1)
+                    // Check if it's a building with CompBreakdownable
+                    CompBreakdownable breakdownComp = edifice.TryGetComp<CompBreakdownable>();
+                    if (breakdownComp != null && !breakdownComp.BrokenDown)
                     {
-                        // Only target items that are not critical infrastructure
-                        if (edifice.def.defName != "Door" && edifice.def.defName != "Autodoor") // Don't damage doors
+                        // Exclude critical infrastructure
+                        if (edifice.def.defName != "Door" && edifice.def.defName != "Autodoor" &&
+                            !edifice.def.defName.Contains("Wall") && 
+                            !edifice.def.defName.Contains("Vent"))
                         {
-                            destructibleItems.Add(edifice);
+                            breakableBuildings.Add(edifice);
                         }
                     }
                 }
-
-                // Check for items on the ground
-                List<Thing> things = c.GetThingList(child.Map);
-                foreach (Thing thing in things)
-                {
-                    if (thing.def.useHitPoints && thing.HitPoints > 1 &&
-                        (thing.def.IsApparel || thing.def.thingClass == typeof(Building)))
-                    {
-                        destructibleItems.Add(thing);
-                    }
-                }
             }
 
-            if (destructibleItems.Count > 0)
+            if (breakableBuildings.Count > 0)
             {
-                // Randomly select an item to damage
-                Thing itemToDamage = destructibleItems[Rand.Range(0, destructibleItems.Count)];
+                // Randomly select a building to break
+                Thing buildingToBreak = breakableBuildings[Rand.Range(0, breakableBuildings.Count)];
 
-                // Apply damage to the item
-                int damageAmount = Mathf.Min(5, itemToDamage.MaxHitPoints / 4); // Damage up to 25% of max HP
-                if (damageAmount < 1) damageAmount = 1;
+                // Create job for child to break the building
+                Job breakJob = JobMaker.MakeJob(SI_JobDefOf.ChildBreakBuilding, buildingToBreak);
+                bool jobTaken = child.jobs.TryTakeOrderedJob(breakJob);
 
-                itemToDamage.TakeDamage(new DamageInfo(DamageDefOf.Deterioration, damageAmount));
-
-                SLog.Message(string.Format("[SocialInteractions] DestroyRandomProperty: Child {0} damaged {1} at {2}",
-                    child.LabelShort, itemToDamage.Label, itemToDamage.Position));
-
-                // Show message to player
-                // Messages.Message(string.Format("{0} (child) damaged {1}!", child.LabelShort, itemToDamage.Label),
-                //     new LookTargets(child, itemToDamage), MessageTypeDefOf.NegativeEvent);
-
-                // Add a thought to the child about being destructive
-                if (child.needs != null && child.needs.mood != null)
+                if (jobTaken)
                 {
-                    child.needs.mood.thoughts.memories.TryGainMemory(ChildThoughtDefOf.ChildDestructive, null);
+                    SLog.Message(string.Format("[SocialInteractions] DestroyRandomProperty: Child {0} is going to break {1}",
+                        child.LabelShort, buildingToBreak.Label));
+                    return true;
                 }
-
-                // Trigger LLM interaction about damaging property
-                string subject = string.Format("damaged some property, sorry about that!");
-                SocialInteractions.HandleMonologue(child, subject);
-
-                return true;
             }
 
+            HandleMisbehaviorFailure(child, "wanted to smash something but couldn't find a good target", ChildThoughtDefOf.ChildMischievous);
             return false;
-        }
-
-        private static void DangerousBehavior(Pawn child)
-        {
-            if (child == null || child.Map == null)
-            {
-                SLog.Warning("[SocialInteractions] DangerousBehavior: child is null or map is null");
-                return;
-            }
-
-            // Show warning message to player that child is about to do something dangerous
-            Messages.Message(string.Format("{0} (child) is about to do something dangerous!", child.LabelShort),
-                new LookTargets(child), MessageTypeDefOf.ThreatBig);
-
-            // Randomly choose between lighting fire and other dangerous behavior
-            bool success = false;
-            if (Rand.Value < 0.5f)
-            {
-                success = LightFire(child);
-            }
-            else
-            {
-                success = PlayWithWeapon(child);
-            }
-
-            if (!success)
-            {
-                SLog.Message(string.Format("[SocialInteractions] DangerousBehavior: Child {0} found no way to engage in dangerous behavior", child.LabelShort));
-                // If no dangerous behavior possible, child expresses risky intent
-                if (child.needs != null && child.needs.mood != null)
-                {
-                    child.needs.mood.thoughts.memories.TryGainMemory(ChildThoughtDefOf.ChildRiskTaking, null);
-                }
-
-                string subject = "wanted to do something really dangerous but couldn't figure out how";
-                SocialInteractions.HandleMonologue(child, subject);
-            }
         }
 
         private static bool LightFire(Pawn child)
@@ -954,8 +875,8 @@ namespace SocialInteractions
             if (flammableTarget != null)
             {
                 // Show warning message to player that child is about to light a fire
-                // Messages.Message(string.Format("{0} (child) is about to light a fire on {1}!", child.LabelShort, flammableTarget.Label),
-                    // new LookTargets(child, flammableTarget), MessageTypeDefOf.ThreatBig);
+                Messages.Message(string.Format("{0} (child) is about to light a fire on {1}!", child.LabelShort, flammableTarget.Label),
+                    new LookTargets(child, flammableTarget), MessageTypeDefOf.ThreatBig);
 
                 // Create the job for the child to go to the flammable target and light it
                 Job lightFireJob = JobMaker.MakeJob(SI_JobDefOf.ChildLightFire, flammableTarget);
@@ -975,6 +896,7 @@ namespace SocialInteractions
                 }
             }
 
+            HandleMisbehaviorFailure(child, "wanted to light a fire but couldn't find anything flammable", ChildThoughtDefOf.ChildRiskTaking);
             return false;
         }
 
@@ -1152,8 +1074,8 @@ namespace SocialInteractions
             if (weaponToUse != null)
             {
                 // Show warning message to player that child is about to play with a weapon unsafely
-                // Messages.Message(string.Format("{0} (child) is about to play with {1} unsafely!", child.LabelShort, weaponToUse.Label),
-                //     new LookTargets(child, weaponToUse), MessageTypeDefOf.ThreatBig);
+                Messages.Message(string.Format("{0} (child) is about to play with {1} unsafely!", child.LabelShort, weaponToUse.Label),
+                    new LookTargets(child, weaponToUse), MessageTypeDefOf.ThreatBig);
 
                 // Create the job for the child to go play with the weapon unsafely
                 Job weaponPlayJob = JobMaker.MakeJob(SI_JobDefOf.ChildPlayWithWeapon, weaponToUse);
@@ -1173,6 +1095,7 @@ namespace SocialInteractions
                 }
             }
 
+            HandleMisbehaviorFailure(child, "wanted to play with a weapon but couldn't find one", ChildThoughtDefOf.ChildRiskTaking);
             return false;
         }
 
@@ -1421,6 +1344,45 @@ namespace SocialInteractions
             }
             
             return Mathf.Clamp(traitInfluence, -0.5f, 0.5f);
+        }
+
+        private static bool LeakLocation(Pawn child)
+        {
+            if (child == null || child.Map == null) return false;
+
+            Thing commsConsole = FindCommsConsole(child);
+            if (commsConsole != null)
+            {
+                // Show warning message
+                Messages.Message(string.Format("{0} (child) is playing with the radio!", child.LabelShort),
+                    new LookTargets(child, commsConsole), MessageTypeDefOf.ThreatBig);
+
+                Job leakJob = JobMaker.MakeJob(SI_JobDefOf.ChildPlayWithRadio, commsConsole);
+                bool jobTaken = child.jobs.TryTakeOrderedJob(leakJob);
+                
+                if (jobTaken)
+                {
+                     SLog.Message(string.Format("[SocialInteractions] LeakLocation: Child {0} might leak location via {1}", child.LabelShort, commsConsole.Label));
+                     return true;
+                }
+            }
+            HandleMisbehaviorFailure(child, "wanted to play with the radio but couldn't find a comms console", ChildThoughtDefOf.ChildRiskTaking);
+            return false;
+        }
+
+        private static Thing FindCommsConsole(Pawn child)
+        {
+            if (child.Map == null) return null;
+
+            return GenClosest.ClosestThingReachable(child.Position, child.Map, 
+                ThingRequest.ForDef(ThingDefOf.CommsConsole), 
+                PathEndMode.InteractionCell, 
+                TraverseParms.For(child), 
+                9999f, 
+                (Thing t) => {
+                    Building_CommsConsole comms = t as Building_CommsConsole;
+                    return comms != null && comms.CanUseCommsNow && child.CanReserve(t);
+                });
         }
 
         public static bool IsChild(Pawn pawn)

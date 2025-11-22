@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <JobDef>
+    <defName>ChildBreakBuilding</defName>
+    <driverClass>SocialInteractions.JobDriver_ChildBreakBuilding</driverClass>
+    <reportString>breaking TargetA.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+</Defs>

@@ -9,7 +9,7 @@ namespace SocialInteractions
     public class JobDriver_ChildSpyOnLovin : JobDriver
     {
         private const int WatchDuration = 1000; // ~16 seconds
-        private const float DisruptionChance = 0.05f; // Chance per check to disrupt
+        private const float DisruptionChance = 0.02f; // Chance per check to disrupt
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
