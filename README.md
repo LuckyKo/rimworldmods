@@ -3,7 +3,7 @@
 [![RimWorld Version](https://img.shields.io/badge/RimWorld-1.5%20%7C%201.6-blue)](https://rimworldgame.com/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Enhance your RimWorld experience with dynamic, AI-generated social interactions, a comprehensive dating system, and immersive combat taunts.
+Enhance your RimWorld experience with an expanded set of social interactions augmented by dynamic, AI-generated dialogue.
 
 ## Features
 

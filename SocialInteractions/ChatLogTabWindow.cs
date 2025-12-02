@@ -17,7 +17,8 @@ namespace SocialInteractions
             public Pawn speaker;
             public Pawn recipient;
             public string title;
-            
+            private string cachedFullConversation = null; // Cache the full conversation to avoid recalculating
+
             public ConversationGroup(int conversationId, List<ChatMessage> messages)
             {
                 this.conversationId = conversationId;
@@ -25,7 +26,7 @@ namespace SocialInteractions
                 this.timestamp = messages[0].timestamp;
                 this.speaker = messages[0].speaker;
                 this.recipient = messages[0].recipient;
-                
+
                 // Create a title from the fallback text or first message
                 if (!string.IsNullOrEmpty(messages[0].fallbackText))
                 {
@@ -33,17 +34,23 @@ namespace SocialInteractions
                 }
                 else
                 {
-                    this.title = string.Format("{0} -> {1}", 
+                    this.title = string.Format("{0} -> {1}",
                         speaker != null ? speaker.Name.ToStringShort : "Unknown",
                         recipient != null ? recipient.Name.ToStringShort : "Unknown");
                 }
+
+                // Sort messages by timestamp only once during initialization
+                this.messages.Sort((x, y) => x.timestamp.CompareTo(y.timestamp));
             }
-            
+
             public string GetFullConversation()
             {
-                // Sort messages by timestamp
-                messages.Sort((x, y) => x.timestamp.CompareTo(y.timestamp));
-                
+                // If we have a cached version, return it
+                if (cachedFullConversation != null)
+                {
+                    return cachedFullConversation;
+                }
+
                 // Build the full conversation with formatted messages and spacing
                 // Start with the title as the first line
                 string conversation = title + "\n\n";
@@ -54,8 +61,16 @@ namespace SocialInteractions
                     string messageText = !string.IsNullOrEmpty(message.formattedMessage) ? message.formattedMessage : message.message;
                     conversation += messageText + "\n\n"; // Add extra line break for spacing
                 }
-                
+
+                // Cache the result
+                cachedFullConversation = conversation;
                 return conversation;
+            }
+
+            // Method to invalidate the cache when messages change
+            public void InvalidateCache()
+            {
+                cachedFullConversation = null;
             }
         }
         
@@ -65,15 +80,17 @@ namespace SocialInteractions
         private int displayedGroupIndex = -1;
         private int hoveredGroupIndex = -1;
         private static QuickSearchWidget quickSearchWidget = new QuickSearchWidget();
-        
+
         // UI constants
         private const float MessagesRowHeight = 30f;
         private const float SpaceBetweenColumns = 5f;
-        
+
         private static readonly Vector2 SearchBarOffset = new Vector2(720f, 8f);
-        
+
         private Dictionary<string, string> truncationCache = new Dictionary<string, string>();
         private List<ConversationGroup> conversationGroups = new List<ConversationGroup>();
+        private List<ChatMessage> lastChatLog = new List<ChatMessage>(); // Cache the last retrieved chat log
+        private bool needsRefresh = true; // Flag to indicate if conversation groups need to be refreshed
         
         public override Vector2 RequestedTabSize { get { return new Vector2(1010f, 640f); } }
         
@@ -88,34 +105,56 @@ namespace SocialInteractions
             // Draw the chat log page
             DoChatLogPage(rect);
         }
-        
+
         private void DoChatLogPage(Rect rect)
         {
             // Adjust rect for search bar
             Rect contentRect = rect;
             Rect searchRect = new Rect(contentRect.x + SearchBarOffset.x, contentRect.y + SearchBarOffset.y, Window.QuickSearchSize.x, Window.QuickSearchSize.y);
             quickSearchWidget.OnGUI(searchRect, Notify_SearchChanged);
-            
+
             // Adjust rect for content
             contentRect.yMin = contentRect.yMin + 40f;
-            
-            // Get chat log and group by conversationId
-            List<ChatMessage> chatLog = ChatLogManager.GetChatLog();
-            
-            // Group messages by conversationId
-            GroupMessages(chatLog);
-            
-            // Sort by timestamp, newest first
-            conversationGroups.Sort((x, y) => y.timestamp.CompareTo(x.timestamp));
-            
+
+            // Get chat log and update conversation groups only if needed
+            List<ChatMessage> currentChatLog = ChatLogManager.GetChatLog();
+
+            // Check if the chat log has changed since last time
+            if (currentChatLog.Count != lastChatLog.Count)
+            {
+                needsRefresh = true;
+            }
+            else
+            {
+                // Quick check if any message has changed (this is a basic check; could be more thorough if needed)
+                for (int i = 0; i < currentChatLog.Count; i++)
+                {
+                    if (!ReferenceEquals(currentChatLog[i], lastChatLog[i]))
+                    {
+                        needsRefresh = true;
+                        break;
+                    }
+                }
+            }
+
+            // Only regroup and sort if we need to refresh
+            if (needsRefresh)
+            {
+                lastChatLog = new List<ChatMessage>(currentChatLog); // Create a copy for comparison later
+                GroupMessages(currentChatLog);
+                // Sort by timestamp, newest first
+                conversationGroups.Sort((x, y) => y.timestamp.CompareTo(x.timestamp));
+                needsRefresh = false;
+            }
+
             // Split the rect into two parts: left for the list, right for details
             Rect outRect = contentRect;
             Rect viewRect = new Rect(0f, 0f, contentRect.width / 2f - 16f, messagesLastHeight);
             Rect detailsRect = new Rect(contentRect.x + contentRect.width / 2f + 10f, contentRect.y, contentRect.width / 2f - 10f - 16f, contentRect.height);
-            
+
             hoveredGroupIndex = -1;
             quickSearchWidget.noResultsMatched = conversationGroups.Count == 0;
-            
+
             // Draw the list of conversation groups
             Widgets.BeginScrollView(outRect, ref messagesScrollPos, viewRect);
             float num = 0f;
@@ -123,7 +162,7 @@ namespace SocialInteractions
             {
                 ConversationGroup group = conversationGroups[i];
                 bool matchesSearch = !quickSearchWidget.filter.Active || quickSearchWidget.filter.Matches(group.title);
-                
+
                 if (matchesSearch)
                 {
                     if (num + MessagesRowHeight >= messagesScrollPos.y && num <= messagesScrollPos.y + outRect.height)
@@ -135,7 +174,7 @@ namespace SocialInteractions
             }
             messagesLastHeight = num;
             Widgets.EndScrollView();
-            
+
             // Draw the details of the selected or hovered conversation group
             ConversationGroup displayGroup = null;
             if (displayedGroupIndex >= 0 && displayedGroupIndex < conversationGroups.Count)
@@ -146,7 +185,7 @@ namespace SocialInteractions
             {
                 displayGroup = conversationGroups[hoveredGroupIndex];
             }
-            
+
             if (displayGroup != null)
             {
                 string details = displayGroup.GetFullConversation();
@@ -165,14 +204,14 @@ namespace SocialInteractions
         private void GroupMessages(List<ChatMessage> chatLog)
         {
             conversationGroups.Clear();
-            
+
             // Group messages by conversationId
             // Include LLMChat, DramaEvent, and DateEvent messages in conversation grouping
             var groupedMessages = chatLog
                 .Where(m => m.type == MessageType.LLMChat || m.type == MessageType.DramaEvent || m.type == MessageType.DateEvent)
                 .GroupBy(m => m.conversationId)
                 .ToDictionary(g => g.Key, g => g.ToList());
-            
+
             // Create conversation groups
             foreach (var kvp in groupedMessages)
             {
@@ -181,7 +220,7 @@ namespace SocialInteractions
                     conversationGroups.Add(new ConversationGroup(kvp.Key, kvp.Value));
                 }
             }
-            
+
             // Add non-chat messages as individual groups
             // Exclude LLMChat, DramaEvent, and DateEvent messages from individual grouping since they're conversation-based
             var nonChatMessages = chatLog.Where(m => m.type != MessageType.LLMChat && m.type != MessageType.DramaEvent && m.type != MessageType.DateEvent).ToList();
@@ -259,6 +298,8 @@ namespace SocialInteractions
         {
             messagesScrollPos = Vector2.zero;
             detailsScrollPos = Vector2.zero;
+            // Force refresh when search changes
+            needsRefresh = true;
         }
         
         public override void Notify_ClickOutsideWindow()

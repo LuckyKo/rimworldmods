@@ -106,6 +106,8 @@ Current event: [pawn1] [subject]
         public bool enableMarriageCeremony = true; // Whether to enable LLM interactions during marriage ceremonies
         public bool enableBreakups = true; // Whether breakup interactions are enabled
         public bool useLlmForBreakups = true; // Whether to use LLM for breakup interactions
+        public bool enableIdeologyConversionInteractions = true; // Whether ideology conversion interactions are enabled
+        public bool enableKindWordsInteractions = true; // Whether kind words interactions are enabled
         
         // String settings
         public string llmStoppingStrings = @"<end>
@@ -230,6 +232,8 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref enableDatingFeature, "enableDatingFeature", true);
             Scribe_Values.Look(ref enableBreakups, "enableBreakups", true);
             Scribe_Values.Look(ref useLlmForBreakups, "useLlmForBreakups", true);
+            Scribe_Values.Look(ref enableIdeologyConversionInteractions, "enableIdeologyConversionInteractions", true);
+            Scribe_Values.Look(ref enableKindWordsInteractions, "enableKindWordsInteractions", true);
             Scribe_Values.Look(ref enableDrama, "enableDrama", false);
             Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);
@@ -299,7 +303,7 @@ Current event: [pawn1] [subject]
 
             // Children misbehavior settings
             Scribe_Values.Look(ref enableChildrenMisbehavior, "enableChildrenMisbehavior", true);
-            Scribe_Values.Look(ref baseChildrenMisbehaviorChance, "baseChildrenMisbehaviorChance", 0.1f);
+            Scribe_Values.Look(ref baseChildrenMisbehaviorChance, "baseChildrenMisbehaviorChance", 0.9f);
             Scribe_Values.Look(ref childrenMisbehaviorParentOpinionImpact, "childrenMisbehaviorParentOpinionImpact", 0.5f);
 
             // MakeUp/Apologizing interaction settings
@@ -308,7 +312,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref makeUpNegativeOpinionMultiplier, "makeUpNegativeOpinionMultiplier", 0.7f);
 
             // Version tracking
-            Scribe_Values.Look(ref modVersion, "modVersion", "1.2.0");
+            Scribe_Values.Look(ref modVersion, "modVersion", "1.2.1");
         }
     }
 
@@ -728,6 +732,8 @@ Current event: [pawn1] [subject]
             listingStandard.CheckboxLabeled("SocialInteractions_EnableMarriageCeremony".Translate(), ref SocialInteractions.Settings.enableMarriageCeremony);
             listingStandard.CheckboxLabeled("SocialInteractions_EnableBreakups".Translate(), ref SocialInteractions.Settings.enableBreakups);
             //listingStandard.CheckboxLabeled("SocialInteractions_UseLlmForBreakups".Translate(), ref SocialInteractions.Settings.useLlmForBreakups);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableIdeologyConversionInteractions".Translate(), ref SocialInteractions.Settings.enableIdeologyConversionInteractions);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableKindWordsInteractions".Translate(), ref SocialInteractions.Settings.enableKindWordsInteractions);
 
             listingStandard.End();
 

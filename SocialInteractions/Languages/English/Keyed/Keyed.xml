@@ -135,4 +135,6 @@
 
   <!-- Breakup Settings -->
   <SocialInteractions_EnableBreakups>Breakups</SocialInteractions_EnableBreakups>
+  <SocialInteractions_EnableIdeologyConversionInteractions>Ideology Conversion</SocialInteractions_EnableIdeologyConversionInteractions>
+  <SocialInteractions_EnableKindWordsInteractions>Kind Words</SocialInteractions_EnableKindWordsInteractions>
 </LanguageData>

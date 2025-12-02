@@ -127,6 +127,7 @@ namespace SocialInteractions
             if (interactionDef == InteractionDefOf.MarriageProposal && Settings.enableMarriageProposal) return true;
             if (interactionDef == InteractionDefOf.Reassure && Settings.enableReassure) return true;
             if (interactionDef == InteractionDefOf.DisturbingChat && Settings.enableDisturbingChat) return true;
+            if (interactionDef == InteractionDefOf.ConvertIdeoAttempt && Settings.enableIdeologyConversionInteractions) return true;
             if (interactionDef == SI_InteractionDefOf.TendPatient && Settings.enableTendPatient) return true;
             if (interactionDef == SI_InteractionDefOf.Lovin && Settings.enableLovin) return true;
             if (interactionDef.defName == "GoOnDate" && Settings.enableDating) return true;
@@ -231,11 +232,21 @@ namespace SocialInteractions
             {
                 prompt = prompt.Replace("[" + kvp.Key + "]", kvp.Value);
             }
+            // Add specific mapping for [initiator_ideo]
+            if (pawn1Data.ContainsKey("pawn1_ideology_desc"))
+            {
+                prompt = prompt.Replace("[initiator_ideo]", pawn1Data["pawn1_ideology_desc"]);
+            }
 
             // Replace placeholders for pawn2
             foreach (var kvp in pawn2Data)
             {
                 prompt = prompt.Replace("[" + kvp.Key + "]", kvp.Value);
+            }
+            // Add specific mapping for [recipient_ideo]
+            if (pawn2Data.ContainsKey("pawn2_ideology_desc"))
+            {
+                prompt = prompt.Replace("[recipient_ideo]", pawn2Data["pawn2_ideology_desc"]);
             }
 
             // World info attributes
@@ -597,12 +608,30 @@ namespace SocialInteractions
             
             // Ideology
             string ideology = "None";
+            string ideologyDesc = "None";
             if (pawn.Ideo != null)
             {
                 ideology = pawn.Ideo.name;
+                
+                // Build detailed description with memes
+                List<string> memesList = new List<string>();
+                foreach (MemeDef meme in pawn.Ideo.memes)
+                {
+                    memesList.Add(meme.LabelCap);
+                }
+                
+                if (memesList.Count > 0)
+                {
+                    ideologyDesc = string.Format("{0} (Memes: {1})", ideology, string.Join(", ", memesList.ToArray()));
+                }
+                else
+                {
+                    ideologyDesc = ideology;
+                }
             }
             
             data[prefix + "_ideology"] = ideology;
+            data[prefix + "_ideology_desc"] = ideologyDesc;
 
             // Traits
             string traits = "None";

@@ -124,18 +124,18 @@ namespace SocialInteractions
             else
             {
                 // Failed to extract information
-                string subject = string.Format("An unsuccessful attempt by {0} to extract information from {1} about their relationships and who they trust most.", 
+                string subject = string.Format("An unsuccessful attempt by {0} to extract information from {1} about their relationships and who they trust most.",
                     initiator.LabelShort, recipient.LabelShort);
-                    
+
                 // Skip spam protection for backstabbing as these are rare, important events that should be witnessed
                 SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, SI_InteractionDefOf.Backstabbing, subject, true, false);
-                
+
                 // Create a custom log entry for the failed information gathering
                 try
                 {
                     // For failed info gathering, we'll still pass the recipient as the target to maintain log consistency
                     PlayLogEntry_Backstabbing infoGatherLogEntry = new PlayLogEntry_Backstabbing(SI_InteractionDefOf.Backstabbing, initiator, recipient, extraSentencePacks, recipient, false);
-                    
+
                     // Add the entry to the play log to update the social history
                     if (Find.PlayLog != null)
                     {
@@ -409,14 +409,14 @@ namespace SocialInteractions
         {
             // Get original trust level between recipient and target
             int originalTrust = recipient.relations != null ? recipient.relations.OpinionOf(targetPawn) : 0;
-            
+
             // Get social skills
             int initiatorSocialSkill = initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Social).Level : 0;
             int recipientSocialSkill = recipient.skills != null ? recipient.skills.GetSkill(SkillDefOf.Social).Level : 0;
-            
+
             // Calculate base chance based on trust level and social skill difference
             float baseChance = 0.3f; // 30% base chance
-            
+
             // Adjust for trust level (higher trust is harder to break)
             if (originalTrust > 0)
             {
@@ -424,25 +424,25 @@ namespace SocialInteractions
                 float trustDifficulty = Math.Min(1.0f, originalTrust / 100.0f); // Cap at 1.0 for 100+ trust
                 baseChance -= trustDifficulty * 0.3f; // Reduce chance based on trust
             }
-            
+
             // Adjust for social skill difference
             float skillDifference = (initiatorSocialSkill - recipientSocialSkill) * 0.05f; // 5% per skill level difference
             baseChance += skillDifference;
-            
+
             // Adjust for traits that affect deception
             if (HasTraitThatEnhancesDeception(initiator))
             {
                 baseChance += 0.2f; // 20% bonus for good deceivers
             }
-            
+
             if (HasTraitThatPreventsDeception(recipient))
             {
                 baseChance -= 0.2f; // 20% penalty for perceptive pawns
             }
-            
+
             // Ensure chance is within bounds
             baseChance = Math.Max(0.05f, Math.Min(0.95f, baseChance));
-            
+
             return Rand.Value < baseChance;
         }
         

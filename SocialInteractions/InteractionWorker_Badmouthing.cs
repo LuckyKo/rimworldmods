@@ -380,12 +380,12 @@ namespace SocialInteractions
             {
                 return;
             }
-            
+
             if (initiator == null || recipient == null || targetPawn == null)
             {
                 return;
             }
-            
+
             // Check if the target has highly trusted allies worth targeting
             Pawn bestTargetForBackstab = FindMostTrustedAllyOfTarget(targetPawn, recipient);
             if (bestTargetForBackstab == null || bestTargetForBackstab == initiator || bestTargetForBackstab == recipient || bestTargetForBackstab == targetPawn)
@@ -393,15 +393,24 @@ namespace SocialInteractions
                 // No suitable target for backstabbing found or the target would be one of the participants
                 return;
             }
-            
+
             // Calculate the backstabbing opportunity chance based on various factors
             float backstabChance = CalculateBackstabbingChance(initiator, bestTargetForBackstab, targetPawn);
-            
+
+            // Determine if this pawn would do info gathering first or go direct (without proper info)
+            bool willDoInfoGathering = ShouldDoInfoGatheringFirst(initiator, bestTargetForBackstab, targetPawn);
+
+            // If the pawn will not do info gathering (will try direct approach without proper information), reduce the chance significantly
+            if (!willDoInfoGathering)
+            {
+                backstabChance *= 0.1f; // Reduce to 10% of normal chance when attempting backstab without proper info gathering
+            }
+
             // Roll for the backstabbing opportunity
             float roll = Rand.Value;
-            SLog.Message(string.Format("[SocialInteractions] Badmouthing: Backstabbing roll was {0:F3} (needed < {1:F3}) - {2}", 
+            SLog.Message(string.Format("[SocialInteractions] Badmouthing: Backstabbing roll was {0:F3} (needed < {1:F3}) - {2}",
                 roll, backstabChance, roll < backstabChance ? "SUCCESS" : "FAILED"));
-                
+
             if (roll < backstabChance)
             {
                 // Schedule a strategic backstabbing interaction
@@ -448,7 +457,7 @@ namespace SocialInteractions
         private float CalculateBackstabbingChance(Pawn initiator, Pawn targetAlly, Pawn originalTarget)
         {
             float baseChance = SocialInteractions.Settings.baseBackstabbingChance; // Base chance from settings
-            
+
             // Increase chance if the target ally has very high opinion of the original target
             int allyOpinionOfTarget = targetAlly.relations != null ? targetAlly.relations.OpinionOf(originalTarget) : 0;
             if (allyOpinionOfTarget > 50)
@@ -459,7 +468,7 @@ namespace SocialInteractions
             {
                 baseChance += 0.1f; // 10% bonus for moderately high trust
             }
-            
+
             // Increase chance if the instigator has high social skill
             int socialSkill = initiator.skills != null ? initiator.skills.GetSkill(SkillDefOf.Social).Level : 0;
             if (socialSkill >= 10)
@@ -470,19 +479,19 @@ namespace SocialInteractions
             {
                 baseChance += 0.1f; // 10% bonus for decent social skill
             }
-            
+
             // Increase chance if the instigator has traits that encourage manipulation
             if (HasTraitThatEncouragesManipulation(initiator))
             {
                 baseChance += 0.3f; // 30% bonus for manipulative traits
             }
-            
+
             // Apply age-based modifiers (since backstabbing is triggered after badmouthing)
             baseChance *= CalculateAgeModifier(initiator, originalTarget);
 
             // Cap at a reasonable maximum
             baseChance = Math.Min(0.8f, baseChance);
-            
+
             return baseChance;
         }
         
