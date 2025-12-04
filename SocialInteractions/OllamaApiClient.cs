@@ -38,6 +38,10 @@ namespace SocialInteractions
         public int TopK { get; set; }
         [DataMember(Name = "top_p")]
         public float TopP { get; set; }
+        [DataMember(Name = "num_predict")]
+        public int NumPredict { get; set; }
+        [DataMember(Name = "stop")]
+        public List<string> Stop { get; set; }
         [DataMember(Name = "mirostat")]
         public int Mirostat { get; set; }
         [DataMember(Name = "mirostat_tau")]
@@ -95,7 +99,9 @@ namespace SocialInteractions
                     {
                         Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
                         TopK = topK ?? SocialInteractions.Settings.llmTopK,
-                        TopP = topP ?? SocialInteractions.Settings.llmTopP
+                        TopP = topP ?? SocialInteractions.Settings.llmTopP,
+                        NumPredict = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
+                        Stop = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
                     }
                 };
 

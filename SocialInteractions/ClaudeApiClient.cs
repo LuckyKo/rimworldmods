@@ -50,6 +50,10 @@ namespace SocialInteractions
         public float? TopP { get; set; }
         [DataMember(Name = "top_k", EmitDefaultValue = false)]
         public int? TopK { get; set; }
+        [DataMember(Name = "system", EmitDefaultValue = false)]
+        public string System { get; set; }
+        [DataMember(Name = "stop_sequences", EmitDefaultValue = false)]
+        public List<string> StopSequences { get; set; }
 
         public ClaudeApiRequest()
         {
@@ -163,7 +167,9 @@ namespace SocialInteractions
                     MaxTokens = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
                     Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
                     TopP = topP,
-                    TopK = topK
+                    TopK = topK,
+                    System = "You are generating dialogue for characters in a story. Respond with only the dialogue lines, without any thinking, reasoning, or meta-commentary. Do not include tags like <thinking> or explanations.",
+                    StopSequences = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
                 };
 
                 // Add the prompt as a user message
@@ -221,7 +227,7 @@ namespace SocialInteractions
                 {
                     // Extract text from the first content block
                     var firstBlock = apiResponse.Content[0];
-                    return firstBlock != null ? firstBlock.Text : null;
+                    return firstBlock != null ? CleanChatResponse(firstBlock.Text) : null;
                 }
                 return null;
             }
@@ -235,6 +241,22 @@ namespace SocialInteractions
                 SLog.Warning(string.Format("[SocialInteractions] ClaudeApiClient: Unexpected error during text generation: {0}", ex.Message));
                 return null;
             }
+        }
+
+        private string CleanChatResponse(string response)
+        {
+            if (string.IsNullOrEmpty(response))
+                return response;
+
+            // Remove thinking blocks with various tag formats
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"<thinking>.*?</thinking>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"<think>.*?</think>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"\[thinking\].*?\[/thinking\]", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
+            // Trim whitespace
+            response = response.Trim();
+            
+            return response;
         }
 
         protected virtual void Dispose(bool disposing)

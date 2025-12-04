@@ -33,6 +33,8 @@ namespace SocialInteractions
         public int? MaxTokens { get; set; }
         [DataMember(Name = "stream")]
         public bool Stream { get; set; }
+        [DataMember(Name = "stop")]
+        public List<string> Stop { get; set; }
 
         public OpenAiApiRequest()
         {
@@ -142,8 +144,16 @@ namespace SocialInteractions
                     Model = _modelName,
                     Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
                     MaxTokens = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
-                    Stream = false
+                    Stream = false,
+                    Stop = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
                 };
+
+                // Add system message to guide response format
+                request.Messages.Add(new OpenAiApiMessage
+                {
+                    Role = "system",
+                    Content = "You are generating dialogue for characters in a story. Respond with only the dialogue lines, without any thinking, reasoning, or meta-commentary. Do not include tags like <thinking> or explanations."
+                });
 
                 // Add the prompt as a user message
                 request.Messages.Add(new OpenAiApiMessage
@@ -195,11 +205,7 @@ namespace SocialInteractions
 
                 if (apiResponse != null && apiResponse.Choices != null && apiResponse.Choices.Length > 0)
                 {
-                    // Log the API request and response
-                    // SLog.Message(string.Format("[SocialInteractions] LLM API Request: {0}", prompt));
-                    // SLog.Message(string.Format("[SocialInteractions] LLM API Response: {0}", apiResponse.Choices[0].Message.Content));
-
-                    return apiResponse.Choices[0].Message.Content;
+                    return CleanChatResponse(apiResponse.Choices[0].Message.Content);
                 }
                 return null;
             }
@@ -213,6 +219,22 @@ namespace SocialInteractions
                 SLog.Warning(string.Format("[SocialInteractions] OpenAiApiClient: Unexpected error during text generation: {0}", ex.Message));
                 return null;
             }
+        }
+
+        private string CleanChatResponse(string response)
+        {
+            if (string.IsNullOrEmpty(response))
+                return response;
+
+            // Remove thinking blocks with various tag formats
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"<thinking>.*?</thinking>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"<think>.*?</think>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"\[thinking\].*?\[/thinking\]", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
+            // Trim whitespace
+            response = response.Trim();
+            
+            return response;
         }
 
         protected virtual void Dispose(bool disposing)

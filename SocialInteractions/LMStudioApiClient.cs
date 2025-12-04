@@ -11,49 +11,44 @@ using System.Collections.Generic;
 
 namespace SocialInteractions
 {
+    // Text completion request format
     [DataContract]
-    public class LMStudioApiMessage
-    {
-        [DataMember(Name = "role")]
-        public string Role { get; set; }
-        [DataMember(Name = "content")]
-        public string Content { get; set; }
-    }
-
-    [DataContract]
-    public class LMStudioApiRequest
+    public class LMStudioCompletionRequest
     {
         [DataMember(Name = "model")]
         public string Model { get; set; }
-        [DataMember(Name = "messages")]
-        public List<LMStudioApiMessage> Messages { get; set; }
+        [DataMember(Name = "prompt")]
+        public string Prompt { get; set; }
         [DataMember(Name = "temperature")]
         public float Temperature { get; set; }
         [DataMember(Name = "max_tokens")]
         public int? MaxTokens { get; set; }
         [DataMember(Name = "stream")]
         public bool Stream { get; set; }
+        [DataMember(Name = "stop")]
+        public List<string> Stop { get; set; }
 
-        public LMStudioApiRequest()
+        public LMStudioCompletionRequest()
         {
             Stream = false;
-            Messages = new List<LMStudioApiMessage>();
         }
     }
 
+    // Text completion choice format
     [DataContract]
-    public class LMStudioApiChoice
+    public class LMStudioCompletionChoice
     {
         [DataMember(Name = "index")]
         public int Index { get; set; }
-        [DataMember(Name = "message")]
-        public LMStudioApiMessage Message { get; set; }
+        [DataMember(Name = "text")]
+        public string Text { get; set; }
         [DataMember(Name = "finish_reason")]
         public string FinishReason { get; set; }
     }
 
+    // Text completion response format
     [DataContract]
-    public class LMStudioApiResponse
+    public class LMStudioCompletionResponse
     {
         [DataMember(Name = "id")]
         public string Id { get; set; }
@@ -64,9 +59,9 @@ namespace SocialInteractions
         [DataMember(Name = "model")]
         public string Model { get; set; }
         [DataMember(Name = "choices")]
-        public LMStudioApiChoice[] Choices { get; set; }
+        public LMStudioCompletionChoice[] Choices { get; set; }
         [DataMember(Name = "usage")]
-        public object Usage { get; set; } // We won't use this, but it's in the API response
+        public object Usage { get; set; }
     }
 
     public class LMStudioApiClient : IDisposable
@@ -91,23 +86,18 @@ namespace SocialInteractions
 
             try
             {
-                var request = new LMStudioApiRequest
+                var request = new LMStudioCompletionRequest
                 {
                     Model = _modelName,
+                    Prompt = prompt,
                     Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
-                    MaxTokens = maxLength,
-                    Stream = false
+                    MaxTokens = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
+                    Stream = false,
+                    Stop = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
                 };
 
-                // Add the prompt as a user message
-                request.Messages.Add(new LMStudioApiMessage
-                {
-                    Role = "user",
-                    Content = prompt
-                });
-
                 // Convert to JSON
-                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(LMStudioApiRequest));
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(LMStudioCompletionRequest));
                 MemoryStream stream = new MemoryStream();
                 serializer.WriteObject(stream, request);
                 stream.Position = 0;
@@ -119,7 +109,7 @@ namespace SocialInteractions
 
                 var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync(_apiUrl.TrimEnd('/') + "/v1/chat/completions", httpContent);
+                var response = await _httpClient.PostAsync(_apiUrl.TrimEnd('/') + "/v1/completions", httpContent);
                 
                 // Log the response status code for debugging
                 SLog.Message(string.Format("[SocialInteractions] LMStudio API Response Status: {0}", response.StatusCode));
@@ -131,17 +121,13 @@ namespace SocialInteractions
                 // Log the response body for debugging
                 SLog.Message(string.Format("[SocialInteractions] LMStudio API Response Body: {0}", responseBody));
 
-                DataContractJsonSerializer deserializer = new DataContractJsonSerializer(typeof(LMStudioApiResponse));
+                DataContractJsonSerializer deserializer = new DataContractJsonSerializer(typeof(LMStudioCompletionResponse));
                 MemoryStream responseStream = new MemoryStream(Encoding.UTF8.GetBytes(responseBody));
-                LMStudioApiResponse apiResponse = (LMStudioApiResponse)deserializer.ReadObject(responseStream);
+                LMStudioCompletionResponse apiResponse = (LMStudioCompletionResponse)deserializer.ReadObject(responseStream);
 
                 if (apiResponse != null && apiResponse.Choices != null && apiResponse.Choices.Length > 0)
                 {
-                    // Log the API request and response
-                    // SLog.Message(string.Format("[SocialInteractions] LLM API Request: {0}", prompt));
-                    // SLog.Message(string.Format("[SocialInteractions] LLM API Response: {0}", apiResponse.Choices[0].Message.Content));
-
-                    return apiResponse.Choices[0].Message.Content;
+                    return apiResponse.Choices[0].Text;
                 }
                 return null;
             }

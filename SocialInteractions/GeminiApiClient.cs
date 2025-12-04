@@ -31,10 +31,37 @@ namespace SocialInteractions
     }
 
     [DataContract]
+    public class GeminiApiGenerationConfig
+    {
+        [DataMember(Name = "maxOutputTokens")]
+        public int MaxOutputTokens { get; set; }
+        [DataMember(Name = "stopSequences")]
+        public List<string> StopSequences { get; set; }
+        [DataMember(Name = "temperature")]
+        public float Temperature { get; set; }
+    }
+
+    [DataContract]
+    public class GeminiApiSystemInstruction
+    {
+        [DataMember(Name = "parts")]
+        public List<GeminiApiPart> Parts { get; set; }
+
+        public GeminiApiSystemInstruction()
+        {
+            Parts = new List<GeminiApiPart>();
+        }
+    }
+
+    [DataContract]
     public class GeminiApiRequest
     {
         [DataMember(Name = "contents")]
         public List<GeminiApiContent> Contents { get; set; }
+        [DataMember(Name = "generationConfig", EmitDefaultValue = false)]
+        public GeminiApiGenerationConfig GenerationConfig { get; set; }
+        [DataMember(Name = "systemInstruction", EmitDefaultValue = false)]
+        public GeminiApiSystemInstruction SystemInstruction { get; set; }
 
         public GeminiApiRequest()
         {
@@ -88,6 +115,21 @@ namespace SocialInteractions
             {
                 var request = new GeminiApiRequest();
                 
+                // Add generation config
+                request.GenerationConfig = new GeminiApiGenerationConfig
+                {
+                    MaxOutputTokens = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
+                    Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
+                    StopSequences = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
+                };
+
+                // Add system instruction
+                request.SystemInstruction = new GeminiApiSystemInstruction();
+                request.SystemInstruction.Parts.Add(new GeminiApiPart
+                {
+                    Text = "You are generating dialogue for characters in a story. Respond with only the dialogue lines, without any thinking, reasoning, or meta-commentary. Do not include tags like <thinking> or explanations."
+                });
+                
                 // Add the prompt as a user message content part
                 var content = new GeminiApiContent();
                 content.Parts.Add(new GeminiApiPart { Text = prompt });
@@ -137,7 +179,7 @@ namespace SocialInteractions
                     var candidate = apiResponse.Candidates[0];
                     if (candidate.Content != null && candidate.Content.Parts != null && candidate.Content.Parts.Count > 0)
                     {
-                        return candidate.Content.Parts[0].Text;
+                        return CleanChatResponse(candidate.Content.Parts[0].Text);
                     }
                 }
                 return null;
@@ -152,6 +194,22 @@ namespace SocialInteractions
                 SLog.Warning(string.Format("[SocialInteractions] GeminiApiClient: Unexpected error during text generation: {0}", ex.Message));
                 return null;
             }
+        }
+
+        private string CleanChatResponse(string response)
+        {
+            if (string.IsNullOrEmpty(response))
+                return response;
+
+            // Remove thinking blocks with various tag formats
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"<thinking>.*?</thinking>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"<think>.*?</think>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"\[thinking\].*?\[/thinking\]", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
+            // Trim whitespace
+            response = response.Trim();
+            
+            return response;
         }
 
         protected virtual void Dispose(bool disposing)

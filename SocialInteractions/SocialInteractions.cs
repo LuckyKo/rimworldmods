@@ -167,6 +167,37 @@ namespace SocialInteractions
             return Settings.llmInteractionsEnabled && Settings.enableBreakups && Settings.useLlmForBreakups;
         }
 
+        /// <summary>
+        /// Appends API-specific ending to the prompt based on the selected API type.
+        /// Text completion APIs get a starter, chat completion APIs get format instructions.
+        /// </summary>
+        private static string AppendApiSpecificEnding(string prompt, Pawn initiator, Pawn recipient)
+        {
+            if (string.IsNullOrEmpty(prompt))
+                return prompt;
+
+            string pawn1Name = initiator != null ? initiator.Name.ToStringShort : "Pawn1";
+            string pawn2Name = recipient != null ? recipient.Name.ToStringShort : "Pawn2";
+
+            // Determine if using text completion or chat completion API
+            bool isTextCompletion = Settings.llmApiType == LlmApiType.KoboldCpp || 
+                                    Settings.llmApiType == LlmApiType.LMStudio || 
+                                    Settings.llmApiType == LlmApiType.Ollama;
+
+            if (isTextCompletion)
+            {
+                // Text completion: add starter to begin generation
+                prompt += string.Format("\n<START>\n[{0}]:", pawn1Name);
+            }
+            else
+            {
+                // Chat completion: add format instructions
+                prompt += string.Format("\n\nFormat the response like this:\n{0}: answer...\n{1}: answer...", pawn1Name, pawn2Name);
+            }
+
+            return prompt;
+        }
+
         public static string GenerateDeepTalkPrompt(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string subject)
         {
             if (initiator == null || recipient == null)
@@ -273,7 +304,7 @@ namespace SocialInteractions
             prompt = prompt.Replace("[time]", currentTime);
             prompt = prompt.Replace("[weather]", currentWeather);
 
-            return prompt;
+            return AppendApiSpecificEnding(prompt, initiator, recipient);
         }
 
         public static string GenerateMonologuePrompt(Pawn pawn, string subject, string topic = "monologue")
@@ -334,6 +365,23 @@ namespace SocialInteractions
             prompt = prompt.Replace("[date]", currentDate);
             prompt = prompt.Replace("[time]", currentTime);
             prompt = prompt.Replace("[weather]", currentWeather);
+
+            // Add API-specific ending for monologue
+            string pawnName = pawn != null ? pawn.Name.ToStringShort : "Pawn";
+            bool isTextCompletion = Settings.llmApiType == LlmApiType.KoboldCpp || 
+                                    Settings.llmApiType == LlmApiType.LMStudio || 
+                                    Settings.llmApiType == LlmApiType.Ollama;
+
+            if (isTextCompletion)
+            {
+                // Text completion: add starter
+                prompt += string.Format("\n<START>\n[{0}]:", pawnName);
+            }
+            else
+            {
+                // Chat completion: add format instruction for monologue
+                prompt += string.Format("\n\nFormat the response as a brief monologue from {0}'s perspective like this:\n{0}: answer...\n{0}: answer...", pawnName);
+            }
 
             return prompt;
         }

@@ -21,7 +21,8 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        public string modVersion = "1.2.0"; // Current version of the mod
+        private const string CURRENT_VERSION = "1.2.2";
+        public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
         public const string DEFAULT_DIALOGUE_TEMPLATE = @"The following is an interaction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
@@ -39,8 +40,7 @@ It's currently [time], on [date] and the weather is [weather].
 
 Current event: [subject]
 
-<start>
-[pawn1]:";
+";
         
         public const string DEFAULT_MONOLOGUE_TEMPLATE = @"The following is a [topic] by a RimWorld character, [pawn1]. It's a brutal world out there so use swearing, explicit or rough language freely.
 
@@ -51,8 +51,7 @@ It's currently [time], on [date] and the weather is [weather].
 
 Current event: [pawn1] [subject]
 
-<start>
-[pawn1]:";
+";
 
         public string llmApiKey = "1234";
         public string llmPromptTemplate = DEFAULT_DIALOGUE_TEMPLATE;
@@ -312,7 +311,22 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref makeUpNegativeOpinionMultiplier, "makeUpNegativeOpinionMultiplier", 0.7f);
 
             // Version tracking
-            Scribe_Values.Look(ref modVersion, "modVersion", "1.2.1");
+            Scribe_Values.Look(ref modVersion, "modVersion", CURRENT_VERSION);
+
+            if (Scribe.mode == LoadSaveMode.LoadingVars)
+            {
+                // Check if the loaded version is older than the current version
+                // This ensures we reset templates to support the new API-specific endings
+                if (string.Compare(modVersion, CURRENT_VERSION) < 0)
+                {
+                    Log.Message(string.Format("[SocialInteractions] Detected mod update to {0}. Resetting prompt templates to default to support new API features.", CURRENT_VERSION));
+                    llmPromptTemplate = DEFAULT_DIALOGUE_TEMPLATE;
+                    llmMonologuePromptTemplate = DEFAULT_MONOLOGUE_TEMPLATE;
+                    
+                    // Update the version to current so we don't reset again
+                    modVersion = CURRENT_VERSION;
+                }
+            }
         }
     }
 
