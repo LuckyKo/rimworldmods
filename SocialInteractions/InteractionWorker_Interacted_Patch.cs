@@ -53,6 +53,7 @@ namespace SocialInteractions
                         (interactionDef == InteractionDefOf.MarriageProposal && SocialInteractions.Settings.enableMarriageProposal) ||
                         (interactionDef == InteractionDefOf.Reassure && SocialInteractions.Settings.enableReassure) ||
                         (interactionDef == InteractionDefOf.DisturbingChat && SocialInteractions.Settings.enableDisturbingChat) ||
+                        (interactionDef.defName == "KindWords" && SocialInteractions.Settings.enableKindWordsInteractions) ||
                         (interactionDef == SI_InteractionDefOf.ChildAnnoying && SocialInteractions.Settings.enableChildrenMisbehavior))
                     {
                         // SLog.Message(string.Format("[SocialInteractions] Interaction {0} matches criteria, checking if LLM interaction is enabled.", interactionDef.defName));

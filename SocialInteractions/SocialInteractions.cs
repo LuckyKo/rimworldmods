@@ -143,6 +143,7 @@ namespace SocialInteractions
             if (interactionDef == SI_InteractionDefOf.MakeUp && Settings.enableDrama) return true;
             if (interactionDef == SI_InteractionDefOf.ChildAnnoying && Settings.enableChildrenMisbehavior) return true;
             if (interactionDef == SI_InteractionDefOf.ChildPlayTag && Settings.enableChildrenMisbehavior) return true;
+            if (interactionDef.defName == "KindWords" && Settings.enableKindWordsInteractions) return true;
             return false;
         }
 
