@@ -23,9 +23,17 @@ namespace SocialInteractions
             // Construct the subject for the LLM prompt
             string subject = string.Format("{0} offering kind words to {1}.", initiator.LabelShort, recipient.LabelShort);
 
+            // Get the KindWords interaction definition from the game
+            InteractionDef kindWordsDef = DefDatabase<InteractionDef>.GetNamed("KindWords", false);
+            if (kindWordsDef == null)
+            {
+                // Fallback to Chitchat if KindWords is not available
+                kindWordsDef = InteractionDefOf.Chitchat;
+            }
+
             // Trigger the LLM interaction
             // Use HandleNonStoppingInteraction as this is a quick interaction
-            SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, InteractionDefOf.KindWords, subject);
+            SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, kindWordsDef, subject);
         }
     }
 }
