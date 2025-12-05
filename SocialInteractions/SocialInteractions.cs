@@ -188,7 +188,7 @@ namespace SocialInteractions
             if (isTextCompletion)
             {
                 // Text completion: add starter to begin generation
-                prompt += string.Format("\n<START>\n[{0}]:", pawn1Name);
+                prompt += string.Format("\n<start>\n{0}:", pawn1Name);
             }
             else
             {
@@ -376,7 +376,7 @@ namespace SocialInteractions
             if (isTextCompletion)
             {
                 // Text completion: add starter
-                prompt += string.Format("\n<START>\n[{0}]:", pawnName);
+                prompt += string.Format("\n<start>\n{0}:", pawnName);
             }
             else
             {

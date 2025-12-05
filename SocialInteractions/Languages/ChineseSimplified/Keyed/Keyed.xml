@@ -135,6 +135,18 @@
   <SocialInteractions_Done>完成</SocialInteractions_Done>
   
   <!-- Additional keys that might be missing -->
-  <SocialInteractions_PawnsStopOnInteraction>角色在互动时停止活动</SocialInteractions_PawnsStopOnInteraction>
-  <SocialInteractions_EnabledLLMInteractions>启用的LLM互动类型：</SocialInteractions_EnabledLLMInteractions>
+  <SocialInteractions_EnableIdeologyConversionInteractions>启用思想转化互动</SocialInteractions_EnableIdeologyConversionInteractions>
+  <SocialInteractions_EnableKindWordsInteractions>启用友善言辞互动</SocialInteractions_EnableKindWordsInteractions>
+
+  <!-- TTS Settings -->
+  <SocialInteractions_TTSSettings>文本转语音设置</SocialInteractions_TTSSettings>
+  <SocialInteractions_EnableTTS>启用文本转语音</SocialInteractions_EnableTTS>
+  <SocialInteractions_EnableTTSDesc>启用后，语音气泡将使用配置的TTS API朗读。</SocialInteractions_EnableTTSDesc>
+  <SocialInteractions_TTSVolume>TTS音量</SocialInteractions_TTSVolume>
+  <SocialInteractions_TTSRate>TTS语速</SocialInteractions_TTSRate>
+  <SocialInteractions_TTSApiUrl>TTS API地址</SocialInteractions_TTSApiUrl>
+  <SocialInteractions_TTSApiKey>TTS API密钥</SocialInteractions_TTSApiKey>
+  <SocialInteractions_TTSModel>TTS模型</SocialInteractions_TTSModel>
+  <SocialInteractions_RemapVoices>重置语音分配</SocialInteractions_RemapVoices>
+  <SocialInteractions_VoicesAvailable>可用语音：{0}</SocialInteractions_VoicesAvailable>
 </LanguageData>

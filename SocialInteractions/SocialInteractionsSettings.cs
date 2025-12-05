@@ -2,6 +2,7 @@ using Verse;
 using UnityEngine;
 using System.Collections.Generic; // New using directive
 using System;
+using RimWorld;
 
 namespace SocialInteractions
 {
@@ -18,10 +19,12 @@ namespace SocialInteractions
         Claude
     }
 
+
+
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        private const string CURRENT_VERSION = "1.2.2";
+        private const string CURRENT_VERSION = "1.3.0";
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
@@ -114,6 +117,7 @@ Current event: [pawn1] [subject]
 </start>
 <start>
 —END—
+<END>
 **end**
 (end)";
         
@@ -183,6 +187,16 @@ Current event: [pawn1] [subject]
         public float baseChildrenMisbehaviorChance = 0.1f; // Base chance for children misbehavior
         public float childrenMisbehaviorParentOpinionImpact = 0.5f; // How much parental opinion affects misbehavior chance (higher = more impact)
 
+        // TTS Settings
+        public bool enableTTS = false;
+        public float ttsVolume = 100f;
+        public int ttsRate = 0;
+        public bool ttsMuted = false;
+
+        public string ttsApiUrl = "http://localhost:8880/v1/audio/speech";
+        public string ttsApiKey = "";
+        public string ttsModel = "tts-1";
+
         // MakeUp/Apologizing interaction settings
         public float baseMakeUpChance = 0.08f; // Base chance for make-up/apologizing attempts
         public float makeUpPositiveOpinionMultiplier = 1.5f; // Multiplier when opinion is positive
@@ -200,6 +214,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref llmPromptTemplate, "llmPromptTemplate", "");
             Scribe_Values.Look(ref llmMonologuePromptTemplate, "llmMonologuePromptTemplate", "");
             Scribe_Values.Look(ref wordsPerLineLimit, "wordsPerLineLimit", 10);
+            Scribe_Values.Look(ref wordsPerSecond, "wordsPerSecond", 3.0f);
             
             Scribe_Values.Look(ref llmTemperature, "llmTemperature", 0.7f);
             Scribe_Values.Look(ref llmMaxTokens, "llmMaxTokens", 300);
@@ -309,6 +324,16 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref baseMakeUpChance, "baseMakeUpChance", 0.08f);
             Scribe_Values.Look(ref makeUpPositiveOpinionMultiplier, "makeUpPositiveOpinionMultiplier", 1.5f);
             Scribe_Values.Look(ref makeUpNegativeOpinionMultiplier, "makeUpNegativeOpinionMultiplier", 0.7f);
+
+            // TTS Settings
+            Scribe_Values.Look(ref enableTTS, "enableTTS", false);
+            Scribe_Values.Look(ref ttsVolume, "ttsVolume", 100f);
+            Scribe_Values.Look(ref ttsRate, "ttsRate", 0);
+            Scribe_Values.Look(ref ttsMuted, "ttsMuted", false);
+
+            Scribe_Values.Look(ref ttsApiUrl, "ttsApiUrl", "http://localhost:8880/v1/audio/speech");
+            Scribe_Values.Look(ref ttsApiKey, "ttsApiKey", "");
+            Scribe_Values.Look(ref ttsModel, "ttsModel", "tts-1");
 
             // Version tracking
             Scribe_Values.Look(ref modVersion, "modVersion", CURRENT_VERSION);
@@ -472,6 +497,70 @@ Current event: [pawn1] [subject]
             listingStandard.Label(string.Format("SocialInteractions_BaseChance".Translate() + ": {0:F3}", SocialInteractions.Settings.baseMakeUpChance));
             SocialInteractions.Settings.baseMakeUpChance = listingStandard.Slider(SocialInteractions.Settings.baseMakeUpChance, 0f, 1f);
 
+            // TTS Settings
+            listingStandard.Gap();
+            bool oldEnableTTS = SocialInteractions.Settings.enableTTS;
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableTTS".Translate(), ref SocialInteractions.Settings.enableTTS, "SocialInteractions_EnableTTSDesc".Translate());
+            
+            if (SocialInteractions.Settings.enableTTS && !oldEnableTTS)
+            {
+                // Auto-fetch when enabled
+                TTSManager.FetchVoicesFromApi();
+            }
+
+            // Toggle Main Button visibility
+            if (oldEnableTTS != SocialInteractions.Settings.enableTTS)
+            {
+                MainButtonDef ttsDef = DefDatabase<MainButtonDef>.GetNamed("SocialInteractions_TTSMute", false);
+                if (ttsDef != null)
+                {
+                    ttsDef.buttonVisible = SocialInteractions.Settings.enableTTS;
+                    // Force refresh of main buttons
+                    MainButtonDef rDef = DefDatabase<MainButtonDef>.GetNamed("Research", false); 
+                    // Hacky: Changing buttonVisible usually requires a refresh. 
+                    // RimWorld checks VisibleMainButtons frequently.
+                }
+            }
+            
+            if (SocialInteractions.Settings.enableTTS)
+            {
+                listingStandard.Label(string.Format("SocialInteractions_TTSVolume".Translate() + ": {0}", (int)SocialInteractions.Settings.ttsVolume));
+                SocialInteractions.Settings.ttsVolume = listingStandard.Slider(SocialInteractions.Settings.ttsVolume, 0f, 100f);
+                    
+                listingStandard.Label(string.Format("SocialInteractions_TTSRate".Translate() + ": {0}", SocialInteractions.Settings.ttsRate));
+                SocialInteractions.Settings.ttsRate = (int)listingStandard.Slider(SocialInteractions.Settings.ttsRate, -10f, 10f);
+                    
+                listingStandard.Gap();
+                listingStandard.Label("SocialInteractions_TTSApiUrl".Translate());
+                SocialInteractions.Settings.ttsApiUrl = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.ttsApiUrl);
+
+                listingStandard.Label("SocialInteractions_TTSApiKey".Translate());
+                SocialInteractions.Settings.ttsApiKey = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.ttsApiKey);
+
+                listingStandard.Label("SocialInteractions_TTSModel".Translate());
+                SocialInteractions.Settings.ttsModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.ttsModel);
+                    
+                if (listingStandard.ButtonText("SocialInteractions_RemapVoices".Translate()))
+                {
+                    if (Current.Game != null)
+                    {
+                        var manager = Current.Game.GetComponent<VoiceAssignmentManager>();
+                        if (manager != null)
+                        {
+                            manager.ResetAllocations();
+                            TTSManager.FetchVoicesFromApi();
+                            Messages.Message("Voice allocations reset and fetching new voices...", MessageTypeDefOf.PositiveEvent, false);
+                        }
+                    }
+                }
+                    
+                int voiceCount = TTSManager.GetVoices().Count;
+                if (voiceCount > 0)
+                {
+                    listingStandard.Label("SocialInteractions_VoicesAvailable".Translate(voiceCount));
+                }
+            }
+            
             listingStandard.Gap();
             listingStandard.Label("SocialInteractions_LLMConfiguration".Translate());
 

@@ -223,6 +223,22 @@ This utility is especially helpful for making targeted modifications to files wh
 - **File Structure**: Proper RimWorld localization structure with separate language folders and keyed XML files.
 - **UI Elements Translated**: Includes settings labels, descriptions, bio editor dialog elements, and all other user-facing strings.
 
+### 21. Text-To-Speech (TTS) Architecture
+- **External API Only**: `System.Speech` has been removed. The mod now relies exclusively on OpenAI-compatible APIs (e.g., local Kokoro servers) for TTS generation.
+- **`TTSManager.cs`**:
+  - Handles API communication (`/v1/audio/speech` for generation, `/v1/audio/voices` for fetching voices).
+  - Manages the `AudioSource` for playback.
+  - Implements threading to prevent game freezes during API calls.
+  - Controls playback state (Speak, Stop).
+- **`VoiceAssignmentManager.cs`**:
+  - **GameComponent** responsible for persistent voice allocation.
+  - Maintains `Dictionary<Pawn, string>` mapping pawns to specific voice names.
+  - Uses `Scribe_Collections` (with auxiliary lists) to save assignments in the save file.
+  - Automatically fetches voices from the API on game load and assigns them based on gender ("af_" for female, "am_" for male).
+- **UI Integration**:
+  - **Settings**: "Remap Voices" button, API configuration fields, voice count display.
+  - **Main Menu**: `MainButtonWorker_ToggleTTS` provides a toggle button on the main tab bar to mute/unmute TTS instantly.
+
 ## Job Drivers
 
 ### `JobDriver_GoOnDate.cs`
@@ -324,6 +340,11 @@ This utility is especially helpful for making targeted modifications to files wh
 - **Expanded LLM Integration**: Support for multiple LLM API types including KoboldCpp, Ollama, LMStudio, and OpenAI.
 - **Flexible Configuration**: Each API type has its own configuration options and model settings.
 - **Improved Prompt Generation**: Enhanced prompt templates with comprehensive pawn and world information.
+
+### External API TTS
+- **Persistent Voice Allocation**: Voices are fetched from the API and persistently assigned to pawns, ensuring consistent voices across sessions.
+- **Gender-Aware Allocation**: Automatically assigns male/female voices based on pawn gender using "af_"/"am_" prefixes.
+- **Mute Toggle**: Quick-access mute button on the main menu bar to stop audio immediately.
 
 ### Enhanced Dating System
 - **Three-Way Actions**: Support for 3p actions with special handling for spouse involvement.

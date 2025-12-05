@@ -96,6 +96,13 @@ namespace SocialInteractions
                 {
                     SpeechBubble bubble = speechBubbleQueue.Dequeue();
                     nextQueuedBubbleDisplayTime = Time.time + bubble.duration;
+                    
+                    // Trigger TTS when bubble pops out
+                    if (!string.IsNullOrEmpty(bubble.ttsText))
+                    {
+                        SpeakIfEnabled(bubble.ttsText, bubble.speaker);
+                    }
+
                     if (bubble.speaker != null && bubble.speaker.Map != null)
                     {
                         if (bubble.useCustomMote)
@@ -277,7 +284,7 @@ namespace SocialInteractions
             // Format the message with speaker name and rich text
             string formattedMessage = FormatLlmMessage(rawMessage, speaker, recipient, isHighPriority);
             string wrappedMessage = SocialInteractions.WrapText(formattedMessage, SocialInteractions.Settings.wordsPerLineLimit);
-            
+
             // Determine message type and color based on interaction type for proper chat log coloring
             MessageType messageType = MessageType.LLMChat; // Default
             Color messageColor = isHighPriority ? new Color(1.0f, 0.6f, 0.2f) : Color.white; // Orange for high priority, white for normal
@@ -316,7 +323,7 @@ namespace SocialInteractions
 
             lock (queueLock)
             {
-                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, wrappedMessage, duration, conversationId, false, null, useCustomMote));
+                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, wrappedMessage, duration, conversationId, false, null, useCustomMote, rawMessage));
             }
         }
 
@@ -355,9 +362,10 @@ namespace SocialInteractions
                 : string.Format("{0} ponders about {1}", speaker.Name.ToStringShort, subject);
             ChatLogManager.AddMessage(new ChatMessage(speaker, null, text, MessageType.LLMChat, conversationId, color ?? Color.grey, fallbackText, text));
 
+
             lock (queueLock)
             {
-                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color, useCustomMote));
+                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color, useCustomMote, text));
             }
         }
 
@@ -407,6 +415,9 @@ namespace SocialInteractions
             // Format the message with speaker name and rich text
             string formattedMessage = FormatLlmMessage(rawMessage, speaker, recipient, isHighPriority);
             string wrappedMessage = SocialInteractions.WrapText(formattedMessage, SocialInteractions.Settings.wordsPerLineLimit);
+
+            // Trigger TTS
+            SpeakIfEnabled(rawMessage, speaker);
             
             // Add to chat log
             Color messageColor = isHighPriority ? new Color(1.0f, 0.6f, 0.2f) : Color.white; // Orange for high priority, white for normal
@@ -635,6 +646,30 @@ namespace SocialInteractions
             // Format the message with speaker name and rich text
             return FormatSpeakerName(pawn, messageText, isHighPriority);
         }
+
+        private static void SpeakIfEnabled(string text, Pawn speaker)
+        {
+            if (SocialInteractions.Settings.enableTTS)
+            {
+                string ttsText = text;
+                
+                // 1. Replace *message* with (message)
+                ttsText = Regex.Replace(ttsText, @"\*([^*]+)\*", "($1)");
+                
+                // 2. Replace [message] with (message)
+                ttsText = Regex.Replace(ttsText, @"\[([^\]]+)\]", "($1)");
+                
+                // 3. Replace <message> with (message), ignoring standard rich text tags
+                // Ignored tags: b, i, color, size, material, quad (and their closing tags)
+                // Pattern matches <...> but uses negative lookahead for known tags
+                ttsText = Regex.Replace(ttsText, @"<(?!\/?(?:b|i|color|size|material|quad)\b)([^>]+)>", "($1)");
+
+                // 4. Strip remaining rich text tags (like <color=...>)
+                string cleanText = Regex.Replace(ttsText, "<.*?>", string.Empty);
+                
+                TTSManager.Speak(cleanText, speaker, SocialInteractions.Settings.ttsRate, (int)SocialInteractions.Settings.ttsVolume);
+            }
+        }
     }
 
     public class SpeechBubble
@@ -646,8 +681,9 @@ namespace SocialInteractions
         public bool isInstant;
         public Color? color;
         public bool useCustomMote; // Flag to indicate whether to use custom mote or standard mote
+        public string ttsText; // Raw text for TTS
 
-        public SpeechBubble(Pawn speaker, string text, float duration, int conversationId, bool isInstant = false, Color? color = null, bool useCustomMote = true)
+        public SpeechBubble(Pawn speaker, string text, float duration, int conversationId, bool isInstant = false, Color? color = null, bool useCustomMote = true, string ttsText = null)
         {
             this.speaker = speaker;
             this.text = text;
@@ -656,6 +692,7 @@ namespace SocialInteractions
             this.isInstant = isInstant;
             this.color = color;
             this.useCustomMote = useCustomMote;
+            this.ttsText = ttsText;
         }
     }
 }

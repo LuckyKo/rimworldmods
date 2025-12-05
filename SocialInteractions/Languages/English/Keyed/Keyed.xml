@@ -137,4 +137,16 @@
   <SocialInteractions_EnableBreakups>Breakups</SocialInteractions_EnableBreakups>
   <SocialInteractions_EnableIdeologyConversionInteractions>Ideology Conversion</SocialInteractions_EnableIdeologyConversionInteractions>
   <SocialInteractions_EnableKindWordsInteractions>Kind Words</SocialInteractions_EnableKindWordsInteractions>
+  
+  <!-- TTS Settings -->
+  <SocialInteractions_TTSSettings>Text-to-Speech Settings</SocialInteractions_TTSSettings>
+  <SocialInteractions_EnableTTS>Enable Text-to-Speech</SocialInteractions_EnableTTS>
+  <SocialInteractions_EnableTTSDesc>If enabled, speech bubbles will be spoken using the configured TTS API.</SocialInteractions_EnableTTSDesc>
+  <SocialInteractions_TTSVolume>TTS Volume</SocialInteractions_TTSVolume>
+  <SocialInteractions_TTSRate>TTS Rate</SocialInteractions_TTSRate>
+  <SocialInteractions_TTSApiUrl>TTS API URL</SocialInteractions_TTSApiUrl>
+  <SocialInteractions_TTSApiKey>TTS API Key</SocialInteractions_TTSApiKey>
+  <SocialInteractions_TTSModel>TTS Model</SocialInteractions_TTSModel>
+  <SocialInteractions_RemapVoices>Remap Voices</SocialInteractions_RemapVoices>
+  <SocialInteractions_VoicesAvailable>Voices Available: {0}</SocialInteractions_VoicesAvailable>
 </LanguageData>
