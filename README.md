@@ -14,6 +14,11 @@ Enhance your RimWorld experience with an expanded set of social interactions aug
 - **Conversation History**: Pawns remember previous conversations for more meaningful interactions
 - **Customizable Prompts**: Fine-tune dialogue generation with editable prompt templates
 
+### Text-to-Speech
+- **TTS though OpenAI compatible APIs**: Use natural sounding TTS for generated dialogue.
+- **Voice matching**: Automatic voice matching to pawns based on gender (if available voices are prefixed with "af_" or "am_").
+- **Persistent Voices**: Voice mappings are saved and persist throughout sessions, or they can be reset in settings.
+
 ### Advanced Dating System
 - **Realistic Dating Mechanics**: Pawns can ask others on dates with acceptance based on opinion and mood
 - **Date Activities**: Partners follow and participate in joy activities together

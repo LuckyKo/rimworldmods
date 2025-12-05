@@ -61,12 +61,12 @@ Current event: [pawn1] [subject]
         public string llmMonologuePromptTemplate = DEFAULT_MONOLOGUE_TEMPLATE;
         public bool llmInteractionsEnabled = false;
         public int wordsPerLineLimit = 10; // Default to 10 words per line
-        public float wordsPerSecond = 4.0f; // Default to 5 words per second
+        public float wordsPerSecond = 3.0f; // Default to 5 words per second
         public float llmTemperature = 0.7f; // Default temperature
         public int llmMaxTokens = 300; // Default max tokens
-        public int llmTopK = 0; // Default Top K (0 = disabled)
+        public int llmTopK = 40; // Default Top K (0 = disabled)
         public float llmTopP = 1.0f; // Default Top P (1.0 = disabled)
-        public float llmMinP = 0.0f; // Default Min P (0.0 = disabled)
+        public float llmMinP = 0.05f; // Default Min P (0.0 = disabled)
         public string ollamaModelName = "llama3.2"; // Default Ollama model name
         public string lmStudioModelName = "gemma-2-2b-it"; // Default LM Studio model name
         public string openAiModelName = "gpt-3.5-turbo"; // Default OpenAI model name
@@ -190,7 +190,7 @@ Current event: [pawn1] [subject]
         // TTS Settings
         public bool enableTTS = false;
         public float ttsVolume = 100f;
-        public int ttsRate = 0;
+        public float ttsSpeed = 1.0f;
         public bool ttsMuted = false;
 
         public string ttsApiUrl = "http://localhost:8880/v1/audio/speech";
@@ -218,9 +218,9 @@ Current event: [pawn1] [subject]
             
             Scribe_Values.Look(ref llmTemperature, "llmTemperature", 0.7f);
             Scribe_Values.Look(ref llmMaxTokens, "llmMaxTokens", 300);
-            Scribe_Values.Look(ref llmTopK, "llmTopK", 0);
+            Scribe_Values.Look(ref llmTopK, "llmTopK", 40);
             Scribe_Values.Look(ref llmTopP, "llmTopP", 1.0f);
-            Scribe_Values.Look(ref llmMinP, "llmMinP", 0.0f);
+            Scribe_Values.Look(ref llmMinP, "llmMinP", 0.05f);
             Scribe_Values.Look(ref ollamaModelName, "ollamaModelName", "llama3.2");
             Scribe_Values.Look(ref lmStudioModelName, "lmStudioModelName", "gemma-2-2b-it");
             Scribe_Values.Look(ref geminiModelName, "geminiModelName", "gemini-2.5-flash");
@@ -328,7 +328,7 @@ Current event: [pawn1] [subject]
             // TTS Settings
             Scribe_Values.Look(ref enableTTS, "enableTTS", false);
             Scribe_Values.Look(ref ttsVolume, "ttsVolume", 100f);
-            Scribe_Values.Look(ref ttsRate, "ttsRate", 0);
+            Scribe_Values.Look(ref ttsSpeed, "ttsSpeed", 1.0f);
             Scribe_Values.Look(ref ttsMuted, "ttsMuted", false);
 
             Scribe_Values.Look(ref ttsApiUrl, "ttsApiUrl", "http://localhost:8880/v1/audio/speech");
@@ -527,8 +527,8 @@ Current event: [pawn1] [subject]
                 listingStandard.Label(string.Format("SocialInteractions_TTSVolume".Translate() + ": {0}", (int)SocialInteractions.Settings.ttsVolume));
                 SocialInteractions.Settings.ttsVolume = listingStandard.Slider(SocialInteractions.Settings.ttsVolume, 0f, 100f);
                     
-                listingStandard.Label(string.Format("SocialInteractions_TTSRate".Translate() + ": {0}", SocialInteractions.Settings.ttsRate));
-                SocialInteractions.Settings.ttsRate = (int)listingStandard.Slider(SocialInteractions.Settings.ttsRate, -10f, 10f);
+                listingStandard.Label(string.Format("SocialInteractions_TTSSpeed".Translate() + ": {0}x", SocialInteractions.Settings.ttsSpeed.ToString("F2")));
+                SocialInteractions.Settings.ttsSpeed = listingStandard.Slider(SocialInteractions.Settings.ttsSpeed, 0.25f, 4.0f);
                     
                 listingStandard.Gap();
                 listingStandard.Label("SocialInteractions_TTSApiUrl".Translate());
@@ -785,9 +785,8 @@ Current event: [pawn1] [subject]
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.wordsPerLineLimit, ref wordsPerLineBuffer, 1, 50);
 
             listingStandard.Gap();
-            listingStandard.Label("SocialInteractions_WordsPerSecond".Translate());
-            string wordsPerSecondBuffer = SocialInteractions.Settings.wordsPerSecond.ToString();
-            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.wordsPerSecond, ref wordsPerSecondBuffer, 1.0f, 20.0f);
+            listingStandard.Label(string.Format("SocialInteractions_WordsPerSecond".Translate() + " {0}", SocialInteractions.Settings.wordsPerSecond));
+            SocialInteractions.Settings.wordsPerSecond = listingStandard.Slider(SocialInteractions.Settings.wordsPerSecond, 1f, 20f);
 
             listingStandard.Gap();
             listingStandard.Label("SocialInteractions_MaxTokens".Translate());
@@ -795,24 +794,20 @@ Current event: [pawn1] [subject]
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmMaxTokens, ref maxTokensBuffer, 1, 2000);
 
             listingStandard.Gap();
-            listingStandard.Label("SocialInteractions_Temperature".Translate());
-            string temperatureBuffer = SocialInteractions.Settings.llmTemperature.ToString();
-            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmTemperature, ref temperatureBuffer, 0.1f, 2.0f);
+            listingStandard.Label(string.Format("SocialInteractions_Temperature".Translate() + " {0:F3}", SocialInteractions.Settings.llmTemperature));
+            SocialInteractions.Settings.llmTemperature = listingStandard.Slider(SocialInteractions.Settings.llmTemperature, 0f, 2f);
 
             listingStandard.Gap();
-            listingStandard.Label("SocialInteractions_TopK".Translate());
-            string topKBuffer = SocialInteractions.Settings.llmTopK.ToString();
-            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmTopK, ref topKBuffer, 0, 100);
+            listingStandard.Label(string.Format("SocialInteractions_TopK".Translate() + " {0}", SocialInteractions.Settings.llmTopK));
+            SocialInteractions.Settings.llmTopK = (int)listingStandard.Slider(SocialInteractions.Settings.llmTopK, 0, 100);
 
             listingStandard.Gap();
-            listingStandard.Label("SocialInteractions_TopP".Translate());
-            string topPBuffer = SocialInteractions.Settings.llmTopP.ToString();
-            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmTopP, ref topPBuffer, 0.0f, 1.0f);
+            listingStandard.Label(string.Format("SocialInteractions_TopP".Translate() + " {0:F3}", SocialInteractions.Settings.llmTopP));
+            SocialInteractions.Settings.llmTopP = listingStandard.Slider(SocialInteractions.Settings.llmTopP, 0f, 1f);
 
             listingStandard.Gap();
-            listingStandard.Label("SocialInteractions_MinP".Translate());
-            string minPBuffer = SocialInteractions.Settings.llmMinP.ToString();
-            Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.llmMinP, ref minPBuffer, 0.0f, 1.0f);
+            listingStandard.Label(string.Format("SocialInteractions_MinP".Translate() + " {0:F3}", SocialInteractions.Settings.llmMinP));
+            SocialInteractions.Settings.llmMinP = listingStandard.Slider(SocialInteractions.Settings.llmMinP, 0f, 1f);
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("SocialInteractions_XTCSampling".Translate(), ref SocialInteractions.Settings.enableXtcSampling, "SocialInteractions_XTCSamplingDesc".Translate());

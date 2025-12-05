@@ -143,7 +143,7 @@
   <SocialInteractions_EnableTTS>启用文本转语音</SocialInteractions_EnableTTS>
   <SocialInteractions_EnableTTSDesc>启用后，语音气泡将使用配置的TTS API朗读。</SocialInteractions_EnableTTSDesc>
   <SocialInteractions_TTSVolume>TTS音量</SocialInteractions_TTSVolume>
-  <SocialInteractions_TTSRate>TTS语速</SocialInteractions_TTSRate>
+  <SocialInteractions_TTSSpeed>TTS语速</SocialInteractions_TTSSpeed>
   <SocialInteractions_TTSApiUrl>TTS API地址</SocialInteractions_TTSApiUrl>
   <SocialInteractions_TTSApiKey>TTS API密钥</SocialInteractions_TTSApiKey>
   <SocialInteractions_TTSModel>TTS模型</SocialInteractions_TTSModel>

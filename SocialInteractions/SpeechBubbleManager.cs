@@ -667,7 +667,7 @@ namespace SocialInteractions
                 // 4. Strip remaining rich text tags (like <color=...>)
                 string cleanText = Regex.Replace(ttsText, "<.*?>", string.Empty);
                 
-                TTSManager.Speak(cleanText, speaker, SocialInteractions.Settings.ttsRate, (int)SocialInteractions.Settings.ttsVolume);
+                TTSManager.Speak(cleanText, speaker, SocialInteractions.Settings.ttsSpeed, (int)SocialInteractions.Settings.ttsVolume);
             }
         }
     }

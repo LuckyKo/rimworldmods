@@ -143,7 +143,7 @@
   <SocialInteractions_EnableTTS>Enable Text-to-Speech</SocialInteractions_EnableTTS>
   <SocialInteractions_EnableTTSDesc>If enabled, speech bubbles will be spoken using the configured TTS API.</SocialInteractions_EnableTTSDesc>
   <SocialInteractions_TTSVolume>TTS Volume</SocialInteractions_TTSVolume>
-  <SocialInteractions_TTSRate>TTS Rate</SocialInteractions_TTSRate>
+  <SocialInteractions_TTSSpeed>TTS Speed</SocialInteractions_TTSSpeed>
   <SocialInteractions_TTSApiUrl>TTS API URL</SocialInteractions_TTSApiUrl>
   <SocialInteractions_TTSApiKey>TTS API Key</SocialInteractions_TTSApiKey>
   <SocialInteractions_TTSModel>TTS Model</SocialInteractions_TTSModel>

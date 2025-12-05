@@ -22,7 +22,7 @@ namespace SocialInteractions
             // No initialization needed for API currently
         }
 
-        public static void Speak(string text, Pawn speaker, int rate = 0, int volume = 100)
+        public static void Speak(string text, Pawn speaker, float speed = 1.0f, int volume = 100)
         {
             if (!SocialInteractions.Settings.enableTTS || SocialInteractions.Settings.ttsMuted) return;
 
@@ -160,7 +160,18 @@ namespace SocialInteractions
             string voice = !string.IsNullOrEmpty(voiceName) ? voiceName : "alloy";
 
             // Create JSON payload
-            string json = string.Format("{{\"model\": \"{0}\", \"input\": \"{1}\", \"voice\": \"{2}\"}}", model, text.Replace("\"", "\\\""), voice);
+            // Use speed directly from settings
+            float speed = SocialInteractions.Settings.ttsSpeed;
+            
+            // Clamp strictly to OpenAI bounds (0.25 to 4.0) just in case
+            speed = Mathf.Clamp(speed, 0.25f, 4.0f);
+
+            // Create JSON payload with speed
+            string json = string.Format("{{\"model\": \"{0}\", \"input\": \"{1}\", \"voice\": \"{2}\", \"speed\": {3}}}", 
+                model, 
+                text.Replace("\"", "\\\"").Replace("\n", " ").Replace("\r", ""), 
+                voice, 
+                speed.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
             
             // Use Put to create the request with string body (uses UTF8 internally), then switch to POST
             var request = UnityWebRequest.Put(url, json);
