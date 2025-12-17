@@ -653,16 +653,16 @@ namespace SocialInteractions
             {
                 string ttsText = text;
                 
-                // 1. Replace *message* with (message)
-                ttsText = Regex.Replace(ttsText, @"\*([^*]+)\*", "($1)");
+                // 1. Replace *message* with [message]
+                ttsText = Regex.Replace(ttsText, @"\*([^*]+)\*", "[$1]");
                 
-                // 2. Replace [message] with (message)
-                ttsText = Regex.Replace(ttsText, @"\[([^\]]+)\]", "($1)");
+                // 2. Replace [message] with [message]
+                ttsText = Regex.Replace(ttsText, @"\[([^\]]+)\]", "[$1]");
                 
-                // 3. Replace <message> with (message), ignoring standard rich text tags
+                // 3. Replace <message> with [message], ignoring standard rich text tags
                 // Ignored tags: b, i, color, size, material, quad (and their closing tags)
                 // Pattern matches <...> but uses negative lookahead for known tags
-                ttsText = Regex.Replace(ttsText, @"<(?!\/?(?:b|i|color|size|material|quad)\b)([^>]+)>", "($1)");
+                ttsText = Regex.Replace(ttsText, @"<(?!\/?(?:b|i|color|size|material|quad)\b)([^>]+)>", "[$1]");
 
                 // 4. Strip remaining rich text tags (like <color=...>)
                 string cleanText = Regex.Replace(ttsText, "<.*?>", string.Empty);

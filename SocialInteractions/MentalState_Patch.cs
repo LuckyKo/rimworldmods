@@ -13,7 +13,7 @@ namespace SocialInteractions
         private static Dictionary<Pawn, int> monologueCooldowns = new Dictionary<Pawn, int>();
         private const int MonologueCooldownTicks = 600; // 10 seconds
 
-        public static void Postfix(Verse.AI.MentalStateHandler __instance, bool __result, MentalStateDef stateDef)
+        public static void Postfix(Verse.AI.MentalStateHandler __instance, bool __result, MentalStateDef stateDef, string reason = null)
         {
             // Cleanup expired cooldowns periodically
             if (Current.Game.tickManager.TicksGame % 1800 == 0)
@@ -39,7 +39,16 @@ namespace SocialInteractions
             monologueCooldowns[pawn] = Find.TickManager.TicksGame + MonologueCooldownTicks;
 
             // The subject of the monologue will be the label of the mental state (e.g., "Berserk", "Sad wander")
-            string subject = " is experiencing " + stateDef.LabelCap;
+            // Include the reason if available
+            string subject;
+            if (!string.IsNullOrEmpty(reason))
+            {
+                subject = " is experiencing " + stateDef.LabelCap + " because " + reason;
+            }
+            else
+            {
+                subject = " is experiencing " + stateDef.LabelCap;
+            }
 
             // Call the monologue handler
             SocialInteractions.HandleMonologue(pawn, subject, false, "monologue");
