@@ -28,7 +28,7 @@ namespace SocialInteractions
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
-        public const string DEFAULT_DIALOGUE_TEMPLATE = @"The following is an interaction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so use swearing, explicit or rough language freely.
+        public const string DEFAULT_DIALOGUE_TEMPLATE = @"The following is an interaction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so feel free to use swearing, explicit or rough language freely where appropriate.
 
 [pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1]'s family: [pawn1_family]. [pawn1_bio] 
 [pawn1] is currently [pawn1_action]
@@ -45,7 +45,7 @@ Current event: [subject]
 
 ";
         
-        public const string DEFAULT_MONOLOGUE_TEMPLATE = @"The following is a [topic] by a RimWorld character, [pawn1]. It's a brutal world out there so use swearing, explicit or rough language freely.
+        public const string DEFAULT_MONOLOGUE_TEMPLATE = @"The following is a [topic] by a RimWorld character, [pawn1]. It's a brutal world out there so feel free to use swearing, explicit or rough language freely where appropriate.
 
 [pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1_bio]
 [pawn1] is currently [pawn1_action]
@@ -197,6 +197,9 @@ Current event: [pawn1] [subject]
         public string ttsApiKey = "";
         public string ttsModel = "tts-1";
 
+        // Audio format setting
+        public UnityEngine.AudioType ttsAudioFormat = UnityEngine.AudioType.WAV;
+
         // MakeUp/Apologizing interaction settings
         public float baseMakeUpChance = 0.08f; // Base chance for make-up/apologizing attempts
         public float makeUpPositiveOpinionMultiplier = 1.5f; // Multiplier when opinion is positive
@@ -334,6 +337,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref ttsApiUrl, "ttsApiUrl", "http://localhost:8880/v1/audio/speech");
             Scribe_Values.Look(ref ttsApiKey, "ttsApiKey", "");
             Scribe_Values.Look(ref ttsModel, "ttsModel", "tts-1");
+            Scribe_Values.Look(ref ttsAudioFormat, "ttsAudioFormat", UnityEngine.AudioType.WAV);
 
             // Version tracking
             Scribe_Values.Look(ref modVersion, "modVersion", CURRENT_VERSION);

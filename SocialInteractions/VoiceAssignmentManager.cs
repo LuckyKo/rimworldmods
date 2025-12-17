@@ -54,7 +54,31 @@ namespace SocialInteractions
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
                 if (voiceMapping == null)
+                {
                     voiceMapping = new Dictionary<Pawn, string>();
+                }
+                else
+                {
+                    // Clean up null keys (pawns that no longer exist)
+                    List<Pawn> nullKeys = new List<Pawn>();
+                    foreach (var kvp in voiceMapping)
+                    {
+                        if (kvp.Key == null)
+                        {
+                            nullKeys.Add(kvp.Key);
+                        }
+                    }
+                    
+                    foreach (var nullKey in nullKeys)
+                    {
+                        voiceMapping.Remove(nullKey);
+                    }
+                    
+                    if (nullKeys.Count > 0)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Cleaned up {0} voice assignments for missing pawns.", nullKeys.Count));
+                    }
+                }
             }
         }
 
@@ -95,15 +119,38 @@ namespace SocialInteractions
         {
             // Filter available voices based on gender
             List<string> candidates = new List<string>();
-            string prefix = pawn.gender == Gender.Female ? "af_" : "am_";
+            // Include both American and British voice variants
+            string[] prefixes = pawn.gender == Gender.Female 
+                ? new string[] { "af_", "bf_" } 
+                : new string[] { "am_", "bm_" };
 
             foreach (var voice in availableVoices)
             {
-                // Basic filtering logic based on user request ("af_" / "am_")
-                // If the voice list doesn't follow this convention, we might fall back to anything
-                if (voice.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                // Check if voice matches any of the gender-appropriate prefixes
+                // Handle both with and without file extensions
+                string voiceForPrefixCheck = voice;
+
+                // If the voice ends with a file extension, extract the base name for prefix checking
+                if (voice.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) ||
+                    voice.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
+                    voice.EndsWith(".flac", StringComparison.OrdinalIgnoreCase) ||
+                    voice.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) ||
+                    voice.EndsWith(".m4a", StringComparison.OrdinalIgnoreCase))
                 {
-                    candidates.Add(voice);
+                    int extIndex = voice.LastIndexOf('.');
+                    if (extIndex > 0)
+                    {
+                        voiceForPrefixCheck = voice.Substring(0, extIndex); // Remove extension for prefix checking
+                    }
+                }
+
+                foreach (string prefix in prefixes)
+                {
+                    if (voiceForPrefixCheck.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        candidates.Add(voice); // Add the original voice name (with extension) to candidates
+                        break; // No need to check other prefixes for this voice
+                    }
                 }
             }
             
