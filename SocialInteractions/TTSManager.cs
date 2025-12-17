@@ -16,6 +16,10 @@ namespace SocialInteractions
         // Managed AudioSource
         private static AudioSource audioSource;
 
+        // Queue for TTS audio clips to prevent overlapping
+        private static Queue<TTSQueueEntry> ttsQueue = new Queue<TTSQueueEntry>();
+        private static bool isPlaying = false;
+
 
         public static void Initialize()
         {
@@ -296,11 +300,85 @@ namespace SocialInteractions
                     float vol = SocialInteractions.Settings.ttsVolume / 100f;
                     SLog.Message(string.Format("[SocialInteractions] Playing audio clip with volume: {0}", vol));
 
-                    // Try playing the clip with the configured volume
-                    audioSource.PlayOneShot(clip, vol);
-                    SLog.Message("[SocialInteractions] Successfully played TTS audio clip.");
+                    // Add the clip to the playback queue to prevent overlapping
+                    AddToPlaybackQueue(clip, vol);
+                    SLog.Message("[SocialInteractions] Added audio clip to playback queue.");
+
+                    // Start the playback manager coroutine if not already running
+                    if (Current.Game != null && Current.Root != null)
+                    {
+                        ((MonoBehaviour)Current.Root).StartCoroutine(ManagePlaybackQueue());
+                    }
                 }
             }
+        }
+
+        // Queue entry for TTS playback
+        private class TTSQueueEntry
+        {
+            public AudioClip clip;
+            public float volume;
+
+            public TTSQueueEntry(AudioClip clip, float volume)
+            {
+                this.clip = clip;
+                this.volume = volume;
+            }
+        }
+
+        private static void AddToPlaybackQueue(AudioClip clip, float volume)
+        {
+            ttsQueue.Enqueue(new TTSQueueEntry(clip, volume));
+        }
+
+        private static IEnumerator ManagePlaybackQueue()
+        {
+            // Prevent multiple queue managers from running
+            if (isPlaying)
+            {
+                yield break;
+            }
+
+            isPlaying = true;
+
+            while (ttsQueue.Count > 0)
+            {
+                TTSQueueEntry entry = ttsQueue.Dequeue();
+
+                // Ensure audio source is created and configured properly
+                if (audioSource == null)
+                {
+                    GameObject go = new GameObject("SocialInteractions_TTS_Audio");
+                    UnityEngine.Object.DontDestroyOnLoad(go);
+                    audioSource = go.AddComponent<AudioSource>();
+                    audioSource.playOnAwake = false; // Don't play automatically
+                    audioSource.spatialBlend = 0f; // 2D sound (0 = fully 2D, 1 = fully 3D)
+                }
+
+                // Ensure audio source is configured properly
+                audioSource.spatialBlend = 0f; // Ensure 2D sound
+                audioSource.rolloffMode = AudioRolloffMode.Logarithmic; // Set rolloff mode
+                audioSource.maxDistance = 500f; // Set a reasonable max distance
+                audioSource.minDistance = 1f; // Set min distance
+
+                // Play the clip
+                audioSource.PlayOneShot(entry.clip, entry.volume);
+
+                // Wait for the clip to finish playing (clip.length is in seconds)
+                // We'll wait for the full duration of the clip
+                float clipDuration = entry.clip.length;
+                float waitTime = 0f;
+                while (waitTime < clipDuration && audioSource.isPlaying)
+                {
+                    yield return null; // Wait one frame
+                    waitTime += Time.deltaTime;
+                }
+
+                // Add a small pause between clips
+                yield return new WaitForSeconds(0.1f);
+            }
+
+            isPlaying = false;
         }
     }
 }
