@@ -24,7 +24,7 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        private const string CURRENT_VERSION = "1.3.0";
+        private const string CURRENT_VERSION = "1.3.1";
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
@@ -357,6 +357,27 @@ Current event: [pawn1] [subject]
                 }
             }
         }
+
+        private static void AssignVoicesToAllColonists()
+        {
+            if (Find.CurrentMap != null)
+            {
+                var manager = Current.Game.GetComponent<VoiceAssignmentManager>();
+                if (manager != null)
+                {
+                    // Get all colonists and ensure they have voices assigned
+                    List<Pawn> colonists = Find.CurrentMap.mapPawns.FreeColonists;
+                    foreach (Pawn colonist in colonists)
+                    {
+                        if (colonist != null)
+                        {
+                            // Calling GetOrAssignVoice will assign a voice if one isn't already assigned
+                            string voice = manager.GetOrAssignVoice(colonist);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public class SocialInteractionsMod : Mod
@@ -554,6 +575,62 @@ Current event: [pawn1] [subject]
                             manager.ResetAllocations();
                             TTSManager.FetchVoicesFromApi();
                             Messages.Message("Voice allocations reset and fetching new voices...", MessageTypeDefOf.PositiveEvent, false);
+
+                            // Also assign voices proactively to all colonists to make them visible
+                            LongEventHandler.ExecuteWhenFinished(() => {
+                                // Fetch all colonists and ensure they have voices assigned
+                                if (Find.CurrentMap != null)
+                                {
+                                    var voiceManager = Current.Game.GetComponent<VoiceAssignmentManager>();
+                                    if (voiceManager != null)
+                                    {
+                                        // Get all colonists and assign unique voices to avoid duplicates
+                                        List<Pawn> colonists = Find.CurrentMap.mapPawns.FreeColonists;
+                                        voiceManager.AssignUniqueVoices(colonists);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+
+                if (listingStandard.ButtonText("SocialInteractions_AssignVoicesManually".Translate()))
+                {
+                    if (Current.Game != null)
+                    {
+                        // Get all colonists to offer voice assignment
+                        List<Pawn> colonists = Find.CurrentMap.mapPawns.FreeColonists;
+
+                        if (colonists.Count == 0)
+                        {
+                            Messages.Message("No colonists available to assign voices to.", MessageTypeDefOf.RejectInput);
+                        }
+                        else
+                        {
+                            // Proactively assign voices to all colonists to ensure current assignments are visible
+                            var voiceManager = Current.Game.GetComponent<VoiceAssignmentManager>();
+                            if (voiceManager != null)
+                            {
+                                foreach (Pawn colonist in colonists)
+                                {
+                                    if (colonist != null)
+                                    {
+                                        // Calling GetOrAssignVoice will assign a voice if one isn't already assigned
+                                        string voice = voiceManager.GetOrAssignVoice(colonist);
+                                    }
+                                }
+                            }
+
+                            if (colonists.Count == 1)
+                            {
+                                // If only one colonist, open the dialog directly
+                                SocialInteractions.OpenVoiceSelectionDialog(colonists[0]);
+                            }
+                            else
+                            {
+                                // If multiple colonists, show a dialog to select which one
+                                Find.WindowStack.Add(new PawnSelectionDialog(colonists));
+                            }
                         }
                     }
                 }

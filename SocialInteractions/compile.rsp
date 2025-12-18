@@ -114,6 +114,8 @@ JobDriver_ModifyCarriedThingDrawPos_Patch.cs
 TTSManager.cs
 MainButtonWorker_ToggleTTS.cs
 VoiceAssignmentManager.cs
+VoiceSelectionDialog.cs
+PawnSelectionDialog.cs
 /r:m:/Games/Rimworld.v1.6.4566/game/RimWorldWin64_Data/Managed/UnityEngine.UnityWebRequestModule.dll
 /r:m:/Games/Rimworld.v1.6.4566/game/RimWorldWin64_Data/Managed/UnityEngine.UnityWebRequestAudioModule.dll
 /r:m:/Games/Rimworld.v1.6.4566/game/RimWorldWin64_Data/Managed/UnityEngine.AudioModule.dll

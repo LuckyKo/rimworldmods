@@ -41,6 +41,127 @@ namespace SocialInteractions
             }
         }
 
+        // New method to assign voices with even distribution (when fewer voices than pawns)
+        public void AssignUniqueVoices(List<Pawn> pawns)
+        {
+            if (pawns == null || pawns.Count == 0 || availableVoices == null || availableVoices.Count == 0)
+            {
+                return;
+            }
+
+            // Create separate lists for male and female voices
+            List<string> allMaleVoices = new List<string>();
+            List<string> allFemaleVoices = new List<string>();
+
+            foreach (var voice in availableVoices)
+            {
+                // Check if voice matches gender-specific prefixes
+                string voiceForPrefixCheck = voice;
+
+                // If the voice ends with a file extension, extract the base name for prefix checking
+                if (voice.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) ||
+                    voice.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
+                    voice.EndsWith(".flac", StringComparison.OrdinalIgnoreCase) ||
+                    voice.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) ||
+                    voice.EndsWith(".m4a", StringComparison.OrdinalIgnoreCase))
+                {
+                    int extIndex = voice.LastIndexOf('.');
+                    if (extIndex > 0)
+                    {
+                        voiceForPrefixCheck = voice.Substring(0, extIndex); // Remove extension for prefix checking
+                    }
+                }
+
+                if (voiceForPrefixCheck.StartsWith("am_", StringComparison.OrdinalIgnoreCase) ||
+                    voiceForPrefixCheck.StartsWith("bm_", StringComparison.OrdinalIgnoreCase))
+                {
+                    allMaleVoices.Add(voice);
+                }
+                else if (voiceForPrefixCheck.StartsWith("af_", StringComparison.OrdinalIgnoreCase) ||
+                         voiceForPrefixCheck.StartsWith("bf_", StringComparison.OrdinalIgnoreCase))
+                {
+                    allFemaleVoices.Add(voice);
+                }
+            }
+
+            // Shuffle both gender-specific lists to ensure randomness
+            ShuffleList(allMaleVoices);
+            ShuffleList(allFemaleVoices);
+
+            // Separate male and female pawns
+            List<Pawn> malePawns = new List<Pawn>();
+            List<Pawn> femalePawns = new List<Pawn>();
+
+            foreach (Pawn pawn in pawns)
+            {
+                if (pawn != null && pawn.gender != Gender.None) // Skip genderless pawns
+                {
+                    if (pawn.gender == Gender.Male)
+                    {
+                        malePawns.Add(pawn);
+                    }
+                    else
+                    {
+                        femalePawns.Add(pawn);
+                    }
+                }
+            }
+
+            // Assign voices to male pawns using round-robin from available male voices
+            for (int i = 0; i < malePawns.Count; i++)
+            {
+                if (allMaleVoices.Count > 0)
+                {
+                    // Use round-robin assignment: voice[i % voiceCount]
+                    string assignedVoice = allMaleVoices[i % allMaleVoices.Count];
+                    voiceMapping[malePawns[i]] = assignedVoice;
+                }
+                else if (availableVoices.Count > 0)
+                {
+                    // If no gender-specific voices, use any available voice
+                    string assignedVoice = availableVoices[i % availableVoices.Count];
+                    voiceMapping[malePawns[i]] = assignedVoice;
+                }
+                else
+                {
+                    voiceMapping[malePawns[i]] = "alloy"; // Fallback if no voices available
+                }
+            }
+
+            // Assign voices to female pawns using round-robin from available female voices
+            for (int i = 0; i < femalePawns.Count; i++)
+            {
+                if (allFemaleVoices.Count > 0)
+                {
+                    // Use round-robin assignment: voice[i % voiceCount]
+                    string assignedVoice = allFemaleVoices[i % allFemaleVoices.Count];
+                    voiceMapping[femalePawns[i]] = assignedVoice;
+                }
+                else if (availableVoices.Count > 0)
+                {
+                    // If no gender-specific voices, use any available voice
+                    string assignedVoice = availableVoices[i % availableVoices.Count];
+                    voiceMapping[femalePawns[i]] = assignedVoice;
+                }
+                else
+                {
+                    voiceMapping[femalePawns[i]] = "alloy"; // Fallback if no voices available
+                }
+            }
+        }
+
+        // Helper method to shuffle a list using the Fisher-Yates algorithm
+        private void ShuffleList<T>(List<T> list)
+        {
+            for (int i = list.Count - 1; i > 0; i--)
+            {
+                int j = Rand.Range(0, i + 1);
+                T temp = list[i];
+                list[i] = list[j];
+                list[j] = temp;
+            }
+        }
+
         // Working lists for Scribe
         private List<Pawn> scribeKeys;
         private List<string> scribeValues;
@@ -178,6 +299,63 @@ namespace SocialInteractions
         public static void SetAvailableVoices(List<string> voices)
         {
             availableVoices = voices;
+        }
+
+        // Method to manually assign a specific voice to a pawn
+        public void SetVoiceForPawn(Pawn pawn, string voiceName)
+        {
+            if (pawn == null) return;
+
+            // Validate that the voice exists in available voices
+            if (string.IsNullOrEmpty(voiceName) ||
+                (availableVoices.Count > 0 && !availableVoices.Contains(voiceName)))
+            {
+                string originalPawnName = pawn.Name != null ? pawn.Name.ToStringShort : "Unknown";
+                SLog.Warning(string.Format("[SocialInteractions] Attempted to assign invalid voice '{0}' to pawn {1}",
+                    voiceName, originalPawnName));
+                return;
+            }
+
+            voiceMapping[pawn] = voiceName;
+            string assignedPawnName = pawn.Name != null ? pawn.Name.ToStringShort : "Unknown";
+            SLog.Message(string.Format("[SocialInteractions] Manually assigned voice '{0}' to pawn {1}",
+                voiceName, assignedPawnName));
+        }
+
+        // Method to get the currently assigned voice for a pawn
+        public string GetVoiceForPawn(Pawn pawn)
+        {
+            if (pawn == null) return null;
+
+            string assignedVoice;
+            if (voiceMapping.TryGetValue(pawn, out assignedVoice))
+            {
+                return assignedVoice;
+            }
+            return null;
+        }
+
+        // Method to clear a pawn's voice assignment (will trigger reassignment)
+        public void ClearVoiceForPawn(Pawn pawn)
+        {
+            if (pawn == null) return;
+
+            voiceMapping.Remove(pawn);
+        }
+
+        // Method to get all currently assigned voices with pawn names
+        public Dictionary<string, string> GetVoiceAssignmentsSummary()
+        {
+            var summary = new Dictionary<string, string>();
+            foreach (var kvp in voiceMapping)
+            {
+                if (kvp.Key != null && !string.IsNullOrEmpty(kvp.Value))
+                {
+                    string pawnName = kvp.Key.Name != null ? kvp.Key.Name.ToStringShort : "Unknown Pawn";
+                    summary[pawnName] = kvp.Value;
+                }
+            }
+            return summary;
         }
     }
 }

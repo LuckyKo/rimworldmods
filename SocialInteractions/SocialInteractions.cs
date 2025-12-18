@@ -2290,5 +2290,33 @@ namespace SocialInteractions
 
             return selected;
         }
+
+        // Method to open voice selection dialog for a pawn
+        public static void OpenVoiceSelectionDialog(Pawn pawn)
+        {
+            if (pawn == null)
+            {
+                SLog.Warning("[SocialInteractions] Attempted to open voice selection dialog for a null pawn.");
+                return;
+            }
+
+            // Check if TTS is enabled
+            if (!Settings.enableTTS)
+            {
+                Messages.Message("TTS must be enabled in settings to assign voices.", MessageTypeDefOf.RejectInput);
+                return;
+            }
+
+            // Make sure voices are loaded
+            var manager = Current.Game.GetComponent<VoiceAssignmentManager>();
+            if (manager == null || VoiceAssignmentManager.AvailableVoices == null || VoiceAssignmentManager.AvailableVoices.Count == 0)
+            {
+                Messages.Message("No voices available. Make sure TTS server is configured and voices are loaded.", MessageTypeDefOf.RejectInput);
+                return;
+            }
+
+            // Open the voice selection dialog
+            Find.WindowStack.Add(new VoiceSelectionDialog(pawn));
+        }
     }
 }

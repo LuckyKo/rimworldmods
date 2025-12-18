@@ -148,5 +148,6 @@
   <SocialInteractions_TTSApiKey>TTS API Key</SocialInteractions_TTSApiKey>
   <SocialInteractions_TTSModel>TTS Model</SocialInteractions_TTSModel>
   <SocialInteractions_RemapVoices>Remap Voices</SocialInteractions_RemapVoices>
+  <SocialInteractions_AssignVoicesManually>Assign Voices Manually</SocialInteractions_AssignVoicesManually>
   <SocialInteractions_VoicesAvailable>Voices Available: {0}</SocialInteractions_VoicesAvailable>
 </LanguageData>
