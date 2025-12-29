@@ -67,7 +67,7 @@ namespace SocialInteractions
             
             if (voicesUrl == speechUrl) voicesUrl = speechUrl + ((speechUrl.EndsWith("/")) ? "" : "/") + "v1/audio/voices"; // Fallback
 
-            SLog.Message("[SocialInteractions] Fetching voices from: " + voicesUrl);
+            SLog.Message("[SocialInteractions] TTSManager: Fetching voices from: " + voicesUrl);
 
             LongEventHandler.ExecuteWhenFinished(() =>
             {
@@ -88,12 +88,12 @@ namespace SocialInteractions
 
              if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
              {
-                 SLog.Error("[SocialInteractions] Failed to fetch voices: " + request.error);
+                 SLog.Error("[SocialInteractions] TTSManager: Failed to fetch voices: " + request.error);
              }
              else
              {
                  string json = request.downloadHandler.text;
-                 SLog.Message("[SocialInteractions] Voices response: " + json);
+                 SLog.Message("[SocialInteractions] TTSManager: Voices response: " + json);
 
                  List<string> voices = new List<string>();
 
@@ -126,17 +126,17 @@ namespace SocialInteractions
                  }
                  catch (Exception ex)
                  {
-                     SLog.Warning("[SocialInteractions] Parsing failed: " + ex.Message);
+                     SLog.Warning("[SocialInteractions] TTSManager: Parsing failed: " + ex.Message);
                  }
 
                  if (voices.Count > 0)
                  {
-                     SLog.Message(string.Format("[SocialInteractions] Found {0} voices.", voices.Count));
+                     SLog.Message(string.Format("[SocialInteractions] TTSManager: Found {0} voices.", voices.Count));
                      VoiceAssignmentManager.SetAvailableVoices(voices);
                  }
                  else
                  {
-                     SLog.Warning("[SocialInteractions] No voices found in response.");
+                     SLog.Warning("[SocialInteractions] TTSManager: No voices found in response.");
                  }
              }
         }
@@ -157,7 +157,7 @@ namespace SocialInteractions
         {
             if (string.IsNullOrEmpty(SocialInteractions.Settings.ttsApiUrl))
             {
-                SLog.Warning("[SocialInteractions] TTS API URL is empty.");
+                SLog.Warning("[SocialInteractions] TTSManager: TTS API URL is empty.");
                 return;
             }
 
@@ -210,7 +210,7 @@ namespace SocialInteractions
 
             if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
             {
-                SLog.Error("[SocialInteractions] TTS API Error: " + request.error + "\n" + request.downloadHandler.text);
+                SLog.Error("[SocialInteractions] TTSManager: TTS API Error: " + request.error + "\n" + request.downloadHandler.text);
             }
             else
             {
@@ -220,7 +220,7 @@ namespace SocialInteractions
                 // If it failed with WAV, try with other formats
                 if (clip == null || clip.frequency == 0)  // Check if clip has no valid data
                 {
-                    SLog.Message("[SocialInteractions] WAV format failed, trying MPEG format...");
+                    SLog.Message("[SocialInteractions] TTSManager: WAV format failed, trying MPEG format...");
 
                     // Retry with MPEG format
                     var mpegRequest = UnityWebRequest.Put(url, json);
@@ -237,7 +237,7 @@ namespace SocialInteractions
 
                     if (mpegRequest.result == UnityWebRequest.Result.ConnectionError || mpegRequest.result == UnityWebRequest.Result.ProtocolError)
                     {
-                        SLog.Error("[SocialInteractions] TTS API MPEG Error: " + mpegRequest.error);
+                        SLog.Error("[SocialInteractions] TTSManager: TTS API MPEG Error: " + mpegRequest.error);
                     }
                     else
                     {
@@ -245,7 +245,7 @@ namespace SocialInteractions
                         // Check if the clip has valid data (frequency > 0)
                         if (clip != null && clip.frequency == 0)
                         {
-                            SLog.Message("[SocialInteractions] MPEG format also invalid, clip has 0 frequency, trying OGG...");
+                            SLog.Message("[SocialInteractions] TTSManager: MPEG format also invalid, clip has 0 frequency, trying OGG...");
 
                             // Final fallback to OGG
                             var oggRequest = UnityWebRequest.Put(url, json);
@@ -262,7 +262,7 @@ namespace SocialInteractions
 
                             if (oggRequest.result == UnityWebRequest.Result.ConnectionError || oggRequest.result == UnityWebRequest.Result.ProtocolError)
                             {
-                                SLog.Error("[SocialInteractions] TTS API OGG Error: " + oggRequest.error);
+                                SLog.Error("[SocialInteractions] TTSManager: TTS API OGG Error: " + oggRequest.error);
                             }
                             else
                             {
@@ -274,11 +274,11 @@ namespace SocialInteractions
 
                 if (clip == null)
                 {
-                    SLog.Warning("[SocialInteractions] Failed to get audio clip from TTS response with any format. Server may be returning incompatible audio format.");
+                    SLog.Warning("[SocialInteractions] TTSManager: Failed to get audio clip from TTS response with any format. Server may be returning incompatible audio format.");
                 }
                 else
                 {
-                    SLog.Message(string.Format("[SocialInteractions] Audio clip loaded: {0}Hz, {1} seconds, {2} channels", clip.frequency, clip.length, clip.channels));
+                    //SLog.Message(string.Format("[SocialInteractions] TTSManager: Audio clip loaded: {0}Hz, {1} seconds, {2} channels", clip.frequency, clip.length, clip.channels));
 
                     // Ensure audio source is created and configured properly
                     if (audioSource == null)
@@ -298,11 +298,11 @@ namespace SocialInteractions
 
                     // Apply volume from settings (0-100 to 0-1 range)
                     float vol = SocialInteractions.Settings.ttsVolume / 100f;
-                    SLog.Message(string.Format("[SocialInteractions] Playing audio clip with volume: {0}", vol));
+                    //SLog.Message(string.Format("[SocialInteractions] TTSManager: Playing audio clip with volume: {0}", vol));
 
                     // Add the clip to the playback queue to prevent overlapping
                     AddToPlaybackQueue(clip, vol);
-                    SLog.Message("[SocialInteractions] Added audio clip to playback queue.");
+                    //SLog.Message("[SocialInteractions] TTSManager: Added audio clip to playback queue.");
 
                     // Start the playback manager coroutine if not already running
                     if (Current.Game != null && Current.Root != null)

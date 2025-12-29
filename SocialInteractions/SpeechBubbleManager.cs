@@ -354,7 +354,7 @@ namespace SocialInteractions
         }
 
         // New method for monologue messages that adds them to the chat log
-        public static void EnqueueMonologue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId, Color? color = null, bool useCustomMote = false, string subject = null)
+        public static void EnqueueMonologue(Verse.Pawn speaker, string text, float duration, bool isFirstMessage, int conversationId, Color? color = null, bool useCustomMote = false, string subject = null, string ttsText = null)
         {
             // Add to chat log as a monologue message
             string fallbackText = string.IsNullOrEmpty(subject)
@@ -365,7 +365,7 @@ namespace SocialInteractions
 
             lock (queueLock)
             {
-                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color, useCustomMote, text));
+                speechBubbleQueue.Enqueue(new SpeechBubble(speaker, text, duration, conversationId, false, color, useCustomMote, ttsText ?? text));
             }
         }
 

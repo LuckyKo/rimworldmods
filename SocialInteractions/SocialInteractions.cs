@@ -304,6 +304,9 @@ namespace SocialInteractions
             prompt = prompt.Replace("[date]", currentDate);
             prompt = prompt.Replace("[time]", currentTime);
             prompt = prompt.Replace("[weather]", currentWeather);
+            prompt = prompt.Replace("[tile]", GetBiomeInfo(initiator.Map));
+            prompt = prompt.Replace("[colony]", GetColonyInfo(initiator.Map));
+            prompt = prompt.Replace("[event]", GetLastEventInfo());
 
             return AppendApiSpecificEnding(prompt, initiator, recipient);
         }
@@ -366,6 +369,9 @@ namespace SocialInteractions
             prompt = prompt.Replace("[date]", currentDate);
             prompt = prompt.Replace("[time]", currentTime);
             prompt = prompt.Replace("[weather]", currentWeather);
+            prompt = prompt.Replace("[tile]", GetBiomeInfo(pawn.Map));
+            prompt = prompt.Replace("[colony]", GetColonyInfo(pawn.Map));
+            prompt = prompt.Replace("[event]", GetLastEventInfo());
 
             // Add API-specific ending for monologue
             string pawnName = pawn != null ? pawn.Name.ToStringShort : "Pawn";
@@ -770,6 +776,58 @@ namespace SocialInteractions
             data[prefix + "_bio"] = GetPawnFlavorText(pawn);
 
             return data;
+        }
+
+        private static string GetBiomeInfo(Map map)
+        {
+            if (map == null) return "Unknown";
+            return map.Biome.label;
+        }
+
+        private static string GetColonyInfo(Map map)
+        {
+            if (map == null) return "Unknown";
+
+            int colonists = map.mapPawns.FreeColonists.Count;
+            int prisoners = map.mapPawns.PrisonersOfColony.Count;
+            // Use Spawned property as it exists in the extracted MapPawns class
+            int slaves = map.mapPawns.SlavesOfColonySpawned.Count;
+            int guests = map.mapPawns.AllPawnsSpawned.Count(p => p.guest != null && p.guest.GuestStatus == GuestStatus.Guest && !p.HostileTo(Faction.OfPlayer) && !p.IsColonist);
+            int enemies = map.mapPawns.AllPawnsSpawned.Count(p => p.HostileTo(Faction.OfPlayer) && !p.Downed && !p.IsPrisoner);
+
+            List<string> parts = new List<string>();
+            parts.Add(string.Format("{0} colonists", colonists));
+            if (prisoners > 0) parts.Add(string.Format("{0} prisoners", prisoners));
+            if (slaves > 0) parts.Add(string.Format("{0} slaves", slaves));
+            if (guests > 0) parts.Add(string.Format("{0} guests", guests));
+            if (enemies > 0) parts.Add(string.Format("{0} enemies", enemies));
+
+            return string.Join(", ", parts.ToArray());
+        }
+
+        private static string GetLastEventInfo()
+        {
+            if (Find.Archive == null) return "No recent events";
+
+            var archivables = Find.Archive.ArchivablesListForReading;
+            for (int i = archivables.Count - 1; i >= 0; i--)
+            {
+                // C# 5 compatible cast
+                Letter letter = archivables[i] as Letter;
+                if (letter != null && letter.def != null)
+                {
+                    // Check against known negative letter defs
+                    if (letter.def == LetterDefOf.ThreatBig || 
+                        letter.def == LetterDefOf.ThreatSmall || 
+                        letter.def == LetterDefOf.Death)
+                    {
+                        int ticksSince = Find.TickManager.TicksAbs - letter.arrivalTick;
+                        int daysSince = ticksSince / 60000;
+                        return string.Format("The last negative event was {0}, {1} days ago", letter.Label, daysSince);
+                    }
+                }
+            }
+            return "No recent negative events";
         }
 
         private static string GetAttire(Pawn pawn)
@@ -1303,7 +1361,8 @@ namespace SocialInteractions
                             string fallbackText = string.IsNullOrEmpty(subject)
                                 ? string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort)
                                 : string.Format("{0} ponders about {1}", pawn.Name.ToStringShort, subject);
-                            SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, fallbackText, 2f, true, conversationId, null, false, subject)); // Use monologue method
+                            string ttsFallbackText = string.IsNullOrEmpty(subject) ? "Thinking to themselves." : string.Format("Ponders about {0}", subject);
+                            SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, fallbackText, 2f, true, conversationId, null, false, subject, ttsFallbackText)); // Use monologue method
                             return;
                         }
 
@@ -1327,6 +1386,13 @@ namespace SocialInteractions
                                         string formattedMessage = SpeechBubbleManager.FormatMonologueMessage(rawMessage, pawn, true);
                                         string wrappedMessage = SocialInteractions.WrapText(formattedMessage, SocialInteractions.Settings.wordsPerLineLimit);
                                         
+                                        // Extract clean text for TTS (removing potential pawn name prefix)
+                                        string ttsText = rawMessage;
+                                        if (rawMessage.StartsWith(pawn.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            ttsText = rawMessage.Substring(pawn.Name.ToStringShort.Length + 1).Trim();
+                                        }
+
                                         float duration = EstimateReadingTime(rawMessage);
                                         // --- For LLM Efficiency Timing ---
                                         totalDisplaySeconds += duration;
@@ -1335,7 +1401,8 @@ namespace SocialInteractions
                                         // Capture the variables to avoid closure issues
                                         int currentIndex = i;
                                         string capturedSubject = subject; // Capture the subject for the monologue
-                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, wrappedMessage, duration, currentIndex == 0, conversationId, null, true, capturedSubject)); // Orange for high priority
+                                        string capturedTtsText = ttsText; // Capture the clean TTS text
+                                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, wrappedMessage, duration, currentIndex == 0, conversationId, null, true, capturedSubject, capturedTtsText)); // Orange for high priority
                                         // --- End Pass conversationId ---
                                     }
                                 }
@@ -1352,7 +1419,8 @@ namespace SocialInteractions
                                     ? string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort)
                                     : string.Format("{0} ponders about {1}", pawn.Name.ToStringShort, subject);
                                 string wrappedFallbackText = SocialInteractions.WrapText(fallbackText, SocialInteractions.Settings.wordsPerLineLimit);
-                                SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false, subject)); // Use monologue method
+                                string ttsFallbackText = string.IsNullOrEmpty(subject) ? "Thinking to themselves." : string.Format("Ponders about {0}", subject);
+                                SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false, subject, ttsFallbackText)); // Use monologue method
 
                                 // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
                                 // No need to schedule unlocks anymore
@@ -1368,7 +1436,6 @@ namespace SocialInteractions
                             ? string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort)
                             : string.Format("{0} ponders about {1}", pawn.Name.ToStringShort, subject);
                         string wrappedFallbackText = SocialInteractions.WrapText(fallbackText, SocialInteractions.Settings.wordsPerLineLimit);
-                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false, subject)); // Use monologue method
 
                         // With ScheduleUnlock removed, the isLlmBusy flag will be managed by the queue state
                         // No need to schedule unlocks anymore
@@ -1385,7 +1452,6 @@ namespace SocialInteractions
                             ? string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort)
                             : string.Format("{0} ponders about {1}", pawn.Name.ToStringShort, subject);
                         string wrappedFallbackText = SocialInteractions.WrapText(fallbackText, SocialInteractions.Settings.wordsPerLineLimit);
-                        SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, wrappedFallbackText, 2f, true, conversationId, null, false, subject)); // Use monologue method
                     }
                     catch (Exception fallbackEx)
                     {

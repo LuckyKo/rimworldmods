@@ -24,7 +24,7 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        private const string CURRENT_VERSION = "1.3.1";
+        private const string CURRENT_VERSION = "1.3.2";
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
@@ -39,6 +39,7 @@ namespace SocialInteractions
 [pawn2] is [pawn1]'s [relation].
 Last time they spoke: [pawn1_journal]
 
+The colony is in a [tile] area, has [colony], and [event]. 
 It's currently [time], on [date] and the weather is [weather].
 
 Current event: [subject]
@@ -50,6 +51,7 @@ Current event: [subject]
 [pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1_bio]
 [pawn1] is currently [pawn1_action]
 
+The colony is in a [tile] area, has [colony], and [event].
 It's currently [time], on [date] and the weather is [weather].
 
 Current event: [pawn1] [subject]
