@@ -169,35 +169,61 @@ namespace SocialInteractions
         public override void ExposeData()
         {
             base.ExposeData();
-            // Save/Load the dictionary. Keys are Pawns (References), Values are Strings (Voice Names).
-            Scribe_Collections.Look(ref voiceMapping, "voiceMapping", LookMode.Reference, LookMode.Value, ref scribeKeys, ref scribeValues);
+
+            // Manual handling to prevent "Null key" errors during load
+            // This replaces Scribe_Collections.Look(ref voiceMapping...) which crashes on null keys
             
+            if (Scribe.mode == LoadSaveMode.Saving)
+            {
+                if (voiceMapping != null)
+                {
+                    // Remove null keys before saving just in case
+                    List<Pawn> keysToRemove = new List<Pawn>();
+                    foreach(var key in voiceMapping.Keys)
+                    {
+                        if (key == null) keysToRemove.Add(key);
+                    }
+                    foreach(var key in keysToRemove)
+                    {
+                         voiceMapping.Remove(key);
+                    }
+
+                    scribeKeys = new List<Pawn>(voiceMapping.Keys);
+                    scribeValues = new List<string>(voiceMapping.Values);
+                }
+            }
+
+            // Mimic the structure of Scribe_Collections.Look(Dictionary) for compatibility
+            if (Scribe.EnterNode("voiceMapping"))
+            {
+                try
+                {
+                    Scribe_Collections.Look(ref scribeKeys, "keys", LookMode.Reference);
+                    Scribe_Collections.Look(ref scribeValues, "values", LookMode.Value);
+                }
+                finally
+                {
+                    Scribe.ExitNode();
+                }
+            }
+
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
                 if (voiceMapping == null)
                 {
                     voiceMapping = new Dictionary<Pawn, string>();
                 }
-                else
+                voiceMapping.Clear();
+
+                if (scribeKeys != null && scribeValues != null)
                 {
-                    // Clean up null keys (pawns that no longer exist)
-                    List<Pawn> nullKeys = new List<Pawn>();
-                    foreach (var kvp in voiceMapping)
+                    for (int i = 0; i < scribeKeys.Count; i++)
                     {
-                        if (kvp.Key == null)
+                        // The critical fix: Check for null keys before adding to dictionary
+                        if (scribeKeys[i] != null)
                         {
-                            nullKeys.Add(kvp.Key);
+                            voiceMapping[scribeKeys[i]] = scribeValues[i];
                         }
-                    }
-                    
-                    foreach (var nullKey in nullKeys)
-                    {
-                        voiceMapping.Remove(nullKey);
-                    }
-                    
-                    if (nullKeys.Count > 0)
-                    {
-                        SLog.Message(string.Format("[SocialInteractions] Cleaned up {0} voice assignments for missing pawns.", nullKeys.Count));
                     }
                 }
             }

@@ -2285,6 +2285,12 @@ namespace SocialInteractions
                     continue; // Skip self
                 }
 
+                // Ignore pawns that are in cryosleep or otherwise not spawned
+                if (!otherPawn.Spawned || otherPawn.Dead)
+                {
+                    continue;
+                }
+
                 // Get raw opinion value (negative is worse for the target)
                 int opinion = pawn.relations != null ? pawn.relations.OpinionOf(otherPawn) : 0;
                 
