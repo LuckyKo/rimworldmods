@@ -124,7 +124,7 @@ namespace SocialInteractions
             else
             {
                 // Failed to extract information
-                string subject = string.Format("An unsuccessful attempt by {0} to extract information from {1} about their relationships and who they trust most.",
+                string subject = string.Format("An unsuccessful attempt by {0} to extract information from {1} about their relationships or who they trust most.",
                     initiator.LabelShort, recipient.LabelShort);
 
                 // Skip spam protection for backstabbing as these are rare, important events that should be witnessed

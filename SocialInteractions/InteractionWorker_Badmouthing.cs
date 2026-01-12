@@ -72,7 +72,7 @@ namespace SocialInteractions
                 
                 // Generate appropriate subject text for LLM with more detailed information
                 string targetDescription = SocialInteractions.GetPawnDescription(targetPawn);
-                string subject = string.Format("A gossip interaction where {0} and {1} bond over their shared negative opinions about {2} ({3}). This strengthens their relationship and confirms their mutual dislike.",
+                string subject = string.Format("A gossip interaction where {0} and {1} share negative opinions about {2} ({3}). This strengthens their relationship and confirms their mutual dislike.",
                     initiator.LabelShort, recipient.LabelShort, targetPawn.LabelShort, targetDescription);
                 
                 // Handle the LLM interaction

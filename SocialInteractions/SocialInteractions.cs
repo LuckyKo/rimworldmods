@@ -193,7 +193,7 @@ namespace SocialInteractions
             else
             {
                 // Chat completion: add format instructions
-                prompt += string.Format("\n\nFormat the response like this:\n{0}: bla bla...\n{1}: bla bla...", pawn1Name, pawn2Name);
+                prompt += string.Format("\n\nFormat the response like this:\r\n{0}: bla bla...\r\n{1}: bla bla...", pawn1Name, pawn2Name);
             }
 
             return prompt;
@@ -387,7 +387,7 @@ namespace SocialInteractions
             else
             {
                 // Chat completion: add format instruction for monologue
-                prompt += string.Format("\n\nFormat the response as a brief monologue from {0}'s perspective like this:\n{0}: bla bla...\n{0}: bla bla...", pawnName);
+                prompt += string.Format("\n\nFormat the response as a brief monologue from {0}'s perspective like this:\r\n{0}: bla bla...\r\n{0}: bla bla...", pawnName);
             }
 
             return prompt;

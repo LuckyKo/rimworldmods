@@ -15,8 +15,14 @@ namespace SocialInteractions
 
         public static void Postfix(Verse.AI.MentalStateHandler __instance, bool __result, MentalStateDef stateDef, string reason = null)
         {
+            // Exclude SocialFighting as it is usually preceded by a dialogue interaction
+            if (stateDef == MentalStateDefOf.SocialFighting)
+            {
+                return;
+            }
+
             // Cleanup expired cooldowns periodically
-            if (Current.Game.tickManager.TicksGame % 1800 == 0)
+            if (Current.Game != null && Current.Game.tickManager != null && Current.Game.tickManager.TicksGame % 1800 == 0)
             {
                 CleanupExpiredCooldowns();
             }
@@ -24,7 +30,7 @@ namespace SocialInteractions
             Pawn pawn = Traverse.Create(__instance).Field("pawn").GetValue<Pawn>();
 
             // Only trigger if the mental state was successfully started and the pawn is a player colonist
-            if (!__result || pawn == null || !pawn.IsColonistPlayerControlled)
+            if (!__result || pawn == null || !pawn.IsColonist)
             {
                 return;
             }
@@ -51,7 +57,7 @@ namespace SocialInteractions
             }
 
             // Call the monologue handler
-            SocialInteractions.HandleMonologue(pawn, subject, false, "monologue");
+            SocialInteractions.HandleMonologue(pawn, subject, true, "monologue");
         }
 
         private static void CleanupExpiredCooldowns()
