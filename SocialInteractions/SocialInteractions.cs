@@ -660,6 +660,14 @@ namespace SocialInteractions
             }
             
             data[prefix + "_title"] = title;
+
+            // Faction
+            string faction = "Unknown";
+            if (pawn.Faction != null)
+            {
+               faction = pawn.Faction.Name;
+            }
+            data[prefix + "_faction"] = faction;
             
             // Ideology
             string ideology = "None";
@@ -732,6 +740,9 @@ namespace SocialInteractions
 
             // Proficiencies (top skills)
             data[prefix + "_proficiencies"] = GetProficiencies(pawn);
+            
+            // Cannot do (disabled skills)
+            data[prefix + "_noskills"] = GetNoSkills(pawn);
 
             // Genes/Xenotype
             string genes = "None";
@@ -1209,6 +1220,21 @@ namespace SocialInteractions
                 skillLabels.Add(skill.def.LabelCap);
             }
             return string.Join(", ", skillLabels);
+        }
+
+        private static string GetNoSkills(Pawn pawn)
+        {
+            if (pawn.skills == null)
+            {
+                return "None";
+            }
+
+            var disabledSkills = pawn.skills.skills.Where(s => s.TotallyDisabled).Select(s => s.def.LabelCap);
+            if (disabledSkills.Any())
+            {
+                return string.Join(", ", disabledSkills.ToArray());
+            }
+            return "None";
         }
 
         public static void HandleInteraction(Pawn initiator, Pawn recipient, InteractionDef interactionDef, string defaultText)

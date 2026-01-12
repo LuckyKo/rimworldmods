@@ -24,16 +24,48 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        private const string CURRENT_VERSION = "1.3.6";
+        private const string CURRENT_VERSION = "1.3.7";
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
+        /*
+         * Available Prompt Fields:
+         * 
+         * [pawn1], [pawn2]: Names of the pawns
+         * [pawn#_sex]: Sex of the pawn (Male/Female)
+         * [pawn#_age]: Biological age of the pawn
+         * [pawn#_title]: Royal title or role (colonist, prisoner, slave, guest)
+         * [pawn#_faction]: Faction name of the pawn
+         * [pawn#_ideology]: Ideology name of the pawn
+         * [pawn#_traits]: Comma-separated list of traits
+         * [pawn#_genes]: Comma-separated list of active genes/xenotype
+         * [pawn#_proficiencies]: Top 3 skills
+         * [pawn#_noskills]: Skills the pawn is incapable of performing
+         * [pawn#_mood]: Current mood description
+         * [pawn#_likes]: Most positive thought
+         * [pawn#_dislikes]: Most negative thought
+         * [pawn#_afflictions]: Medical conditions/hediffs
+         * [pawn#_family]: Family relationships
+         * [pawn#_bio]: Backstory/bio
+         * [pawn#_action]: Current job/activity
+         * [pawn#_journal]: Recent log entry (when last spoke)
+         * 
+         * [relation]: Relationship between pawns (Spouse, Lover, etc.)
+         * [tile]: Biome/terrain type of the map
+         * [colony]: Description of the colony (population, etc.)
+         * [event]: Recent significant event
+         * [time]: Current in-game time (e.g., "08:00")
+         * [date]: Current in-game date (e.g., "1st of Aprimay, 5500")
+         * [weather]: Current weather label
+         * [subject]: Interaction subject/topic
+         * [topic]: Interaction topic (for monologue)
+         */
         public const string DEFAULT_DIALOGUE_TEMPLATE = @"The following is an interaction between two RimWorld characters, [pawn1] and [pawn2]. Keep each dialogue line short with around 3-4 dialogue lines in total. It's a brutal world out there so feel free to use swearing, explicit or rough language freely where appropriate.
 
-[pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1]'s family: [pawn1_family]. [pawn1_bio] 
+[pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] of the [pawn1_faction] faction, following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1] is incapable of: [pawn1_noskills]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1]'s family: [pawn1_family]. [pawn1_bio] 
 [pawn1] is currently [pawn1_action]
 
-[pawn2] is a [pawn2_sex], age [pawn2_age], a [pawn2_title] following the [pawn2_ideology] ideology, has the following traits: [pawn2_traits]; Xenotype: [pawn2_genes]; [pawn2] is proficient in: [pawn2_proficiencies]; [pawn2]'s mood is [pawn2_mood], positives: [pawn2_likes] / negatives: [pawn2_dislikes]; Medical status: [pawn2_afflictions]. [pawn2]'s family: [pawn2_family]. [pawn2_bio]
+[pawn2] is a [pawn2_sex], age [pawn2_age], a [pawn2_title] of the [pawn2_faction] faction, following the [pawn2_ideology] ideology, has the following traits: [pawn2_traits]; Xenotype: [pawn2_genes]; [pawn2] is proficient in: [pawn2_proficiencies]; [pawn2] is incapable of: [pawn2_noskills]; [pawn2]'s mood is [pawn2_mood], positives: [pawn2_likes] / negatives: [pawn2_dislikes]; Medical status: [pawn2_afflictions]. [pawn2]'s family: [pawn2_family]. [pawn2_bio]
 [pawn2] is currently [pawn2_action]
 
 [pawn2] is [pawn1]'s [relation].
@@ -48,7 +80,7 @@ Current event: [subject]
         
         public const string DEFAULT_MONOLOGUE_TEMPLATE = @"The following is a [topic] by a RimWorld character, [pawn1]. It's a brutal world out there so feel free to use swearing, explicit or rough language freely where appropriate.
 
-[pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1_bio]
+[pawn1] is a [pawn1_sex], age [pawn1_age], a [pawn1_title] of the [pawn1_faction] faction, following the [pawn1_ideology] ideology, has the following traits: [pawn1_traits]; Xenotype: [pawn1_genes]; [pawn1] is proficient in: [pawn1_proficiencies]; [pawn1] is incapable of: [pawn1_noskills]; [pawn1]'s mood is [pawn1_mood], positives: [pawn1_likes] / negatives: [pawn1_dislikes]; Medical status: [pawn1_afflictions]. [pawn1_bio]
 [pawn1] is currently [pawn1_action]
 
 The colony is in a [tile] area, has [colony], and [event].
@@ -348,14 +380,33 @@ Current event: [pawn1] [subject]
             {
                 // Check if the loaded version is older than the current version
                 // This ensures we reset templates to support the new API-specific endings
-                if (string.Compare(modVersion, CURRENT_VERSION) < 0)
+                Version currentVer;
+                Version loadedVer;
+                
+                bool currentParsed = Version.TryParse(CURRENT_VERSION, out currentVer);
+                bool loadedParsed = Version.TryParse(modVersion, out loadedVer);
+
+                if (currentParsed && loadedParsed && loadedVer < currentVer)
                 {
-                    Log.Message(string.Format("[SocialInteractions] Detected mod update to {0}. Resetting prompt templates to default to support new API features.", CURRENT_VERSION));
+                    SLog.Message(string.Format("[SocialInteractions] Detected mod update to {0}. Resetting prompt templates to default to support new API features.", CURRENT_VERSION));
                     llmPromptTemplate = DEFAULT_DIALOGUE_TEMPLATE;
                     llmMonologuePromptTemplate = DEFAULT_MONOLOGUE_TEMPLATE;
                     
                     // Update the version to current so we don't reset again
                     modVersion = CURRENT_VERSION;
+                }
+                else if (!currentParsed || !loadedParsed)
+                {
+                    // Fallback to string comparison if parsing fails
+                    if (string.Compare(modVersion, CURRENT_VERSION) < 0)
+                    {
+                        SLog.Message(string.Format("[SocialInteractions] Detected mod update to {0}. Resetting prompt templates to default to support new API features.", CURRENT_VERSION));
+                        llmPromptTemplate = DEFAULT_DIALOGUE_TEMPLATE;
+                        llmMonologuePromptTemplate = DEFAULT_MONOLOGUE_TEMPLATE;
+                        
+                        // Update the version to current so we don't reset again
+                        modVersion = CURRENT_VERSION;
+                    }
                 }
             }
         }
