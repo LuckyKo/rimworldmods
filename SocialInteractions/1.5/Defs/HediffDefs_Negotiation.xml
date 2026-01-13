@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+    <!-- Hediff applied during negotiation for peace messenger immunity -->
+    <HediffDef>
+        <defName>SI_Negotiating</defName>
+        <label>negotiating</label>
+        <description>This pawn is currently engaged in a negotiation.</description>
+        <hediffClass>HediffWithComps</hediffClass>
+        <defaultLabelColor>(0.6, 0.8, 1.0)</defaultLabelColor>
+        <isBad>false</isBad>
+        <everCurableByItem>false</everCurableByItem>
+        <stages>
+            <li>
+                <becomeVisible>true</becomeVisible>
+            </li>
+        </stages>
+    </HediffDef>
+
+    <!-- Thoughts from negotiation outcomes -->
+    <ThoughtDef>
+        <defName>SI_NegotiationPositive</defName>
+        <thoughtClass>Thought_Memory</thoughtClass>
+        <durationDays>2</durationDays>
+        <stages>
+            <li>
+                <label>productive negotiation</label>
+                <description>That conversation went really well. I feel like we really understood each other.</description>
+                <baseMoodEffect>8</baseMoodEffect>
+            </li>
+        </stages>
+    </ThoughtDef>
+
+    <ThoughtDef>
+        <defName>SI_NegotiationNegative</defName>
+        <thoughtClass>Thought_Memory</thoughtClass>
+        <durationDays>2</durationDays>
+        <stages>
+            <li>
+                <label>awkward negotiation</label>
+                <description>That conversation was uncomfortable. We really didn't see eye to eye.</description>
+                <baseMoodEffect>-6</baseMoodEffect>
+            </li>
+        </stages>
+    </ThoughtDef>
+</Defs>
