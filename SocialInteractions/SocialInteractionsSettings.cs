@@ -24,7 +24,7 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        private const string CURRENT_VERSION = "1.3.7";
+        private const string CURRENT_VERSION = "1.4.0";
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
@@ -128,6 +128,7 @@ Current event: [pawn1] [subject]
         // Interaction type settings
         public bool enableChitchat = true;
         public bool enableManualChat = true; // New setting for manual chat
+        public bool enableInteractiveNegotiation = true; // Toggle for window vs simple bubbles
         public bool enableDeepTalk = true;
         public bool enableInsult = true;
         public bool enableRomanceAttempt = true;
@@ -268,6 +269,7 @@ Current event: [pawn1] [subject]
 
             Scribe_Values.Look(ref enableChitchat, "enableChitchat", true);
             Scribe_Values.Look(ref enableManualChat, "enableManualChat", true); // New setting for manual chat
+            Scribe_Values.Look(ref enableInteractiveNegotiation, "enableInteractiveNegotiation", true);
             Scribe_Values.Look(ref enableDeepTalk, "enableDeepTalk", true);
             Scribe_Values.Look(ref enableInsult, "enableInsult", true);
             Scribe_Values.Look(ref enableRomanceAttempt, "enableRomanceAttempt", true);
@@ -469,6 +471,9 @@ Current event: [pawn1] [subject]
             listingStandard.Label(settingsTitle);
             
             listingStandard.Gap();
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableVerboseLogging".Translate(), ref SocialInteractions.Settings.verboseLogging, "SocialInteractions_EnableVerboseLoggingDesc".Translate());
+
+            listingStandard.Gap();
             listingStandard.CheckboxLabeled("SocialInteractions_PawnsStopOnInteraction".Translate(), ref SocialInteractions.Settings.pawnsStopOnInteraction, "SocialInteractions_PawnsStopOnInteractionDesc".Translate());
 
             listingStandard.Gap();
@@ -501,13 +506,15 @@ Current event: [pawn1] [subject]
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("SocialInteractions_EnableLLMInteractions".Translate(), ref SocialInteractions.Settings.llmInteractionsEnabled, "SocialInteractions_EnableLLMInteractionsDesc".Translate());
+
+            listingStandard.Gap();
             listingStandard.CheckboxLabeled("SocialInteractions_PreventSpam".Translate(), ref SocialInteractions.Settings.preventSpam, "SocialInteractions_PreventSpamDesc".Translate());
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("SocialInteractions_UseTextBackground".Translate(), ref SocialInteractions.Settings.useBackgroundTextRendering, "SocialInteractions_UseTextBackgroundDesc".Translate());
 
             listingStandard.Gap();
-            listingStandard.CheckboxLabeled("SocialInteractions_EnableVerboseLogging".Translate(), ref SocialInteractions.Settings.verboseLogging, "SocialInteractions_EnableVerboseLoggingDesc".Translate());
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableInteractiveNegotiation".Translate(), ref SocialInteractions.Settings.enableInteractiveNegotiation, "SocialInteractions_EnableInteractiveNegotiationDesc".Translate());
 
             // Badmouthing settings
             listingStandard.Gap();
@@ -949,7 +956,7 @@ Current event: [pawn1] [subject]
             listingStandard.Gap();
             listingStandard.Label("SocialInteractions_EnabledLLMInteractions".Translate());
             listingStandard.CheckboxLabeled("SocialInteractions_EnableChitchat".Translate(), ref SocialInteractions.Settings.enableChitchat);
-            listingStandard.CheckboxLabeled("SocialInteractions_EnableManualChat".Translate(), ref SocialInteractions.Settings.enableManualChat); // New setting for manual chat
+            //listingStandard.CheckboxLabeled("SocialInteractions_EnableManualChat".Translate(), ref SocialInteractions.Settings.enableManualChat); // already handled in the interactive negotiation settings
             listingStandard.CheckboxLabeled("SocialInteractions_EnableDeepTalk".Translate(), ref SocialInteractions.Settings.enableDeepTalk);
             listingStandard.CheckboxLabeled("SocialInteractions_EnableInsult".Translate(), ref SocialInteractions.Settings.enableInsult);
             listingStandard.CheckboxLabeled("SocialInteractions_EnableRomanceAttempt".Translate(), ref SocialInteractions.Settings.enableRomanceAttempt);

@@ -1,5 +1,10 @@
 # TODO LIST
 
-- [x] implement additional prompt info fields: [pawn#_faction] - specify the faction name of the pawn
-- [x] implement additional prompt info fields: [pawn#_noskills] - list the skills that the pawn does not have (unable to do)
-- [x] add comments in SocialInteractionsSettings with the full list of prompt fields available
+- [ ] Change the "Have Chat With" (defined in JobDriver_HaveChatWith) command to "Negotiate" skill (with a 1d cooldown). Outcome of the conversation could be neutral, positive or negative mood changes depending on intitiator's social skill level. If LLM calls are disabled it will be a simple outcome based on social skill level of the initiator. If we have acess to LLM it will be a more complex outcome based on the conversation flow: 
+    - Once the basic dialogue LLM response is received we'll send another LLM request to determine the outcome of the conversation or continue the interaction with LLM given alternative responses or custom answer. (the flow: send dialogue request -> on received response, send evaluation request or ask for choices -> on received response, check the choices and send another dialogue request or evaluate the final outcome). Proper formating of the prompt is crucial here as we'll work with small LLMs not necesarily tuned for tool calling. We'll need to make sure the prompts are clear and unambiguous.
+    - When the LLM determines that the conversation has reached an outcome we'll receive the final outcome of the conversation and the mood change will be applied to the initiator. 
+    - The user can select to end the conversation at any time they receive a selection popup and the conversation will end. We will have to wait for the conversation bubbles to show up (or TTS to play out)between choices.
+    - The interaction popup windows should be similar to existing popup windows for trading or other in game selections, but we need to have an edit text box for the user to enter their custom reply message. We should see something like this: X and Y discussed about bla bla bla and X decide to: 1. do this 2. do that 3. do that. 4. [custom action text], 5. End conversation. 
+    - We will need to add specialized prompts for the negotiation interaction instucting the LLM clearly how to format the response so we can parse it. We also need an automatic outcome logic in case the LLM returns badly formated responses or gibberish.
+    - The interaction prompts should be prepared and designed in a way that it can be easily adjusted for further expansions to negotiate with incoming raiders, traders, colonists, etc.
+    - Also make sure it works properly with both continuation and chat mode in API

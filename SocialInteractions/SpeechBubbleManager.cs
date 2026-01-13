@@ -177,32 +177,32 @@ namespace SocialInteractions
 
             if (isRomantic)
             {
-                return string.Format("A date between {0} and {1} at {2}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort, joySpotLabel);
+                return string.Format("A date between {0} and {1} at {2}.", initiator.LabelShort, recipient.LabelShort, joySpotLabel);
             }
             else
             {
-                return string.Format("{0} and {1} are hanging out together at {2}.", initiator.Name.ToStringShort, recipient.Name.ToStringShort, joySpotLabel);
+                return string.Format("{0} and {1} are hanging out together at {2}.", initiator.LabelShort, recipient.LabelShort, joySpotLabel);
             }
         }
 
         public static string GetDateEndSubject(Pawn initiator, Pawn recipient)
         {
-            return string.Format("A successful date between {0} and {1} ends with a bang!", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+            return string.Format("A successful date between {0} and {1} ends with a bang!", initiator.LabelShort, recipient.LabelShort);
         }
         
         public static string GetDateLovinSubject(Pawn initiator, Pawn recipient)
         {
-            return string.Format("{0} and {1} are engaged in some wild lovin' after a fun date.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+            return string.Format("{0} and {1} are engaged in some wild lovin' after a fun date.", initiator.LabelShort, recipient.LabelShort);
         }
         
         public static string GetDateRejectionSubject(Pawn initiator, Pawn recipient)
         {
-            return string.Format("{0} asks {1} for a date, but {1} declines.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+            return string.Format("{0} asks {1} for a date, but {1} declines.", initiator.LabelShort, recipient.LabelShort);
         }
         
         public static string GetPostDateLovinSubject(Pawn initiator, Pawn recipient)
         {
-            return string.Format("{0} and {1} have finished their intimate moment and are reflecting on the experience.", initiator.Name.ToStringShort, recipient.Name.ToStringShort);
+            return string.Format("{0} and {1} have finished their intimate moment and are reflecting on the experience.", initiator.LabelShort, recipient.LabelShort);
         }
 
         public static void EnqueueJob(Action jobAction)
@@ -317,7 +317,7 @@ namespace SocialInteractions
             
             if (string.IsNullOrEmpty(fallbackText))
             {
-                fallbackText = string.Format("{0} talks with {1}.", speaker.Name.ToStringShort, recipient.Name.ToStringShort);
+                fallbackText = string.Format("{0} talks with {1}.", speaker.LabelShort, recipient.LabelShort);
             }
             ChatLogManager.AddMessage(new ChatMessage(speaker, recipient, rawMessage, messageType, conversationId, messageColor, fallbackText, formattedMessage));
 
@@ -358,8 +358,8 @@ namespace SocialInteractions
         {
             // Add to chat log as a monologue message
             string fallbackText = string.IsNullOrEmpty(subject)
-                ? string.Format("{0} thinks to themselves.", speaker.Name.ToStringShort)
-                : string.Format("{0} ponders about {1}", speaker.Name.ToStringShort, subject);
+                ? string.Format("{0} thinks to themselves.", speaker.LabelShort)
+                : string.Format("{0} ponders about {1}", speaker.LabelShort, subject);
             ChatLogManager.AddMessage(new ChatMessage(speaker, null, text, MessageType.LLMChat, conversationId, color ?? Color.grey, fallbackText, text));
 
 
@@ -421,7 +421,7 @@ namespace SocialInteractions
             
             // Add to chat log
             Color messageColor = isHighPriority ? new Color(1.0f, 0.6f, 0.2f) : Color.white; // Orange for high priority, white for normal
-            string fallbackText = string.Format("{0} talks with {1}.", speaker.Name.ToStringShort, recipient.Name.ToStringShort);
+            string fallbackText = string.Format("{0} talks with {1}.", speaker.LabelShort, recipient.LabelShort);
             ChatLogManager.AddMessage(new ChatMessage(speaker, recipient, rawMessage, MessageType.LLMChat, -1, messageColor, fallbackText, formattedMessage));
             
             float endTime;
@@ -582,7 +582,7 @@ namespace SocialInteractions
         {
             // Format the message to include the speaker's name with color
             string colorCode = isHighPriority ? "#ED7913" : "#87CEEB"; // Orange for high priority, light sky blue for normal
-            string speakerNameWithColor = string.Format("<color={0}>{1}</color>", colorCode, speaker.Name.ToStringShort);
+            string speakerNameWithColor = string.Format("<color={0}>{1}</color>", colorCode, speaker.LabelShort);
             string messageWithSpeaker = string.Format("{0}: {1}", speakerNameWithColor, rawMessage);
             return FormatLlmText(messageWithSpeaker);
         }
@@ -591,9 +591,9 @@ namespace SocialInteractions
         {
             // Extract the speaker name if it's included in the message
             string messageText = rawMessage;
-            if (rawMessage.StartsWith(speaker.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
+            if (rawMessage.StartsWith(speaker.LabelShort + ":", StringComparison.OrdinalIgnoreCase))
             {
-                messageText = rawMessage.Substring(speaker.Name.ToStringShort.Length + 1).Trim();
+                messageText = rawMessage.Substring(speaker.LabelShort.Length + 1).Trim();
             }
             
             // Format the message with speaker name and rich text
@@ -607,15 +607,15 @@ namespace SocialInteractions
             string messageText = rawMessage;
 
             // Determine speaker and extract dialogue
-            if (rawMessage.StartsWith(pawn.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
+            if (rawMessage.StartsWith(pawn.LabelShort + ":", StringComparison.OrdinalIgnoreCase))
             {
                 speaker = pawn;
-                messageText = rawMessage.Substring(pawn.Name.ToStringShort.Length + 1).Trim();
+                messageText = rawMessage.Substring(pawn.LabelShort.Length + 1).Trim();
             }
-            else if (recipient != null && rawMessage.StartsWith(recipient.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
+            else if (recipient != null && rawMessage.StartsWith(recipient.LabelShort + ":", StringComparison.OrdinalIgnoreCase))
             {
                 speaker = recipient;
-                messageText = rawMessage.Substring(recipient.Name.ToStringShort.Length + 1).Trim();
+                messageText = rawMessage.Substring(recipient.LabelShort.Length + 1).Trim();
             }
             else
             {
@@ -638,9 +638,9 @@ namespace SocialInteractions
             string messageText = rawMessage;
 
             // Check if the message starts with the pawn's name
-            if (rawMessage.StartsWith(pawn.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
+            if (rawMessage.StartsWith(pawn.LabelShort + ":", StringComparison.OrdinalIgnoreCase))
             {
-                messageText = rawMessage.Substring(pawn.Name.ToStringShort.Length + 1).Trim();
+                messageText = rawMessage.Substring(pawn.LabelShort.Length + 1).Trim();
             }
 
             // Format the message with speaker name and rich text

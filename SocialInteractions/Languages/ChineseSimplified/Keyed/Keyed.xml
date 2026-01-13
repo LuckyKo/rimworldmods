@@ -17,6 +17,8 @@
   <SocialInteractions_OpenChatLogWindow>打开聊天记录窗口</SocialInteractions_OpenChatLogWindow>
   <SocialInteractions_EnableLLMInteractions>启用LLM互动</SocialInteractions_EnableLLMInteractions>
   <SocialInteractions_EnableLLMInteractionsDesc>启用后，深度谈话互动将使用配置的LLM API。</SocialInteractions_EnableLLMInteractionsDesc>
+  <SocialInteractions_EnableInteractiveNegotiation>启用交互式协商</SocialInteractions_EnableInteractiveNegotiation>
+  <SocialInteractions_EnableInteractiveNegotiationDesc>启用后，协商将在具有选项的专用窗口中进行。如果禁用，协商将通过主视图中的对话气泡进行。</SocialInteractions_EnableInteractiveNegotiationDesc>
   <SocialInteractions_PreventSpam>防止刷屏</SocialInteractions_PreventSpam>
   <SocialInteractions_PreventSpamDesc>启用后，新的LLM互动要等前一个互动显示完对话气泡后才能开始。</SocialInteractions_PreventSpamDesc>
   <SocialInteractions_UseTextBackground>使用文本背景</SocialInteractions_UseTextBackground>
@@ -105,10 +107,9 @@
   <SocialInteractions_EnableTendPatient>照料病人</SocialInteractions_EnableTendPatient>
   <SocialInteractions_EnableRescue>救援</SocialInteractions_EnableRescue>
   <SocialInteractions_EnableVisitSickPawn>探望病人</SocialInteractions_EnableVisitSickPawn>
-  <SocialInteractions_EnableLovin>求爱</SocialInteractions_EnableLovin>
+  <SocialInteractions_EnableLovin>欢愉</SocialInteractions_EnableLovin>
   <SocialInteractions_EnableDating>约会</SocialInteractions_EnableDating>
   <SocialInteractions_EnableMarriageCeremony>婚礼仪式</SocialInteractions_EnableMarriageCeremony>
-  <SocialInteractions_EnableBreakups>分手</SocialInteractions_EnableBreakups>
   
   <!-- Date Settings -->
   <SocialInteractions_JoyThresholdForDate>约会的快乐阈值（0.0 - 1.0）：</SocialInteractions_JoyThresholdForDate>
@@ -133,11 +134,12 @@
   
   <!-- UI Buttons -->
   <SocialInteractions_Done>完成</SocialInteractions_Done>
-  
-  <!-- Additional keys that might be missing -->
-  <SocialInteractions_EnableIdeologyConversionInteractions>启用思想转化互动</SocialInteractions_EnableIdeologyConversionInteractions>
-  <SocialInteractions_EnableKindWordsInteractions>启用友善言辞互动</SocialInteractions_EnableKindWordsInteractions>
 
+  <!-- Breakup Settings -->
+  <SocialInteractions_EnableBreakups>分手</SocialInteractions_EnableBreakups>
+  <SocialInteractions_EnableIdeologyConversionInteractions>思想转化</SocialInteractions_EnableIdeologyConversionInteractions>
+  <SocialInteractions_EnableKindWordsInteractions>友善言辞</SocialInteractions_EnableKindWordsInteractions>
+  
   <!-- TTS Settings -->
   <SocialInteractions_TTSSettings>文本转语音设置</SocialInteractions_TTSSettings>
   <SocialInteractions_EnableTTS>启用文本转语音</SocialInteractions_EnableTTS>

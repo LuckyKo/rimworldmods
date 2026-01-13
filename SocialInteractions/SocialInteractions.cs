@@ -37,6 +37,9 @@ namespace SocialInteractions
             var harmony = new Harmony("com.gemini.socialinteractions");
             harmony.PatchAll();
             
+            // Initialize TTS Manager (reset sequence IDs)
+            TTSManager.Initialize();
+            
             // Log that patches were applied
             SLog.Message("[SocialInteractions] Harmony patches applied");
         }
@@ -177,8 +180,8 @@ namespace SocialInteractions
             if (string.IsNullOrEmpty(prompt))
                 return prompt;
 
-            string pawn1Name = initiator != null ? initiator.Name.ToStringShort : "Pawn1";
-            string pawn2Name = recipient != null ? recipient.Name.ToStringShort : "Pawn2";
+            string pawn1Name = initiator != null ? initiator.LabelShort : "Pawn1";
+            string pawn2Name = recipient != null ? recipient.LabelShort : "Pawn2";
 
             // Determine if using text completion or chat completion API
             bool isTextCompletion = Settings.llmApiType == LlmApiType.KoboldCpp || 
@@ -480,7 +483,7 @@ namespace SocialInteractions
         /// <param name="pawn">The pawn to extract data from.</param>
         /// <param name="prefix">The prefix to use for the dictionary keys (e.g., "pawn1", "pawn2").</param>
         /// <returns>A dictionary containing the pawn's data.</returns>
-        private static Dictionary<string, string> ExtractPawnData(Pawn pawn, string prefix, Pawn target = null)
+        public static Dictionary<string, string> ExtractPawnData(Pawn pawn, string prefix, Pawn target = null)
         {
             var data = new Dictionary<string, string>();
 
@@ -507,7 +510,7 @@ namespace SocialInteractions
             }
 
             // Basic pawn info
-            data[prefix] = pawn.Name.ToStringShort;
+            data[prefix] = pawn.LabelShort;
             // Format age as "bio_age (real_age)" if they differ, otherwise just the bio age
             int biologicalAge = pawn.ageTracker.AgeBiologicalYears;
             int chronologicalAge = pawn.ageTracker.AgeChronologicalYears;
@@ -789,7 +792,7 @@ namespace SocialInteractions
             return data;
         }
 
-        private static string GetBiomeInfo(Map map)
+        public static string GetBiomeInfo(Map map)
         {
             if (map == null) return "Unknown";
             return map.Biome.label;
@@ -997,7 +1000,7 @@ namespace SocialInteractions
             return "No recent conversations";
         }
 
-        private static string GetRelationship(Pawn initiator, Pawn recipient)
+        public static string GetRelationship(Pawn initiator, Pawn recipient)
         {
             // Check for the most important direct relationships first
             if (initiator.relations == null || recipient == null) return "Acquaintance";
@@ -1385,8 +1388,8 @@ namespace SocialInteractions
                             Log.Warning(string.Format("[SocialInteractions] HandleMonologue: LLM API returned null response for pawn {0}", pawn.LabelShort));
                             // Fallback to default monologue text
                             string fallbackText = string.IsNullOrEmpty(subject)
-                                ? string.Format("{0} thinks to themselves.", pawn.Name.ToStringShort)
-                                : string.Format("{0} ponders about {1}", pawn.Name.ToStringShort, subject);
+                                ? string.Format("{0} thinks to themselves.", pawn.LabelShort)
+                                : string.Format("{0} ponders about {1}", pawn.LabelShort, subject);
                             string ttsFallbackText = string.IsNullOrEmpty(subject) ? "Thinking to themselves." : string.Format("Ponders about {0}", subject);
                             SpeechBubbleManager.EnqueueJob(() => SpeechBubbleManager.EnqueueMonologue(pawn, fallbackText, 2f, true, conversationId, null, false, subject, ttsFallbackText)); // Use monologue method
                             return;
@@ -1414,7 +1417,7 @@ namespace SocialInteractions
                                         
                                         // Extract clean text for TTS (removing potential pawn name prefix)
                                         string ttsText = rawMessage;
-                                        if (rawMessage.StartsWith(pawn.Name.ToStringShort + ":", StringComparison.OrdinalIgnoreCase))
+                                        if (rawMessage.StartsWith(pawn.LabelShort + ":", StringComparison.OrdinalIgnoreCase))
                                         {
                                             ttsText = rawMessage.Substring(pawn.Name.ToStringShort.Length + 1).Trim();
                                         }

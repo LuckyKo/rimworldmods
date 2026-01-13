@@ -29,8 +29,8 @@ namespace SocialInteractions
             // Add our custom "Have Chat With" gizmo
             Command_Action chatCommand = new Command_Action
             {
-                defaultLabel = "Have Chat With",
-                defaultDesc = "Have a casual chat with another pawn",
+                defaultLabel = "Negotiate",
+                defaultDesc = "Negotiate with another pawn",
                 action = delegate
                 {
                     // Start the target selection process
@@ -41,7 +41,7 @@ namespace SocialInteractions
                     targetingParams.validator = (TargetInfo target) => 
                     {
                         Pawn targetPawn = target.Thing as Pawn;
-                        return targetPawn != null && targetPawn != __instance && targetPawn.Spawned && !targetPawn.Dead;
+                        return targetPawn != null && targetPawn != __instance && targetPawn.Spawned && !targetPawn.Dead && targetPawn.Name != null && !targetPawn.Name.Numerical;
                     };
                     
                     Find.Targeter.BeginTargeting(targetingParams, delegate (LocalTargetInfo target)

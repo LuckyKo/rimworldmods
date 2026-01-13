@@ -27,5 +27,9 @@ namespace SocialInteractions
         
         // Dating thoughts
         public static ThoughtDef EnjoyedDateWith;
+        
+        // Negotiation thoughts
+        public static ThoughtDef SI_NegotiationPositive;
+        public static ThoughtDef SI_NegotiationNegative;
     }
 }

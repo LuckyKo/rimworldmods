@@ -20,10 +20,24 @@ namespace SocialInteractions
         private static Queue<TTSQueueEntry> ttsQueue = new Queue<TTSQueueEntry>();
         private static bool isPlaying = false;
 
+        // Ordering for async requests
+        private static int nextRequestId = 0;
+        private static int nextPlaybackId = 0;
+        private static Dictionary<int, TTSQueueEntry> playbackBuffer = new Dictionary<int, TTSQueueEntry>();
+        private static readonly object bufferLock = new object();
+
 
         public static void Initialize()
         {
-            // No initialization needed for API currently
+            // Reset state on game load/init
+            lock (bufferLock)
+            {
+                nextRequestId = 0;
+                nextPlaybackId = 0;
+                playbackBuffer.Clear();
+                ttsQueue.Clear();
+                isPlaying = false;
+            }
         }
 
         public static void Speak(string text, Pawn speaker, float speed = 1.0f, int volume = 100)
@@ -41,11 +55,26 @@ namespace SocialInteractions
             }
 
             // In the new system, we only use External API
-            SpeakWithApi(text, voiceName);
+            int requestId;
+            lock (bufferLock)
+            {
+                requestId = nextRequestId++;
+            }
+            SpeakWithApi(text, voiceName, requestId);
         }
 
         public static void Stop()
         {
+            // Clear all queues to stop future playback
+            lock (bufferLock)
+            {
+                ttsQueue.Clear();
+                playbackBuffer.Clear();
+                // Fast-forward playback ID to ignore any in-flight requests that might arrive later
+                nextPlaybackId = nextRequestId;
+            }
+            
+            // Stop current audio
             if (audioSource != null && audioSource.isPlaying)
             {
                 audioSource.Stop();
@@ -153,24 +182,33 @@ namespace SocialInteractions
             }
         }
 
-        private static void SpeakWithApi(string text, string voiceName)
+        private static void SpeakWithApi(string text, string voiceName, int requestId)
         {
             if (string.IsNullOrEmpty(SocialInteractions.Settings.ttsApiUrl))
             {
                 SLog.Warning("[SocialInteractions] TTSManager: TTS API URL is empty.");
+                // Mark request as failed/done to prevent blocking
+                ProcessPlaybackBuffer(requestId, null, 0); 
                 return;
             }
 
-            // Use LongEventHandler to run on the main thread
-            LongEventHandler.ExecuteWhenFinished(() =>
+            // Directly start coroutine as we are on the main thread
+            if (Current.Root != null)
             {
-                // Current.Root is a MonoBehaviour, so we can use it to start coroutines
-                ((MonoBehaviour)Current.Root).StartCoroutine(FetchAndPlayAudio(text, voiceName));
-            });
+                ((MonoBehaviour)Current.Root).StartCoroutine(FetchAndPlayAudio(text, voiceName, requestId));
+            }
+            else
+            {
+                SLog.Warning("[SocialInteractions] TTSManager: Verify Current.Root is not null.");
+                ProcessPlaybackBuffer(requestId, null, 0);
+            }
         }
 
-        private static IEnumerator FetchAndPlayAudio(string text, string voiceName)
+        private static IEnumerator FetchAndPlayAudio(string text, string voiceName, int requestId)
         {
+            // Yield once to ensure we don't choke the frame if batching calls
+            yield return null;
+
             string url = SocialInteractions.Settings.ttsApiUrl;
             string apiKey = SocialInteractions.Settings.ttsApiKey;
             string model = SocialInteractions.Settings.ttsModel;
@@ -211,6 +249,7 @@ namespace SocialInteractions
             if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
             {
                 SLog.Error("[SocialInteractions] TTSManager: TTS API Error: " + request.error + "\n" + request.downloadHandler.text);
+                ProcessPlaybackBuffer(requestId, null, 0); // Mark failed
             }
             else
             {
@@ -238,6 +277,7 @@ namespace SocialInteractions
                     if (mpegRequest.result == UnityWebRequest.Result.ConnectionError || mpegRequest.result == UnityWebRequest.Result.ProtocolError)
                     {
                         SLog.Error("[SocialInteractions] TTSManager: TTS API MPEG Error: " + mpegRequest.error);
+                         ProcessPlaybackBuffer(requestId, null, 0); // Mark failed
                     }
                     else
                     {
@@ -263,6 +303,7 @@ namespace SocialInteractions
                             if (oggRequest.result == UnityWebRequest.Result.ConnectionError || oggRequest.result == UnityWebRequest.Result.ProtocolError)
                             {
                                 SLog.Error("[SocialInteractions] TTSManager: TTS API OGG Error: " + oggRequest.error);
+                                ProcessPlaybackBuffer(requestId, null, 0); // Mark failed
                             }
                             else
                             {
@@ -275,6 +316,7 @@ namespace SocialInteractions
                 if (clip == null)
                 {
                     SLog.Warning("[SocialInteractions] TTSManager: Failed to get audio clip from TTS response with any format. Server may be returning incompatible audio format.");
+                    ProcessPlaybackBuffer(requestId, null, 0); // Mark failed
                 }
                 else
                 {
@@ -300,8 +342,8 @@ namespace SocialInteractions
                     float vol = SocialInteractions.Settings.ttsVolume / 100f;
                     //SLog.Message(string.Format("[SocialInteractions] TTSManager: Playing audio clip with volume: {0}", vol));
 
-                    // Add the clip to the playback queue to prevent overlapping
-                    AddToPlaybackQueue(clip, vol);
+                    // Add the clip to the playback queue to prevent overlapping, respecting order
+                    ProcessPlaybackBuffer(requestId, clip, vol);
                     //SLog.Message("[SocialInteractions] TTSManager: Added audio clip to playback queue.");
 
                     // Start the playback manager coroutine if not already running
@@ -329,6 +371,42 @@ namespace SocialInteractions
         private static void AddToPlaybackQueue(AudioClip clip, float volume)
         {
             ttsQueue.Enqueue(new TTSQueueEntry(clip, volume));
+        }
+
+        private static void ProcessPlaybackBuffer(int requestId, AudioClip clip, float volume)
+        {
+            lock (bufferLock)
+            {
+                SLog.Message(string.Format("[TTS Debug] ProcessPlaybackBuffer: Recvd ID {0}. Waiting for {1}. Buffer Size: {2}", requestId, nextPlaybackId, playbackBuffer.Count));
+
+                // Add to buffer (if successful) or just mark as ready-to-skip (if null)
+                // We use a dummy entry with null clip for failed items to keep sequence moving
+                playbackBuffer[requestId] = new TTSQueueEntry(clip, volume);
+
+                // Try to move items from buffer to queue in order
+                while (playbackBuffer.ContainsKey(nextPlaybackId))
+                {
+                    SLog.Message(string.Format("[TTS Debug] ProcessPlaybackBuffer: Promoting ID {0} to queue.", nextPlaybackId));
+                    var entry = playbackBuffer[nextPlaybackId];
+                    if (entry.clip != null) // Only valid clips
+                    {
+                        AddToPlaybackQueue(entry.clip, entry.volume);
+                        
+                        // Start the playback manager coroutine if not already running
+                        if (Current.Game != null && Current.Root != null)
+                        {
+                            ((MonoBehaviour)Current.Root).StartCoroutine(ManagePlaybackQueue());
+                        }
+                    }
+                    else
+                    {
+                         // SLog.Message(string.Format("[TTS Debug] ProcessPlaybackBuffer: ID {0} has null clip, skipping.", nextPlaybackId));
+                    }
+                    
+                    playbackBuffer.Remove(nextPlaybackId);
+                    nextPlaybackId++;
+                }
+            }
         }
 
         private static IEnumerator ManagePlaybackQueue()
@@ -360,22 +438,27 @@ namespace SocialInteractions
                 audioSource.rolloffMode = AudioRolloffMode.Logarithmic; // Set rolloff mode
                 audioSource.maxDistance = 500f; // Set a reasonable max distance
                 audioSource.minDistance = 1f; // Set min distance
+                audioSource.ignoreListenerPause = true; // Play even if game is paused
 
-                // Play the clip
-                audioSource.PlayOneShot(entry.clip, entry.volume);
+                audioSource.clip = entry.clip;
+                audioSource.volume = entry.volume * (SocialInteractions.Settings.ttsVolume / 100f);
+                audioSource.Play();
+                
+                SLog.Message("[TTS Debug] Started playback of clip. Duration: " + entry.clip.length);
 
                 // Wait for the clip to finish playing (clip.length is in seconds)
                 // We'll wait for the full duration of the clip
                 float clipDuration = entry.clip.length;
                 float waitTime = 0f;
+                // Use unscaled time to ensure it works even if game is paused
                 while (waitTime < clipDuration && audioSource.isPlaying)
                 {
                     yield return null; // Wait one frame
-                    waitTime += Time.deltaTime;
+                    waitTime += Time.unscaledDeltaTime;
                 }
 
                 // Add a small pause between clips
-                yield return new WaitForSeconds(0.1f);
+                yield return new WaitForSecondsRealtime(0.1f);
             }
 
             isPlaying = false;

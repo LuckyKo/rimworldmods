@@ -11,6 +11,9 @@ namespace SocialInteractions
         {
             // Create and add the game component for handling pawn flavor text persistence
             Current.Game.components.Add(new PawnFlavorText_GameComponent());
+            
+            // Reset TTS Manager state on new game
+            TTSManager.Initialize();
         }
     }
     
@@ -24,6 +27,9 @@ namespace SocialInteractions
             {
                 Current.Game.components.Add(new PawnFlavorText_GameComponent());
             }
+            
+            // Reset TTS Manager state on load game
+            TTSManager.Initialize();
         }
     }
 }

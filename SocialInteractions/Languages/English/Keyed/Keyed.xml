@@ -17,6 +17,8 @@
   <SocialInteractions_OpenChatLogWindow>Open Chat Log Window</SocialInteractions_OpenChatLogWindow>
   <SocialInteractions_EnableLLMInteractions>Enable LLM Interactions</SocialInteractions_EnableLLMInteractions>
   <SocialInteractions_EnableLLMInteractionsDesc>If enabled, Deep Talk interactions will use the configured LLM API.</SocialInteractions_EnableLLMInteractionsDesc>
+  <SocialInteractions_EnableInteractiveNegotiation>Enable Interactive Negotiation</SocialInteractions_EnableInteractiveNegotiation>
+  <SocialInteractions_EnableInteractiveNegotiationDesc>If enabled, negotiations will take place in a dedicated window with choices. If disabled, they will happen via speech bubbles in the main view.</SocialInteractions_EnableInteractiveNegotiationDesc>
   <SocialInteractions_PreventSpam>Prevent Spam</SocialInteractions_PreventSpam>
   <SocialInteractions_PreventSpamDesc>If enabled, new LLM interactions will not start until the previous one has finished displaying its speech bubbles.</SocialInteractions_PreventSpamDesc>
   <SocialInteractions_UseTextBackground>Use Text Background</SocialInteractions_UseTextBackground>
