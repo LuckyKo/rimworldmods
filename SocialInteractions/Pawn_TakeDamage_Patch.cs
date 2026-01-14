@@ -4,6 +4,7 @@ using Verse;
 using Verse.AI;
 using System.Collections.Generic;
 using System.Reflection;
+using Verse.AI.Group;
 
 namespace SocialInteractions
 {
@@ -44,6 +45,16 @@ namespace SocialInteractions
                 {
                     SLog.Message(string.Format("[SocialInteractions] Child {0} did not flee (chance was {1:F2}, rolled {2:F2})",
                         pawn.LabelShort, fleeChance, Rand.Value));
+                }
+            }
+            
+            // Check for Raid Negotiation Aggression Trigger
+            if (pawn != null && pawn.GetLord() != null)
+            {
+                var lordJob = pawn.GetLord().LordJob as LordJob_NegotiatedRaid;
+                if (lordJob != null)
+                {
+                    lordJob.Notify_RaiderHarmed(pawn, dinfo);
                 }
             }
         }

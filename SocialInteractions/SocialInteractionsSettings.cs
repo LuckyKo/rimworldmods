@@ -145,6 +145,7 @@ Current event: [pawn1] [subject]
         public bool useLlmForBreakups = true; // Whether to use LLM for breakup interactions
         public bool enableIdeologyConversionInteractions = true; // Whether ideology conversion interactions are enabled
         public bool enableKindWordsInteractions = true; // Whether kind words interactions are enabled
+        public bool enableRaidNegotiation = true; // Whether negotiation with enemy raids is enabled
         
         // String settings
         public string llmStoppingStrings = @"<end>
@@ -287,6 +288,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref useLlmForBreakups, "useLlmForBreakups", true);
             Scribe_Values.Look(ref enableIdeologyConversionInteractions, "enableIdeologyConversionInteractions", true);
             Scribe_Values.Look(ref enableKindWordsInteractions, "enableKindWordsInteractions", true);
+            Scribe_Values.Look(ref enableRaidNegotiation, "enableRaidNegotiation", true);
             Scribe_Values.Look(ref enableDrama, "enableDrama", false);
             Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);

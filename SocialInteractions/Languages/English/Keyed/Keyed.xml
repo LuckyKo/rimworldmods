@@ -152,4 +152,12 @@
   <SocialInteractions_RemapVoices>Remap Voices</SocialInteractions_RemapVoices>
   <SocialInteractions_AssignVoicesManually>Assign Voices Manually</SocialInteractions_AssignVoicesManually>
   <SocialInteractions_VoicesAvailable>Voices Available: {0}</SocialInteractions_VoicesAvailable>
+
+  <!-- Raid Negotiation -->
+  <SI_NegotiateWithRaiders>Negotiate with Raiders</SI_NegotiateWithRaiders>
+  <SI_NegotiateWithRaidersDesc>Attempt to negotiate with {0}. Your colonist will approach the enemy group and try to avoid combat.</SI_NegotiateWithRaidersDesc>
+  <SI_RaidNegotiationFailed>{0} failed to negotiate with {1}. They attack immediately!</SI_RaidNegotiationFailed>
+  <SI_RaidNegotiationNeutral>{0}'s negotiation with {1} reached no agreement. The raiders remain hostile.</SI_RaidNegotiationNeutral>
+  <SI_RaidNegotiationPositive>{0} convinced {1} to leave, but they will take some valuables first.</SI_RaidNegotiationPositive>
+  <SI_RaidNegotiationCriticalSuccess>{0} convinced {1} to leave peacefully without taking anything!</SI_RaidNegotiationCriticalSuccess>
 </LanguageData>

@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Threading.Tasks;
 using System.Collections;
 using UnityEngine;
 using Verse;
 using RimWorld;
 using Verse.Sound;
+using Verse.AI.Group;
 
 namespace SocialInteractions
 {
@@ -35,11 +35,53 @@ namespace SocialInteractions
         private List<DialogueLine> lastDialogueLines = new List<DialogueLine>();
         private int conversationId = -1;
         
+        // Raid negotiation context (null if not negotiating with a raid)
+        private Lord raidContext = null;
+        private bool isTradeContext = false;
+        private bool isVisitorContext = false;
+        
         public NegotiationManager(Pawn initiator, Pawn target, Dialog_PawnNegotiation dialog)
         {
             this.initiator = initiator;
             this.target = target;
             this.dialog = dialog;
+            
+            // Check if this is a raid negotiation
+            this.raidContext = RaidNegotiationContext.GetActiveRaid(initiator);
+            if (raidContext != null)
+            {
+                SLog.Message("[Negotiation] Raid context detected for " + initiator.LabelShort);
+            }
+            
+            // Check if this is a trade negotiation
+            this.isTradeContext = target.TraderKind != null;
+            if (!this.isTradeContext)
+            {
+                Lord lord = target.GetLord();
+                if (lord != null && lord.LordJob is LordJob_TradeWithColony)
+                {
+                    this.isTradeContext = true;
+                }
+            }
+            if (isTradeContext)
+            {
+                SLog.Message("[Negotiation] Trade context detected for " + target.LabelShort);
+            }
+            
+            // Check if this is a visitor/refugee negotiation
+            if (!this.isTradeContext && this.raidContext == null)
+            {
+                Lord lord = target.GetLord();
+                if (lord != null && lord.LordJob != null)
+                {
+                    string jobName = lord.LordJob.GetType().Name;
+                    if (jobName.Contains("Visit") || jobName.Contains("Refugee") || jobName.Contains("Guest") || jobName.Contains("Traveler"))
+                    {
+                        this.isVisitorContext = true;
+                        SLog.Message("[Negotiation] Visitor context detected for " + target.LabelShort + " (Job: " + jobName + ")");
+                    }
+                }
+            }
         }
         
         public void StartNegotiation()
@@ -114,8 +156,8 @@ namespace SocialInteractions
                 {
                     string response = await GetLLMResponse(prompt);
                     
-                    // Process on main thread
-                    LongEventHandler.ExecuteWhenFinished(() =>
+                    // Process on main thread using Coroutine to ensure full thread safety (MapPawns access)
+                    ExecuteOnMainThread(() =>
                     {
                         if (isActive)
                         {
@@ -126,7 +168,7 @@ namespace SocialInteractions
                 catch (Exception ex)
                 {
                     SLog.Error("[Negotiation] LLM error: " + ex.Message);
-                    LongEventHandler.ExecuteWhenFinished(() =>
+                    ExecuteOnMainThread(() =>
                     {
                         if (isActive)
                         {
@@ -137,11 +179,53 @@ namespace SocialInteractions
             });
         }
         
+        public static void ExecuteOnMainThread(Action action)
+        {
+            if (Current.Root != null)
+            {
+                ((MonoBehaviour)Current.Root).StartCoroutine(ExecuteOnMainThreadRoutine(action));
+            }
+            else
+            {
+                // Fallback (unlikely during gameplay)
+                LongEventHandler.ExecuteWhenFinished(action);
+            }
+        }
+
+        private static IEnumerator ExecuteOnMainThreadRoutine(Action action)
+        {
+            yield return null; // Wait one frame
+            if (action != null)
+            {
+                try 
+                {
+                    action(); 
+                }
+                catch (Exception ex)
+                {
+                    SLog.Error("[Negotiation] Error executing on main thread: " + ex);
+                }
+            }
+        }
+        
         private string BuildPrompt(string selectedChoice)
         {
             StringBuilder sb = new StringBuilder();
             
-            // System context
+            // System context - different for raid vs trade vs normal negotiation
+            if (raidContext != null)
+            {
+                return BuildRaidPrompt(selectedChoice);
+            }
+            if (isTradeContext)
+            {
+                return BuildTradePrompt(selectedChoice);
+            }
+            if (isVisitorContext)
+            {
+                return BuildVisitorPrompt(selectedChoice);
+            }
+            
             sb.AppendLine("You are writing a negotiation dialogue between two colonists in a colony survival game.");
             sb.AppendLine();
             
@@ -190,7 +274,7 @@ namespace SocialInteractions
             sb.AppendLine(initiator.LabelShort + ": dialogue");
             sb.AppendLine(target.LabelShort + ": response");
             sb.AppendLine();
-            sb.AppendLine("OUTCOME: POSITIVE | NEUTRAL | NEGATIVE | NONE");
+            sb.AppendLine("OUTCOME: POSITIVE | NEUTRAL | NEGATIVE");
             sb.AppendLine();
             sb.AppendLine("CHOICES:");
             sb.AppendLine("1. action/statement");
@@ -261,6 +345,90 @@ namespace SocialInteractions
             sb.AppendLine("- Location: " + SocialInteractions.GetBiomeInfo(initiator.Map));
         }
         
+        /// <summary>
+        /// Build a raid-specific negotiation prompt.
+        /// </summary>
+        private string BuildRaidPrompt(string selectedChoice)
+        {
+            StringBuilder sb = new StringBuilder();
+            
+            // System context for raid negotiation
+            sb.AppendLine("You are writing a tense negotiation dialogue between a colonist and an enemy raider in a colony survival game.");
+            sb.AppendLine("The colonist is attempting to negotiate with hostile raiders to avoid combat.");
+            sb.AppendLine();
+            
+            // Negotiator context
+            var pawn1Data = SocialInteractions.ExtractPawnData(initiator, "pawn1", target);
+            sb.AppendLine("[Negotiator - " + initiator.LabelShort + "]");
+            AppendPawnContext(sb, pawn1Data, "pawn1", initiator);
+            sb.AppendLine();
+            
+            // Raider leader context
+            var pawn2Data = SocialInteractions.ExtractPawnData(target, "pawn2", initiator);
+            sb.AppendLine("[Raider Leader - " + target.LabelShort + "]");
+            AppendPawnContext(sb, pawn2Data, "pawn2", target);
+            sb.AppendLine();
+            
+            // Raid context
+            sb.AppendLine("[Raid Context]");
+            sb.AppendLine("- Faction: " + (raidContext.faction != null ? raidContext.faction.Name : "Unknown"));
+            sb.AppendLine("- Raider count: " + raidContext.ownedPawns.Count(p => p != null && !p.Dead));
+            if (raidContext.faction != null)
+            {
+                int goodwill = raidContext.faction.PlayerGoodwill;
+                string relationDesc = goodwill < -80 ? "bitter enemies" : 
+                                      goodwill < -40 ? "hostile" : 
+                                      goodwill < 0 ? "unfriendly" : "neutral";
+                sb.AppendLine("- Faction relations: " + relationDesc + " (goodwill: " + goodwill + ")");
+            }
+            sb.AppendLine();
+            
+            // World context
+            AppendWorldContext(sb);
+            sb.AppendLine();
+            
+            // Conversation history
+            if (conversationHistory.Length > 0)
+            {
+                sb.AppendLine("[Conversation so far]");
+                sb.AppendLine(conversationHistory.ToString());
+                sb.AppendLine();
+            }
+            
+            // Selected choice
+            if (!string.IsNullOrEmpty(selectedChoice))
+            {
+                sb.AppendLine("[" + initiator.LabelShort + " says: \"" + selectedChoice + "\"]");
+                sb.AppendLine();
+            }
+            
+            // Instructions for raid negotiation
+            sb.AppendLine("Continue the negotiation. Write what " + initiator.LabelShort + " says, then " + target.LabelShort + "'s response.");
+            sb.AppendLine();
+            sb.AppendLine("Possible outcomes:");
+            sb.AppendLine("- CRITICAL_SUCCESS: Raiders agree to leave peacefully without taking anything");
+            sb.AppendLine("- POSITIVE: Raiders agree to leave, but demand to take some valuables first");
+            sb.AppendLine("- NEUTRAL: No agreement, raiders remain hostile but haven't attacked yet");
+            sb.AppendLine("- NEGATIVE: Negotiation fails disastrously, raiders attack immediately");
+            sb.AppendLine();
+            sb.AppendLine("If the conversation has reached a conclusion, provide the outcome.");
+            sb.AppendLine("Otherwise, provide exactly 3 new dialogue choices for " + initiator.LabelShort + ".");
+            sb.AppendLine();
+            sb.AppendLine("FORMAT:");
+            sb.AppendLine(initiator.LabelShort + ": dialogue");
+            sb.AppendLine(target.LabelShort + ": response");
+            sb.AppendLine();
+            sb.AppendLine("CHOICES:");
+            sb.AppendLine("1. action/statement");
+            sb.AppendLine("2. action/statement");
+            sb.AppendLine("3. action/statement");
+            sb.AppendLine("END_CHOICES");
+            sb.AppendLine();
+            sb.AppendLine("OUTCOME: CRITICAL_SUCCESS | POSITIVE | NEUTRAL | NEGATIVE");
+            
+            return sb.ToString();
+        }
+        
         private async Task<string> GetLLMResponse(string prompt)
         {
             // Use existing API client infrastructure
@@ -323,8 +491,8 @@ namespace SocialInteractions
         {
             SLog.Message("[Negotiation] Received response:\n" + response.Substring(0, Math.Min(500, response.Length)) + "...");
             
-            // Check for outcome
-            var outcomeMatch = Regex.Match(response, @"OUTCOME:\s*(POSITIVE|NEUTRAL|NEGATIVE)", RegexOptions.IgnoreCase);
+            // Check for outcome - support CRITICAL_SUCCESS for raids
+            var outcomeMatch = Regex.Match(response, @"OUTCOME:\s*(CRITICAL_SUCCESS|POSITIVE|NEUTRAL|NEGATIVE)", RegexOptions.IgnoreCase);
             if (outcomeMatch.Success)
             {
                 string outcomeStr = outcomeMatch.Groups[1].Value.ToUpper();
@@ -336,6 +504,10 @@ namespace SocialInteractions
                 else if (outcomeStr == "NEGATIVE")
                 {
                     outcome = NegotiationOutcome.Negative;
+                }
+                else if (outcomeStr == "CRITICAL_SUCCESS")
+                {
+                    outcome = NegotiationOutcome.CriticalSuccess;
                 }
                 else
                 {
@@ -364,7 +536,7 @@ namespace SocialInteractions
                     MessageTypeDefOf.PositiveEvent.sound.PlayOneShotOnCamera(null);
                     
                     string colorTag = "<color=#44FF44>";
-                    string statusMsg = "Negotiation Successful!";
+                    string statusMsg = (outcome == NegotiationOutcome.CriticalSuccess) ? "Negotiation Critical Success!" : "Negotiation Successful!";
                     
                     dialog.AddConversationEntry("System", colorTag + statusMsg + "</color> You may continue chatting.", false);
                     
@@ -573,8 +745,23 @@ namespace SocialInteractions
             // Remove hediff
             RemoveNegotiatingHediff();
             
-            // Apply outcome (mood/xp)
-            ApplyOutcome(outcome);
+            // Apply outcome - check for raid context first
+            if (raidContext != null)
+            {
+                ApplyRaidOutcome(outcome);
+            }
+            else if (isTradeContext)
+            {
+                ApplyTradeOutcome(outcome);
+            }
+            else if (isVisitorContext)
+            {
+                ApplyVisitorOutcome(outcome);
+            }
+            else
+            {
+                ApplyOutcome(outcome);
+            }
             
             // Set cooldown
             SetCooldown();
@@ -639,10 +826,16 @@ namespace SocialInteractions
             switch (outcome)
             {
                 case NegotiationOutcome.Positive:
+                case NegotiationOutcome.CriticalSuccess:
                     if (SI_ThoughtDefOf.SI_NegotiationPositive != null)
                     {
                         initiator.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.SI_NegotiationPositive);
                         SLog.Message("[Negotiation] Applied positive thought to " + initiator.LabelShort);
+                    }
+                    if (outcome == NegotiationOutcome.CriticalSuccess)
+                    {
+                        // Maybe add a stronger thought? For now reusing Positive.
+                        // We could add SI_NegotiationCriticalSuccess later.
                     }
                     break;
                 case NegotiationOutcome.Negative:
@@ -661,12 +854,230 @@ namespace SocialInteractions
             SLog.Message("[Negotiation] Would set cooldown for " + initiator.LabelShort);
         }
         
-
+        /// <summary>
+        /// Apply raid-specific outcome.
+        /// </summary>
+        private void ApplyRaidOutcome(NegotiationOutcome outcome)
+        {
+            if (raidContext == null) return;
+            
+            // Map NegotiationOutcome to NegotiatedRaidOutcome
+            NegotiatedRaidOutcome raidOutcome;
+            switch (outcome)
+            {
+                case NegotiationOutcome.CriticalSuccess:
+                    raidOutcome = NegotiatedRaidOutcome.CriticalSuccess;
+                    break;
+                case NegotiationOutcome.Positive:
+                    raidOutcome = NegotiatedRaidOutcome.Positive;
+                    break;
+                case NegotiationOutcome.Negative:
+                    raidOutcome = NegotiatedRaidOutcome.Failure;
+                    break;
+                default:
+                    raidOutcome = NegotiatedRaidOutcome.Neutral;
+                    break;
+            }
+            
+            // Apply the raid outcome
+            RaidOutcomeUtility.ApplyRaidOutcome(raidContext, raidOutcome);
+            
+            // Clear the raid context
+            RaidNegotiationContext.ClearActiveRaid(initiator);
+        }
+        
+        /// <summary>
+        /// Build a trade-specific negotiation prompt.
+        /// </summary>
+        private string BuildTradePrompt(string selectedChoice)
+        {
+            StringBuilder sb = new StringBuilder();
+            
+            // System context for trade negotiation
+            sb.AppendLine("You are writing a dialogue between a colonist and a traveling merchant in a colony survival game.");
+            sb.AppendLine("The colonist is attempting to haggle or build rapport to get better prices or find rare goods.");
+            sb.AppendLine();
+            
+            // Negotiator context
+            var pawn1Data = SocialInteractions.ExtractPawnData(initiator, "pawn1", target);
+            sb.AppendLine("[Negotiator - " + initiator.LabelShort + "]");
+            AppendPawnContext(sb, pawn1Data, "pawn1", initiator);
+            sb.AppendLine();
+            
+            // Merchant context
+            var pawn2Data = SocialInteractions.ExtractPawnData(target, "pawn2", initiator);
+            sb.AppendLine("[Merchant - " + target.LabelShort + "]");
+            AppendPawnContext(sb, pawn2Data, "pawn2", target);
+            if (target.TraderKind != null)
+            {
+                sb.AppendLine("- Merchant Type: " + target.TraderKind.label);
+            }
+            sb.AppendLine();
+            
+            // World context
+            AppendWorldContext(sb);
+            sb.AppendLine();
+            
+            // Conversation history
+            if (conversationHistory.Length > 0)
+            {
+                sb.AppendLine("[Conversation so far]");
+                sb.AppendLine(conversationHistory.ToString());
+                sb.AppendLine();
+            }
+            
+            // Selected choice
+            if (!string.IsNullOrEmpty(selectedChoice))
+            {
+                sb.AppendLine("[" + initiator.LabelShort + " chooses: \"" + selectedChoice + "\"]");
+                sb.AppendLine();
+            }
+            
+            // Instructions
+            sb.AppendLine("Continue the dialogue. Write what " + initiator.LabelShort + " says, then " + target.LabelShort + "'s response.");
+            sb.AppendLine("If the merchant is impressed, provide a POSITIVE outcome.");
+            sb.AppendLine("Otherwise, provide a NEUTRAL or NEGATIVE outcome.");
+            sb.AppendLine();
+            sb.AppendLine("FORMAT:");
+            sb.AppendLine(initiator.LabelShort + ": dialogue");
+            sb.AppendLine(target.LabelShort + ": response");
+            sb.AppendLine();
+            sb.AppendLine("OUTCOME: POSITIVE | NEUTRAL | NEGATIVE | NONE");
+            sb.AppendLine();
+            sb.AppendLine("CHOICES:");
+            sb.AppendLine("1. action/statement");
+            sb.AppendLine("2. action/statement");
+            sb.AppendLine("3. action/statement");
+            sb.AppendLine("END_CHOICES");
+            
+            return sb.ToString();
+        }
+        
+        /// <summary>
+        /// Apply trade-specific outcome.
+        /// </summary>
+        private void ApplyTradeOutcome(NegotiationOutcome outcome)
+        {
+            switch (outcome)
+            {
+                case NegotiationOutcome.Positive:
+                case NegotiationOutcome.CriticalSuccess:
+                    if (initiator.mindState == null || initiator.mindState.inspirationHandler == null) break;
+                    
+                    // Grant Trade Inspiration
+                    if (InspirationDefOf.Inspired_Trade != null)
+                    {
+                        if (initiator.mindState.inspirationHandler.TryStartInspiration(InspirationDefOf.Inspired_Trade))
+                        {
+                            Messages.Message(initiator.LabelShort + " has gained a terminal case of trading inspiration from the discussion!", initiator, MessageTypeDefOf.PositiveEvent);
+                            SLog.Message("[Negotiation] Applied trade inspiration to " + initiator.LabelShort);
+                        }
+                    }
+                    break;
+                    
+                default:
+                    ApplyOutcome(outcome); // Fallback to mood
+                    break;
+            }
+        }
+        /// <summary>
+        /// Build a visitor-specific negotiation prompt.
+        /// </summary>
+        private string BuildVisitorPrompt(string selectedChoice)
+        {
+            StringBuilder sb = new StringBuilder();
+            
+            // System context for visitor negotiation
+            sb.AppendLine("You are writing a dialogue between a colonist and a visitor/refugee/traveler in a colony survival game.");
+            sb.AppendLine("The colonist is attempting to build rapport, share news, or make a good impression on behalf of the colony.");
+            sb.AppendLine();
+            
+            // Negotiator context
+            var pawn1Data = SocialInteractions.ExtractPawnData(initiator, "pawn1", target);
+            sb.AppendLine("[Negotiator - " + initiator.LabelShort + "]");
+            AppendPawnContext(sb, pawn1Data, "pawn1", initiator);
+            sb.AppendLine();
+            
+            // Visitor context
+            var pawn2Data = SocialInteractions.ExtractPawnData(target, "pawn2", initiator);
+            sb.AppendLine("[Visitor - " + target.LabelShort + "]");
+            AppendPawnContext(sb, pawn2Data, "pawn2", target);
+            
+            Lord lord = target.GetLord();
+            if (lord != null && lord.LordJob != null)
+            {
+                sb.AppendLine("- Activity: " + lord.LordJob.GetType().Name.Replace("LordJob_", ""));
+            }
+            sb.AppendLine();
+            
+            // World context
+            AppendWorldContext(sb);
+            sb.AppendLine();
+            
+            // Conversation history
+            if (conversationHistory.Length > 0)
+            {
+                sb.AppendLine("[Conversation so far]");
+                sb.AppendLine(conversationHistory.ToString());
+                sb.AppendLine();
+            }
+            
+            // Selected choice
+            if (!string.IsNullOrEmpty(selectedChoice))
+            {
+                sb.AppendLine("[" + initiator.LabelShort + " chooses: \"" + selectedChoice + "\"]");
+                sb.AppendLine();
+            }
+            
+            // Instructions
+            sb.AppendLine("Continue the dialogue. Write what " + initiator.LabelShort + " says, then " + target.LabelShort + "'s response.");
+            sb.AppendLine("If the visitor is impressed or grateful, provide a POSITIVE outcome.");
+            sb.AppendLine("Otherwise, provide a NEUTRAL or NEGATIVE outcome.");
+            sb.AppendLine();
+            sb.AppendLine("FORMAT:");
+            sb.AppendLine(initiator.LabelShort + ": dialogue");
+            sb.AppendLine(target.LabelShort + ": response");
+            sb.AppendLine();
+            sb.AppendLine("OUTCOME: POSITIVE | NEUTRAL | NEGATIVE | NONE");
+            sb.AppendLine();
+            sb.AppendLine("CHOICES:");
+            sb.AppendLine("1. action/statement");
+            sb.AppendLine("2. action/statement");
+            sb.AppendLine("3. action/statement");
+            sb.AppendLine("END_CHOICES");
+            
+            return sb.ToString();
+        }
+        
+        /// <summary>
+        /// Apply visitor-specific outcome.
+        /// </summary>
+        private void ApplyVisitorOutcome(NegotiationOutcome outcome)
+        {
+            switch (outcome)
+            {
+                case NegotiationOutcome.Positive:
+                case NegotiationOutcome.CriticalSuccess:
+                    if (target.Faction != null && !target.Faction.IsPlayer && !target.Faction.HostileTo(Faction.OfPlayer))
+                    {
+                        int amount = (outcome == NegotiationOutcome.CriticalSuccess) ? 12 : 6;
+                        target.Faction.TryAffectGoodwillWith(Faction.OfPlayer, amount, true, true, null);
+                        Messages.Message("Negotiation Successful! Improved relations with " + target.Faction.Name, target, MessageTypeDefOf.PositiveEvent);
+                    }
+                    ApplyOutcome(outcome); // Fallback to mood
+                    break;
+                    
+                default:
+                    ApplyOutcome(outcome); // Fallback to mood
+                    break;
+            }
+        }
     }
     
     public enum NegotiationOutcome
     {
         Positive,
+        CriticalSuccess,
         Neutral,
         Negative
     }
