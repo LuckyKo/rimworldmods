@@ -644,7 +644,8 @@ namespace SocialInteractions
                         conversationId = SpeechBubbleManager.StartConversation();
                     }
                     string fallbackText = string.Format("{0} negotiates with {1}.", speakerPawn.Name.ToStringShort, recipientPawn.Name.ToStringShort);
-                    ChatLogManager.AddMessage(new ChatMessage(speakerPawn, recipientPawn, text, MessageType.LLMChat, conversationId, Color.white, fallbackText, text));
+                    string loggedText = speaker + ": " + text;
+                    ChatLogManager.AddMessage(new ChatMessage(speakerPawn, recipientPawn, loggedText, MessageType.LLMChat, conversationId, Color.white, fallbackText, loggedText));
                     
                     SLog.Message("[Negotiation] Added dialogue: " + speaker + ": " + text.Substring(0, Math.Min(50, text.Length)));
                 }
@@ -854,6 +855,13 @@ namespace SocialInteractions
                 
                 // Initiate delayed close
                 dialog.InitiateDelayedClose(totalDuration);
+            }
+
+            // End the conversation to clear the LLM busy state
+            if (conversationId != -1)
+            {
+                SLog.Message("[Negotiation] Ending conversation ID: " + conversationId);
+                SpeechBubbleManager.EndConversation(conversationId);
             }
         }
         

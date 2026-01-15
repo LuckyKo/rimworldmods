@@ -103,6 +103,15 @@ namespace SocialInteractions
         {
             SLog.Message("[SocialInteractions] JobDriver_CaughtCheating: MakeNewToils called.");
             
+            // Add a finish action to ensure the conversation is ended regardless of how the job ends
+            this.AddFinishAction((condition) => {
+                if (this.conversationId != -1) {
+                    SpeechBubbleManager.EndConversation(this.conversationId);
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Ended conversation ID: {0} via finish action.", this.conversationId));
+                    this.conversationId = -1;
+                }
+            });
+
             // Add null checks
             if (pawn == null || job == null || job.targetA.Thing == null)
             {
@@ -153,7 +162,7 @@ namespace SocialInteractions
                 AddNakedHediff(pawn);
                 
                 // Trigger the 3p LLM interaction
-                int threewayConversationId = SocialInteractions.HandleThreewayLovinInteraction(pawn, cheater, partner);
+                this.conversationId = SocialInteractions.HandleThreewayLovinInteraction(pawn, cheater, partner);
                 
                 // Custom wait toil to wait for the 3p conversation to finish
                 Toil threewayWaitToil = new Toil();
@@ -207,9 +216,9 @@ namespace SocialInteractions
                     try
                     {
                         // Check if this conversation is still active or has pending speech bubbles
-                        if (threewayConversationId != -1)
+                        if (this.conversationId != -1)
                         {
-                            isConversationFinished = !SpeechBubbleManager.IsConversationActive(threewayConversationId) && !SpeechBubbleManager.HasPendingSpeechBubbles(threewayConversationId);
+                            isConversationFinished = !SpeechBubbleManager.IsConversationActive(this.conversationId) && !SpeechBubbleManager.HasPendingSpeechBubbles(this.conversationId);
                         }
                     }
                     catch (Exception ex)
@@ -241,10 +250,11 @@ namespace SocialInteractions
                         RemoveNakedHediff(pawn);
                         
                         // End the conversation before ending the job
-                        if (threewayConversationId != -1)
+                        if (this.conversationId != -1)
                         {
-                            SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Ending 3p conversation ID: {0}", threewayConversationId));
-                            SpeechBubbleManager.EndConversation(threewayConversationId);
+                            SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Ending 3p conversation ID: {0}", this.conversationId));
+                            SpeechBubbleManager.EndConversation(this.conversationId);
+                            this.conversationId = -1;
                         }
                         
                         // End the job
@@ -400,10 +410,11 @@ namespace SocialInteractions
                             // A social fight was successfully started
                             SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Pawn {0} is in social fight, ending job to let mental state take over.", pawn.LabelShort));
                             // End the conversation before ending the job
-                            if (conversationId != -1)
+                            if (this.conversationId != -1)
                             {
-                                SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Ending conversation ID: {0}", conversationId));
-                                SpeechBubbleManager.EndConversation(conversationId);
+                                SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Ending conversation ID: {0}", this.conversationId));
+                                SpeechBubbleManager.EndConversation(this.conversationId);
+                                this.conversationId = -1;
                             }
                             // End the job and let the mental state handle the fighting
                             pawn.jobs.EndCurrentJob(JobCondition.Succeeded);
@@ -413,10 +424,11 @@ namespace SocialInteractions
                             // If no fight was started, end the job
                             SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: No fight started for pawn {0}, ending job.", pawn.LabelShort));
                             // End the conversation before ending the job
-                            if (conversationId != -1)
+                            if (this.conversationId != -1)
                             {
-                                SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Ending conversation ID: {0}", conversationId));
-                                SpeechBubbleManager.EndConversation(conversationId);
+                                SLog.Message(string.Format("[SocialInteractions] JobDriver_CaughtCheating: Ending conversation ID: {0}", this.conversationId));
+                                SpeechBubbleManager.EndConversation(this.conversationId);
+                                this.conversationId = -1;
                             }
                             pawn.jobs.EndCurrentJob(JobCondition.Succeeded);
                         }

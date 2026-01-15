@@ -223,6 +223,20 @@ namespace SocialInteractions
             return currentConversationId;
         }
 
+        /// <summary>
+        /// Increments the conversation count without marking it as active.
+        /// Useful for background dialogue logging where we want a unique ID but 
+        /// don't want to block the LLM busy state until speech bubbles are actually scheduled.
+        /// </summary>
+        public static int GetNextConversationId()
+        {
+            lock (queueLock)
+            {
+                currentConversationId++;
+                return currentConversationId;
+            }
+        }
+
         public static void EndConversation(int conversationId)
         {
             lock (queueLock)
@@ -258,13 +272,17 @@ namespace SocialInteractions
                 // Clear all pending speech bubbles
                 speechBubbleQueue.Clear();
                 
+                // Also clear active conversations and pending jobs to reset the LLM state
+                activeConversations.Clear();
+                pendingJobs.Clear();
+
                 // Do NOT reset nextQueuedBubbleDisplayTime. This ensures that
                 // the next message (from the high-priority interaction) will
                 // wait for the current message's display time to finish naturally
                 // before appearing, preventing visual overlap.
                 // nextQueuedBubbleDisplayTime = Time.time; 
                 
-                SLog.Message("[SocialInteractions] Speech bubble queue cleared. Timer unchanged to respect current display.");
+                SLog.Message("[SocialInteractions] Speech bubble queue and active conversations cleared. Timer unchanged to respect current display.");
             }
         }
         // --- End For Queue Management ---

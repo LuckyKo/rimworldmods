@@ -598,7 +598,7 @@ namespace SocialInteractions
             }
             else if (pawn.IsColonist)
             {
-                title = "colonist";
+                title = (pawn.story != null && !pawn.story.TitleShort.NullOrEmpty()) ? pawn.story.TitleShort : "colonist";
             }
             else if (pawn.IsPrisonerOfColony)
             {
@@ -610,7 +610,7 @@ namespace SocialInteractions
             }
             else if (pawn.guest != null && pawn.guest.GuestStatus == GuestStatus.Guest)
             {
-                title = "guest";
+                title = (pawn.story != null && !pawn.story.TitleShort.NullOrEmpty()) ? pawn.story.TitleShort : "guest";
             }
             
             // Append royalty title if the pawn has one

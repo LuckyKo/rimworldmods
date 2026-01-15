@@ -40,6 +40,15 @@ namespace SocialInteractions
         {
             SLog.Message("[SocialInteractions] JobDriver_HaveDeepTalk.MakeNewToils called.");
             
+            // Add a finish action to ensure the conversation is ended regardless of how the job ends
+            this.AddFinishAction((condition) => {
+                if (this.conversationId != -1) {
+                    SpeechBubbleManager.EndConversation(this.conversationId);
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_HaveDeepTalk: Ended conversation ID: {0} via finish action.", this.conversationId));
+                    this.conversationId = -1;
+                }
+            });
+
             Pawn recipient = (Pawn)job.GetTarget(TargetIndex.A).Thing;
             this.FailOnDespawnedOrNull(TargetIndex.A);
             this.FailOn(() => recipient == null || !recipient.Spawned || !recipient.Awake());
@@ -199,11 +208,6 @@ namespace SocialInteractions
             displayMessagesToil.initAction = () => {
                 SLog.Message(string.Format("[SocialInteractions] JobDriver_HaveDeepTalk: Displaying messages. Message count: {0}", messages.Count));
                 
-                if (messages.Any())
-                {
-                    conversationId = SpeechBubbleManager.StartConversation();
-                }
-
                 Pawn recipientForDisplay = (Pawn)job.GetTarget(TargetIndex.A).Thing;
                 if (recipientForDisplay == null) return;
 
@@ -279,13 +283,6 @@ namespace SocialInteractions
                 }
             };
             waitForConversationToil.defaultCompleteMode = ToilCompleteMode.Never;
-            waitForConversationToil.AddFinishAction(() => {
-                // End the conversation that was started for this interaction
-                if (this.conversationId != -1) {
-                    SpeechBubbleManager.EndConversation(this.conversationId);
-                    SLog.Message(string.Format("[SocialInteractions] JobDriver_HaveDeepTalk: Ended conversation ID: {0}", this.conversationId));
-                }
-            });
             yield return waitForConversationToil;
         }
     }
