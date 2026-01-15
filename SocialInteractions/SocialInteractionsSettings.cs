@@ -146,6 +146,7 @@ Current event: [pawn1] [subject]
         public bool enableIdeologyConversionInteractions = true; // Whether ideology conversion interactions are enabled
         public bool enableKindWordsInteractions = true; // Whether kind words interactions are enabled
         public bool enableRaidNegotiation = true; // Whether negotiation with enemy raids is enabled
+        public float negotiationCooldownHours = 24.0f; // New setting for negotiation cooldown
         
         // String settings
         public string llmStoppingStrings = @"<end>
@@ -289,6 +290,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref enableIdeologyConversionInteractions, "enableIdeologyConversionInteractions", true);
             Scribe_Values.Look(ref enableKindWordsInteractions, "enableKindWordsInteractions", true);
             Scribe_Values.Look(ref enableRaidNegotiation, "enableRaidNegotiation", true);
+            Scribe_Values.Look(ref negotiationCooldownHours, "negotiationCooldownHours", 24.0f);
             Scribe_Values.Look(ref enableDrama, "enableDrama", false);
             Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
             Scribe_Values.Look(ref preventSpam, "preventSpam", false);
@@ -517,6 +519,10 @@ Current event: [pawn1] [subject]
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("SocialInteractions_EnableInteractiveNegotiation".Translate(), ref SocialInteractions.Settings.enableInteractiveNegotiation, "SocialInteractions_EnableInteractiveNegotiationDesc".Translate());
+
+            listingStandard.Gap();
+            listingStandard.Label(string.Format("SocialInteractions_NegotiationCooldownHours".Translate() + ": {0:F1} " + "SocialInteractions_Hours".Translate(), SocialInteractions.Settings.negotiationCooldownHours));
+            SocialInteractions.Settings.negotiationCooldownHours = listingStandard.Slider(SocialInteractions.Settings.negotiationCooldownHours, 0f, 168f);
 
             // Badmouthing settings
             listingStandard.Gap();

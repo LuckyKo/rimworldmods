@@ -29,11 +29,14 @@ namespace SocialInteractions
         private const int MaxTurns = 10; // Safety limit
         
         private bool isActive = false;
+        private bool outcomeApplied = false; // Tracks if FinalizeNegotiation has run
+        private NegotiationOutcome? lastNotifiedOutcome = null; // Prevent duplicate messages
         private NegotiationOutcome? pendingOutcome = null;
         
         // Store last dialogue lines for final display
         private List<DialogueLine> lastDialogueLines = new List<DialogueLine>();
         private int conversationId = -1;
+        private bool waitingForLLM = false; // Add tracking here too
         
         // Raid negotiation context (null if not negotiating with a raid)
         private Lord raidContext = null;
@@ -87,6 +90,8 @@ namespace SocialInteractions
         public void StartNegotiation()
         {
             isActive = true;
+            outcomeApplied = false;
+            lastNotifiedOutcome = null;
             pendingOutcome = null;
             turnCount = 0;
             conversationHistory.Clear();
@@ -129,8 +134,16 @@ namespace SocialInteractions
         
         public void EndNegotiationEarly()
         {
-            SLog.Message("[Negotiation] Ended early by user");
-            EndNegotiation();
+            SLog.Message("[Negotiation] EndNegotiationEarly called by user. Waiting: " + waitingForLLM);
+            if (!waitingForLLM)
+            {
+                EndNegotiation();
+            }
+            else
+            {
+                SLog.Message("[Negotiation] User closed window while waiting for LLM. Background task will finalize later.");
+                isActive = false; // Ensure background task knows window is closed
+            }
         }
         
         private void SendLLMRequest(string selectedChoice)
@@ -150,19 +163,20 @@ namespace SocialInteractions
             SLog.Message("[Negotiation] Sending prompt (turn " + turnCount + "):\n" + prompt.Substring(0, Math.Min(500, prompt.Length)) + "...");
             
             // Send async LLM request
+            waitingForLLM = true;
             Task.Run(async () =>
             {
                 try
                 {
                     string response = await GetLLMResponse(prompt);
                     
-                    // Process on main thread using Coroutine to ensure full thread safety (MapPawns access)
+                    // Process on main thread using Coroutine
                     ExecuteOnMainThread(() =>
                     {
-                        if (isActive)
-                        {
-                            ProcessLLMResponse(response);
-                        }
+                        waitingForLLM = false;
+                        // Always process the response to ensure outcomes are applied, 
+                        // even if the dialog was closed (isActive == false)
+                        ProcessLLMResponse(response);
                     });
                 }
                 catch (Exception ex)
@@ -170,6 +184,7 @@ namespace SocialInteractions
                     SLog.Error("[Negotiation] LLM error: " + ex.Message);
                     ExecuteOnMainThread(() =>
                     {
+                        waitingForLLM = false;
                         if (isActive)
                         {
                             HandleLLMFailure();
@@ -208,6 +223,9 @@ namespace SocialInteractions
             }
         }
         
+        /// <summary>
+        /// Build a negotiation prompt.
+        /// </summary>
         private string BuildPrompt(string selectedChoice)
         {
             StringBuilder sb = new StringBuilder();
@@ -226,7 +244,7 @@ namespace SocialInteractions
                 return BuildVisitorPrompt(selectedChoice);
             }
             
-            sb.AppendLine("You are writing a negotiation dialogue between two colonists in a colony survival game.");
+            sb.AppendLine("You are writing a negotiation dialogue between two pawns in the colony survival game RimWorld.");
             sb.AppendLine();
             
             // Pawn 1 context
@@ -369,6 +387,11 @@ namespace SocialInteractions
             AppendPawnContext(sb, pawn2Data, "pawn2", target);
             sb.AppendLine();
             
+            // Relationship
+            sb.AppendLine("[Relationship]");
+            sb.AppendLine(SocialInteractions.GetRelationship(initiator, target));
+            sb.AppendLine();
+            
             // Raid context
             sb.AppendLine("[Raid Context]");
             sb.AppendLine("- Faction: " + (raidContext.faction != null ? raidContext.faction.Name : "Unknown"));
@@ -407,12 +430,13 @@ namespace SocialInteractions
             sb.AppendLine();
             sb.AppendLine("Possible outcomes:");
             sb.AppendLine("- CRITICAL_SUCCESS: Raiders agree to leave peacefully without taking anything");
-            sb.AppendLine("- POSITIVE: Raiders agree to leave, but demand to take some valuables first");
+            sb.AppendLine("- POSITIVE: Raiders agree to not harm the colonists, but will loiter for a while and may take some valuables");
             sb.AppendLine("- NEUTRAL: No agreement, raiders remain hostile but haven't attacked yet");
             sb.AppendLine("- NEGATIVE: Negotiation fails disastrously, raiders attack immediately");
             sb.AppendLine();
-            sb.AppendLine("If the conversation has reached a conclusion, provide the outcome.");
+            sb.AppendLine("If the conversation has reached a conclusion, provide the final outcome.");
             sb.AppendLine("Otherwise, provide exactly 3 new dialogue choices for " + initiator.LabelShort + ".");
+            sb.AppendLine("Respect the following format for the response to be parsed properly.");
             sb.AppendLine();
             sb.AppendLine("FORMAT:");
             sb.AppendLine(initiator.LabelShort + ": dialogue");
@@ -489,95 +513,82 @@ namespace SocialInteractions
         
         private void ProcessLLMResponse(string response)
         {
-            SLog.Message("[Negotiation] Received response:\n" + response.Substring(0, Math.Min(500, response.Length)) + "...");
+            SLog.Message("[Negotiation] Received response (" + (isActive ? "Active" : "Background") + "):\n" + response.Substring(0, Math.Min(500, response.Length)) + "...");
             
-            // Check for outcome - support CRITICAL_SUCCESS for raids
+            // Check for outcome
             var outcomeMatch = Regex.Match(response, @"OUTCOME:\s*(CRITICAL_SUCCESS|POSITIVE|NEUTRAL|NEGATIVE)", RegexOptions.IgnoreCase);
-            if (outcomeMatch.Success)
+            bool hasOutcome = outcomeMatch.Success;
+            NegotiationOutcome outcome = NegotiationOutcome.Neutral;
+
+            if (hasOutcome)
             {
                 string outcomeStr = outcomeMatch.Groups[1].Value.ToUpper();
-                NegotiationOutcome outcome;
-                if (outcomeStr == "POSITIVE")
-                {
-                    outcome = NegotiationOutcome.Positive;
-                }
-                else if (outcomeStr == "NEGATIVE")
-                {
-                    outcome = NegotiationOutcome.Negative;
-                }
-                else if (outcomeStr == "CRITICAL_SUCCESS")
-                {
-                    outcome = NegotiationOutcome.CriticalSuccess;
-                }
-                else
-                {
-                    outcome = NegotiationOutcome.Neutral;
-                }
+                if (outcomeStr == "POSITIVE") outcome = NegotiationOutcome.Positive;
+                else if (outcomeStr == "NEGATIVE") outcome = NegotiationOutcome.Negative;
+                else if (outcomeStr == "CRITICAL_SUCCESS") outcome = NegotiationOutcome.CriticalSuccess;
+                else outcome = NegotiationOutcome.Neutral;
                 
-                // Extract any final dialogue before outcome processing
+                // Extract dialogue
                 ExtractAndDisplayDialogue(response);
+
+                // Notify immediately for non-neutral outcomes
+                SendOutcomeNotification(outcome);
 
                 if (outcome == NegotiationOutcome.Negative)
                 {
-                    // Negative Outcome: Fail and Close
-                    // Play negative sound
                     MessageTypeDefOf.NegativeEvent.sound.PlayOneShotOnCamera(null);
                     
-                    dialog.AddConversationEntry("System", "<color=#FF4444>Negotiation Failed.</color>", false);
-                    
-                    // Logic: Negative always overrides pending.
+                    if (isActive)
+                    {
+                        dialog.AddConversationEntry("System", "<color=#FF4444>Negotiation Failed.</color>", false);
+                        currentChoices.Clear();
+                        dialog.SetChoices(currentChoices);
+                    }
+
                     EndNegotiation(outcome);
                     return;
                 }
-                else if (outcome == NegotiationOutcome.Positive)
+                else if (outcome == NegotiationOutcome.Positive || outcome == NegotiationOutcome.CriticalSuccess)
                 {
-                    // Positive Outcome: Success and Keep Open
-                    // Play positive sound
                     MessageTypeDefOf.PositiveEvent.sound.PlayOneShotOnCamera(null);
                     
-                    string colorTag = "<color=#44FF44>";
-                    string statusMsg = (outcome == NegotiationOutcome.CriticalSuccess) ? "Negotiation Critical Success!" : "Negotiation Successful!";
+                    if (isActive)
+                    {
+                        string colorTag = "<color=#44FF44>";
+                        string statusMsg = (outcome == NegotiationOutcome.CriticalSuccess) ? "Negotiation Critical Success!" : "Negotiation Successful!";
+                        dialog.AddConversationEntry("System", colorTag + statusMsg + "</color> You may continue chatting.", false);
+                    }
                     
-                    dialog.AddConversationEntry("System", colorTag + statusMsg + "</color> You may continue chatting.", false);
-                    
-                    // Store this outcome as pending. If we continue and fail later, this will be overridden.
-                    // If we continue and close, this will be applied.
                     pendingOutcome = outcome;
-                    
-                    // Do NOT close the window (EndNegotiation).
-                    // Fall through to ExtractChoices to generate options for continuing
+                    SendOutcomeNotification(outcome);
                 }
             }
             
-            // Extract dialogue (if not parsed above)
-            // Since ExtractAndDisplayDialogue checks for duplicates or we already called it inside, 
-            // we should technically avoid calling it twice. 
-            // However, ExtractAndDisplayDialogue uses a regex that WON'T match if we already consumed the response?
-            // Actually, Regex.Matches works on the string. It will match again.
-            // We must skip this if we already did it in the outcome block.
-            // But wait, the outcome block calls ExtractAndDisplayDialogue(response).
-            // So we should put this call inside an 'else' or return early.
-            // But we can't return early for Positive case because we need ExtractChoices.
-            // Simplified: Removing the call below and putting it BEFORE the outcome check is safest.
-            // But outcome check logic relies on "Extract any final dialogue before outcome".
-            // Let's rely on the fact that if outcomeMatch.Success is false, we need to call it.
-            // If it is true, we called it inside.
-            // So:
-            if (!outcomeMatch.Success)
+            if (!hasOutcome)
             {
                 ExtractAndDisplayDialogue(response);
             }
             
-            // Extract choices and store them
-            currentChoices = ExtractChoices(response);
-            if (currentChoices.Count == 0)
+            // If the window is still active, update choices
+            if (isActive)
             {
-                SLog.Warning("[Negotiation] No choices parsed, providing defaults");
-                currentChoices = GetDefaultChoices();
+                currentChoices = ExtractChoices(response);
+                if (currentChoices.Count == 0)
+                {
+                    SLog.Warning("[Negotiation] No choices parsed, providing defaults");
+                    currentChoices = GetDefaultChoices();
+                }
+                
+                SLog.Message("[Negotiation] Setting " + currentChoices.Count + " choices");
+                dialog.SetChoices(currentChoices);
             }
-            
-            SLog.Message("[Negotiation] Setting " + currentChoices.Count + " choices");
-            dialog.SetChoices(currentChoices);
+            else if (!isActive)
+            {
+                // If window was closed (isActive == false), ALWAYS finalize
+                // Pass the current turn outcome if one was found, otherwise EndNegotiation 
+                // will prefer pendingOutcome or Neutral.
+                EndNegotiation(hasOutcome ? (NegotiationOutcome?)outcome : null);
+            }
         }
         
         private void ExtractAndDisplayDialogue(string response)
@@ -616,7 +627,10 @@ namespace SocialInteractions
                     Pawn speakerPawn = isInitiator ? initiator : target;
                     Pawn recipientPawn = isInitiator ? target : initiator;
                     
-                    dialog.AddConversationEntry(speaker, text, isInitiator);
+                    if (isActive)
+                    {
+                        dialog.AddConversationEntry(speaker, text, isInitiator);
+                    }
                     conversationHistory.AppendLine(speaker + ": " + text);
                     
                     // Store for final display AND for TTS batching
@@ -688,111 +702,159 @@ namespace SocialInteractions
             };
         }
         
-        private List<string> GetCurrentChoices()
+        public static NegotiationOutcome RollSkillBasedOutcome(Pawn initiator)
         {
-            return currentChoices;
+            if (initiator.skills == null) return NegotiationOutcome.Neutral;
+
+            float socialLevel = initiator.skills.GetSkill(SkillDefOf.Social).Level;
+            float normalizedLevel = Mathf.Clamp01(socialLevel / 20f);
+
+            // Weights at Level 20: CriticalSuccess 5%, Positive 15%, Negative 5% (Baseline risk), Neutral 75%
+            // Weights at Level 0: CriticalSuccess 0%, Positive 0%, Negative 50%, Neutral 50%
+            float critChance = Mathf.Lerp(0f, 0.05f, normalizedLevel);
+            float posChance = Mathf.Lerp(0f, 0.15f, normalizedLevel);
+            float negChance = Mathf.Lerp(0.5f, 0.05f, normalizedLevel);
+
+            float roll = Rand.Value;
+
+            if (roll < critChance) return NegotiationOutcome.CriticalSuccess;
+            if (roll < critChance + posChance) return NegotiationOutcome.Positive;
+            if (roll > 1f - negChance) return NegotiationOutcome.Negative;
+            
+            return NegotiationOutcome.Neutral;
         }
-        
+
+        public static void ApplyUniversalOutcome(Pawn initiator, Pawn target, NegotiationOutcome outcome, Lord raidContext = null, bool isTradeContext = false, bool isVisitorContext = false)
+        {
+            // Apply generic mood/thought effects
+            ApplyMoodOutcome(initiator, outcome);
+
+            // Apply context-specific outcomes
+            if (raidContext != null) ApplyRaidOutcomeStatic(raidContext, initiator, outcome);
+            else if (isTradeContext) ApplyTradeOutcomeStatic(initiator, target, outcome);
+            else if (isVisitorContext) ApplyVisitorOutcomeStatic(target, outcome, initiator);
+
+            // Set cooldown
+            SetCooldownStatic(initiator, target, raidContext, isTradeContext);
+        }
+
         private void HandleLLMFailure()
         {
             SLog.Warning("[Negotiation] LLM failed, using skill-based fallback");
             
-            // Simple skill-based resolution
-            int socialSkill = initiator.skills.GetSkill(SkillDefOf.Social).Level;
-            float successChance = socialSkill / 20f; // 0% at 0 skill, 100% at 20 skill
+            NegotiationOutcome outcome = RollSkillBasedOutcome(initiator);
             
-            bool success = Rand.Value < successChance;
+            string description;
+            switch (outcome)
+            {
+                case NegotiationOutcome.CriticalSuccess:
+                    description = "The conversation was masterfully handled! An incredible breakthrough was achieved.";
+                    break;
+                case NegotiationOutcome.Positive:
+                    description = "The conversation concluded on a positive note, reaching a favorable agreement.";
+                    break;
+                case NegotiationOutcome.Negative:
+                    description = "The conversation went poorly and ended in a bitter disagreement.";
+                    break;
+                default:
+                    description = "The conversation concluded awkwardly without any real resolution.";
+                    break;
+            }
+
+            if (isActive)
+            {
+                dialog.AddConversationEntry("System", description, false);
+            }
             
-            dialog.AddConversationEntry("System", "The conversation concluded " + (success ? "positively" : "awkwardly") + ".", false);
-            
-            EndNegotiation(success ? NegotiationOutcome.Positive : NegotiationOutcome.Negative);
+            EndNegotiation(outcome);
         }
         
         private void EndNegotiation(NegotiationOutcome? outcomeOverride = null)
         {
-            // If explicit override (e.g. Negative), use it. Otherwise use pending, or default to Neutral.
-            NegotiationOutcome finalOutcome = outcomeOverride ?? pendingOutcome ?? NegotiationOutcome.Neutral;
+            // Determine final outcome, preferring explicit overrides or successful pending outcomes over Neutral
+            NegotiationOutcome finalOutcome = NegotiationOutcome.Neutral;
+            
+            if (outcomeOverride.HasValue && (outcomeOverride.Value != NegotiationOutcome.Neutral || !pendingOutcome.HasValue))
+            {
+                finalOutcome = outcomeOverride.Value;
+            }
+            else if (pendingOutcome.HasValue)
+            {
+                finalOutcome = pendingOutcome.Value;
+            }
+            
+            // Negative outcome always takes priority as it signifies a break in communication/faction hostility
+            if (outcomeOverride == NegotiationOutcome.Negative || pendingOutcome == NegotiationOutcome.Negative)
+            {
+                finalOutcome = NegotiationOutcome.Negative;
+            }
             
             SLog.Message("[Negotiation] EndNegotiation called. Override: " + outcomeOverride + ", Pending: " + pendingOutcome + " -> Final: " + finalOutcome);
             
             FinalizeNegotiation(finalOutcome);
             
-            // Close dialog
-            // Note: CloseDialog() triggers PreClose() -> Cleanup(). 
-            // We set isActive=false inside FinalizeNegotiation so Cleanup won't run again.
-            dialog.CloseDialog();
+            // Note: CloseDialog() is now called by Dialog_PawnNegotiation after the delay 
+            // set by InitiateDelayedClose inside FinalizeNegotiation.
         }
         
         public void Cleanup()
         {
-            // Called when window is closed manually (X button) or via CloseDialog()
+            // Called when window is closed
             if (isActive)
             {
-                SLog.Message("[Negotiation] Cleanup called while active (Manual Close). Pending: " + pendingOutcome);
-                // If closing manually, use pending outcome or Neutral
-                NegotiationOutcome finalOutcome = pendingOutcome ?? NegotiationOutcome.Neutral;
-                FinalizeNegotiation(finalOutcome);
+                SLog.Message("[Negotiation] Cleanup called (Manual Close). Pending: " + pendingOutcome);
+                isActive = false; // Stop UI updates
+                
+                // Immediately stop the "standing around" hediff so pawns are free
+                RemoveNegotiatingHediff();
+
+                // If NOT waiting for an LLM response, finalize with what we have
+                if (!waitingForLLM)
+                {
+                    EndNegotiation();
+                }
+                else
+                {
+                    SLog.Message("[Negotiation] Still waiting for LLM response, background task will finalize later.");
+                }
             }
         }
         
         private void FinalizeNegotiation(NegotiationOutcome outcome)
         {
-            if (!isActive) return;
-            isActive = false;
-            
-            SLog.Message("[Negotiation] Finalizing with outcome: " + outcome);
-            
-            // Remove hediff
-            RemoveNegotiatingHediff();
-            
-            // Apply outcome - check for raid context first
-            if (raidContext != null)
+            if (outcomeApplied)
             {
-                ApplyRaidOutcome(outcome);
+                SLog.Warning("[Negotiation] FinalizeNegotiation called but outcome was already applied. Ignored: " + outcome);
+                return;
             }
-            else if (isTradeContext)
-            {
-                ApplyTradeOutcome(outcome);
-            }
-            else if (isVisitorContext)
-            {
-                ApplyVisitorOutcome(outcome);
-            }
-            else
-            {
-                ApplyOutcome(outcome);
-            }
+            outcomeApplied = true;
             
-            // Set cooldown
-            SetCooldown();
+            // Set isActive to false if it wasn't already (e.g. if ending normally)
+            // But we might want it to stay true for the delayed close UI.
+            // Let's rely on Cleanup to set it to false for manual close.
             
-            // Show final dialogue lines as speech bubbles (last 2 lines)
-            // Use standard Enqueue to ensure sequential playback (not reverse/overlapping)
-            // Use the overload that DOES NOT log to ChatLog or trigger TTS (to avoid redundancy)
-            int startIndex = Math.Max(0, lastDialogueLines.Count - 2);
-            for (int i = startIndex; i < lastDialogueLines.Count; i++)
+            SLog.Message("[Negotiation] Finalizing with outcome: " + outcome + " (Initiator: " + initiator.LabelShort + ")");
+            
+            // Apply outcome
+            ApplyUniversalOutcome(initiator, target, outcome, raidContext, isTradeContext, isVisitorContext);
+
+            // Send global notification message
+            SendOutcomeNotification(outcome);
+            
+            if (isActive)
             {
-                DialogueLine line = lastDialogueLines[i];
+                // Calculate total reading time for the final messages shown in the dialog
+                float totalDuration = 0f;
+                int startIndex = Math.Max(0, lastDialogueLines.Count - 2);
+                for (int i = startIndex; i < lastDialogueLines.Count; i++)
+                {
+                    DialogueLine line = lastDialogueLines[i];
+                    totalDuration += SpeechBubbleManager.EstimateReadingTime(line.Text);
+                }
                 
-                // Format text with speaker name (e.g. "<color=...>Name</color>: Message")
-                string formattedText = SpeechBubbleManager.FormatSpeakerName(line.Speaker, line.Text);
-                
-                // Wrap text for display
-                string wrappedText = SocialInteractions.WrapText(formattedText, SocialInteractions.Settings.wordsPerLineLimit);
-                
-                // Estimate reading time
-                float duration = SpeechBubbleManager.EstimateReadingTime(line.Text);
-                
-                // Enqueue using the non-logging overload:
-                // (speaker, text, duration, isFirstMessage, conversationId, color, useCustomMote)
-                SpeechBubbleManager.Enqueue(line.Speaker, wrappedText, duration, false, conversationId, Color.white, true);
+                // Initiate delayed close
+                dialog.InitiateDelayedClose(totalDuration);
             }
-            
-            // We do NOT manually call EndConversation here.
-            // The SpeechBubbleManager will automatically end the conversation when the queue empties.
-            
-            // Close dialog
-            dialog.CloseDialog();
         }
         
         private void ApplyNegotiatingHediff()
@@ -820,8 +882,17 @@ namespace SocialInteractions
         
         private void ApplyOutcome(NegotiationOutcome outcome)
         {
-            if (initiator.needs == null || initiator.needs.mood == null || 
-                initiator.needs.mood.thoughts == null || initiator.needs.mood.thoughts.memories == null) return;
+            ApplyMoodOutcome(initiator, outcome);
+        }
+
+        public static void ApplyMoodOutcome(Pawn initiator, NegotiationOutcome outcome)
+        {
+            if (initiator.needs == null) { SLog.Warning("[Negotiation] Cannot apply outcome: initiator.needs is null"); return; }
+            if (initiator.needs.mood == null) { SLog.Warning("[Negotiation] Cannot apply outcome: initiator.needs.mood is null"); return; }
+            if (initiator.needs.mood.thoughts == null) { SLog.Warning("[Negotiation] Cannot apply outcome: initiator.needs.mood.thoughts is null"); return; }
+            if (initiator.needs.mood.thoughts.memories == null) { SLog.Warning("[Negotiation] Cannot apply outcome: initiator.needs.mood.thoughts.memories is null"); return; }
+            
+            SLog.Message("[Negotiation] Applying mood effects for outcome: " + outcome);
             
             switch (outcome)
             {
@@ -831,11 +902,6 @@ namespace SocialInteractions
                     {
                         initiator.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.SI_NegotiationPositive);
                         SLog.Message("[Negotiation] Applied positive thought to " + initiator.LabelShort);
-                    }
-                    if (outcome == NegotiationOutcome.CriticalSuccess)
-                    {
-                        // Maybe add a stronger thought? For now reusing Positive.
-                        // We could add SI_NegotiationCriticalSuccess later.
                     }
                     break;
                 case NegotiationOutcome.Negative:
@@ -850,14 +916,48 @@ namespace SocialInteractions
         
         private void SetCooldown()
         {
-            // TODO: Set cooldown in settings
-            SLog.Message("[Negotiation] Would set cooldown for " + initiator.LabelShort);
+            SetCooldownStatic(initiator, target, raidContext, isTradeContext);
+        }
+
+        public static void SetCooldownStatic(Pawn initiator, Pawn target, Lord raidContext = null, bool isTradeContext = false)
+        {
+            if (Current.Game == null) return;
+            var comp = Current.Game.GetComponent<NegotiationCooldown_GameComponent>();
+            if (comp == null) return;
+
+            float hours = SocialInteractions.Settings.negotiationCooldownHours;
+            if (hours <= 0) return;
+
+            if (raidContext != null)
+            {
+                // Raid: Set cooldown for the entire faction
+                comp.SetCooldown(raidContext.faction, hours);
+            }
+            else if (isTradeContext || initiator.Faction != target.Faction)
+            {
+                // Trade or different faction visitor: Set cooldown for both the specific pawn and the faction
+                comp.SetCooldown(target, hours);
+                if (target.Faction != null)
+                {
+                    comp.SetCooldown(target.Faction, hours);
+                }
+            }
+            else
+            {
+                // Internal colony negotiation: Set cooldown for the target pawn
+                comp.SetCooldown(target, hours);
+            }
         }
         
         /// <summary>
         /// Apply raid-specific outcome.
         /// </summary>
         private void ApplyRaidOutcome(NegotiationOutcome outcome)
+        {
+            ApplyRaidOutcomeStatic(raidContext, initiator, outcome);
+        }
+
+        public static void ApplyRaidOutcomeStatic(Lord raidContext, Pawn initiator, NegotiationOutcome outcome)
         {
             if (raidContext == null) return;
             
@@ -894,7 +994,7 @@ namespace SocialInteractions
             StringBuilder sb = new StringBuilder();
             
             // System context for trade negotiation
-            sb.AppendLine("You are writing a dialogue between a colonist and a traveling merchant in a colony survival game.");
+            sb.AppendLine("You are writing a dialogue between a colonist and a traveling merchant in the colony survival game RimWorld.");
             sb.AppendLine("The colonist is attempting to haggle or build rapport to get better prices or find rare goods.");
             sb.AppendLine();
             
@@ -912,6 +1012,11 @@ namespace SocialInteractions
             {
                 sb.AppendLine("- Merchant Type: " + target.TraderKind.label);
             }
+            sb.AppendLine();
+            
+            // Relationship
+            sb.AppendLine("[Relationship]");
+            sb.AppendLine(SocialInteractions.GetRelationship(initiator, target));
             sb.AppendLine();
             
             // World context
@@ -936,13 +1041,15 @@ namespace SocialInteractions
             // Instructions
             sb.AppendLine("Continue the dialogue. Write what " + initiator.LabelShort + " says, then " + target.LabelShort + "'s response.");
             sb.AppendLine("If the merchant is impressed, provide a POSITIVE outcome.");
+            sb.AppendLine("If the merchant is extremely impressed and inspired by the interaction, provide a CRITICAL_SUCCESS outcome.");
             sb.AppendLine("Otherwise, provide a NEUTRAL or NEGATIVE outcome.");
+            sb.AppendLine("Respect the following format for the response to be parsed properly.");
             sb.AppendLine();
             sb.AppendLine("FORMAT:");
             sb.AppendLine(initiator.LabelShort + ": dialogue");
             sb.AppendLine(target.LabelShort + ": response");
             sb.AppendLine();
-            sb.AppendLine("OUTCOME: POSITIVE | NEUTRAL | NEGATIVE | NONE");
+            sb.AppendLine("OUTCOME: POSITIVE | NEUTRAL | NEGATIVE | CRITICAL_SUCCESS");
             sb.AppendLine();
             sb.AppendLine("CHOICES:");
             sb.AppendLine("1. action/statement");
@@ -957,6 +1064,11 @@ namespace SocialInteractions
         /// Apply trade-specific outcome.
         /// </summary>
         private void ApplyTradeOutcome(NegotiationOutcome outcome)
+        {
+            ApplyTradeOutcomeStatic(initiator, target, outcome);
+        }
+
+        public static void ApplyTradeOutcomeStatic(Pawn initiator, Pawn target, NegotiationOutcome outcome)
         {
             switch (outcome)
             {
@@ -975,11 +1087,34 @@ namespace SocialInteractions
                     }
                     break;
                     
-                default:
-                    ApplyOutcome(outcome); // Fallback to mood
+                case NegotiationOutcome.Negative:
+                    // Find the lord and make them leave
+                    Lord lord = target.GetLord();
+                    if (lord != null)
+                    {
+                        Messages.Message("SI_TraderLeavingNegative".Translate(target.LabelShort), target, MessageTypeDefOf.NegativeEvent);
+                        
+                        // Set the dismissal flag on the main trader of the caravan
+                        // This triggers the vanilla dismissal logic in LordJob_TradeWithColony
+                        Pawn trader = TraderCaravanUtility.FindTrader(lord);
+                        if (trader != null && trader.mindState != null)
+                        {
+                            trader.mindState.traderDismissed = true;
+                            SLog.Message("[Negotiation] Set traderDismissed = true for " + trader.LabelShort + " (Caravan Leader).");
+                        }
+                        else
+                        {
+                            // Fallback for non-caravan traders (e.g. single travelers)
+                            lord.ReceiveMemo("TravelerJoyDone");
+                            SLog.Message("[Negotiation] No specific career trader found, sent TravelerJoyDone memo.");
+                        }
+                        
+                        SLog.Message("[Negotiation] Trader " + target.LabelShort + " group is leaving due to negative outcome.");
+                    }
                     break;
             }
         }
+
         /// <summary>
         /// Build a visitor-specific negotiation prompt.
         /// </summary>
@@ -988,7 +1123,7 @@ namespace SocialInteractions
             StringBuilder sb = new StringBuilder();
             
             // System context for visitor negotiation
-            sb.AppendLine("You are writing a dialogue between a colonist and a visitor/refugee/traveler in a colony survival game.");
+            sb.AppendLine("You are writing a dialogue between a colonist and a visitor/refugee/traveler in the colony survival game RimWorld.");
             sb.AppendLine("The colonist is attempting to build rapport, share news, or make a good impression on behalf of the colony.");
             sb.AppendLine();
             
@@ -1008,6 +1143,11 @@ namespace SocialInteractions
             {
                 sb.AppendLine("- Activity: " + lord.LordJob.GetType().Name.Replace("LordJob_", ""));
             }
+            sb.AppendLine();
+            
+            // Relationship
+            sb.AppendLine("[Relationship]");
+            sb.AppendLine(SocialInteractions.GetRelationship(initiator, target));
             sb.AppendLine();
             
             // World context
@@ -1032,13 +1172,15 @@ namespace SocialInteractions
             // Instructions
             sb.AppendLine("Continue the dialogue. Write what " + initiator.LabelShort + " says, then " + target.LabelShort + "'s response.");
             sb.AppendLine("If the visitor is impressed or grateful, provide a POSITIVE outcome.");
+            sb.AppendLine("If the visitor is PROFOUNDLY impressed and expresses a desire to stay and join the colony, provide a CRITICAL_SUCCESS outcome.");
             sb.AppendLine("Otherwise, provide a NEUTRAL or NEGATIVE outcome.");
+            sb.AppendLine("Respect the following format for the response to be parsed properly.");
             sb.AppendLine();
             sb.AppendLine("FORMAT:");
             sb.AppendLine(initiator.LabelShort + ": dialogue");
             sb.AppendLine(target.LabelShort + ": response");
             sb.AppendLine();
-            sb.AppendLine("OUTCOME: POSITIVE | NEUTRAL | NEGATIVE | NONE");
+            sb.AppendLine("OUTCOME: POSITIVE | NEUTRAL | NEGATIVE | CRITICAL_SUCCESS");
             sb.AppendLine();
             sb.AppendLine("CHOICES:");
             sb.AppendLine("1. action/statement");
@@ -1054,22 +1196,119 @@ namespace SocialInteractions
         /// </summary>
         private void ApplyVisitorOutcome(NegotiationOutcome outcome)
         {
+            ApplyVisitorOutcomeStatic(target, outcome, initiator);
+        }
+
+        public static void ApplyVisitorOutcomeStatic(Pawn target, NegotiationOutcome outcome, Pawn initiator = null)
+        {
             switch (outcome)
             {
-                case NegotiationOutcome.Positive:
                 case NegotiationOutcome.CriticalSuccess:
+                    if (initiator != null)
+                    {
+                        // Trigger join request
+                        TriggerJoinRequestStatic(target, initiator);
+                    }
+                    else
+                    {
+                        SLog.Warning("[Negotiation] Cannot trigger join request: initiator is null");
+                    }
+                    goto case NegotiationOutcome.Positive;
+
+                case NegotiationOutcome.Positive:
                     if (target.Faction != null && !target.Faction.IsPlayer && !target.Faction.HostileTo(Faction.OfPlayer))
                     {
                         int amount = (outcome == NegotiationOutcome.CriticalSuccess) ? 12 : 6;
                         target.Faction.TryAffectGoodwillWith(Faction.OfPlayer, amount, true, true, null);
-                        Messages.Message("Negotiation Successful! Improved relations with " + target.Faction.Name, target, MessageTypeDefOf.PositiveEvent);
+                        SLog.Message("[Negotiation] Faction " + target.Faction.Name + " goodwill improved by " + amount);
                     }
-                    ApplyOutcome(outcome); // Fallback to mood
+                    break;
+                    
+                case NegotiationOutcome.Negative:
+                    if (target.Faction != null && !target.Faction.IsPlayer && !target.Faction.HostileTo(Faction.OfPlayer))
+                    {
+                        int amount = 6;
+                        target.Faction.TryAffectGoodwillWith(Faction.OfPlayer, -amount, true, true, null);
+                        Messages.Message("SI_VisitorGoodwillReduced".Translate(target.Faction.Name, amount), target, MessageTypeDefOf.NegativeEvent);
+                        SLog.Message("[Negotiation] Faction " + target.Faction.Name + " goodwill reduced by " + amount + " due to negative outcome with " + target.LabelShort);
+                    }
                     break;
                     
                 default:
-                    ApplyOutcome(outcome); // Fallback to mood
                     break;
+            }
+        }
+
+        public static void TriggerJoinRequestStatic(Pawn target, Pawn solicitor)
+        {
+            try
+            {
+                LetterDef joinLetterDef = DefDatabase<LetterDef>.GetNamed("SI_JoinRequest", false);
+                if (joinLetterDef == null)
+                {
+                    SLog.Warning("[Negotiation] Could not find LetterDef SI_JoinRequest. Fallback to message.");
+                    Messages.Message("SI_JoinRequestLabel".Translate(target.LabelShort), target, MessageTypeDefOf.PositiveEvent);
+                    return;
+                }
+
+                SI_JoinRequestLetter letter = (SI_JoinRequestLetter)LetterMaker.MakeLetter(joinLetterDef);
+                letter.joiner = target;
+                letter.Label = "SI_JoinRequestLabel".Translate(target.LabelShort);
+                letter.Text = "SI_JoinRequestText".Translate(target.LabelShort, solicitor.LabelShort);
+                letter.lookTargets = target;
+
+                Find.LetterStack.ReceiveLetter(letter);
+                SLog.Message("[Negotiation] Sent join request letter for " + target.LabelShort);
+            }
+            catch (Exception ex)
+            {
+                SLog.Error("[Negotiation] Failed to trigger join request: " + ex);
+            }
+        }
+
+        private void SendOutcomeNotification(NegotiationOutcome outcome)
+        {
+            if (outcome == NegotiationOutcome.Neutral) return;
+            if (lastNotifiedOutcome == outcome) return;
+            lastNotifiedOutcome = outcome;
+
+            string outcomeLabel = GetOutcomeLabel(outcome);
+            string message;
+            MessageTypeDef messageType = (outcome == NegotiationOutcome.Negative) ? MessageTypeDefOf.NegativeEvent : MessageTypeDefOf.PositiveEvent;
+            if (outcome == NegotiationOutcome.Neutral) messageType = MessageTypeDefOf.NeutralEvent;
+
+            if (raidContext != null)
+            {
+                string factionName = (raidContext.faction != null) ? raidContext.faction.Name : "Unknown Faction";
+                message = string.Format("Negotiation with {0} leader {1}: {2}", factionName, target.LabelShort, outcomeLabel);
+            }
+            else if (isTradeContext)
+            {
+                message = string.Format("Trade negotiation with {0}: {1}", target.LabelShort, outcomeLabel);
+            }
+            else if (isVisitorContext)
+            {
+                string factionName = (target.Faction != null) ? target.Faction.Name : "Unknown Faction";
+                message = string.Format("Negotiation with {0} of {1}: {2}", target.LabelShort, factionName, outcomeLabel);
+            }
+            else
+            {
+                message = string.Format("Negotiation between {0} and {1}: {2}", initiator.LabelShort, target.LabelShort, outcomeLabel);
+            }
+
+            Messages.Message(message, target, messageType);
+            SLog.Message("[Negotiation] Notification sent: " + message);
+        }
+
+        private string GetOutcomeLabel(NegotiationOutcome outcome)
+        {
+            switch (outcome)
+            {
+                case NegotiationOutcome.Positive: return "Successful";
+                case NegotiationOutcome.CriticalSuccess: return "Critical Success";
+                case NegotiationOutcome.Negative: return "Failed";
+                case NegotiationOutcome.Neutral: return "Neutral";
+                default: return outcome.ToString();
             }
         }
     }

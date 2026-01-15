@@ -160,4 +160,14 @@
   <SI_RaidNegotiationNeutral>{0}'s negotiation with {1} reached no agreement. The raiders remain hostile.</SI_RaidNegotiationNeutral>
   <SI_RaidNegotiationPositive>{0} convinced {1} to leave, but they will take some valuables first.</SI_RaidNegotiationPositive>
   <SI_RaidNegotiationCriticalSuccess>{0} convinced {1} to leave peacefully without taking anything!</SI_RaidNegotiationCriticalSuccess>
+  <SI_TraderLeavingNegative>The negotiation went poorly. {0} and their group have decided to leave the map.</SI_TraderLeavingNegative>
+  <SI_VisitorGoodwillReduced>The negotiation went poorly. Relations with {0} have decreased by {1}.</SI_VisitorGoodwillReduced>
+  <SI_VisitorGoodwillImproved>Negotiation successful! Relations with {0} have improved by {1}.</SI_VisitorGoodwillImproved>
+  
+  <SI_JoinRequestLabel>{0} wants to join</SI_JoinRequestLabel>
+  <SI_JoinRequestText>{0} has been deeply impressed by your colony during the discussion. They are asking if they can join your community permanently.\n\nShould we accept them?</SI_JoinRequestText>
+  <SI_PawnJoinedColony>{0} has joined the colony!</SI_PawnJoinedColony>
+  
+  <SocialInteractions_NegotiationCooldownHours>Negotiation Cooldown</SocialInteractions_NegotiationCooldownHours>
+  <SocialInteractions_Hours>hours</SocialInteractions_Hours>
 </LanguageData>

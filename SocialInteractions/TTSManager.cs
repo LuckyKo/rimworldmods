@@ -377,7 +377,7 @@ namespace SocialInteractions
         {
             lock (bufferLock)
             {
-                SLog.Message(string.Format("[TTS Debug] ProcessPlaybackBuffer: Recvd ID {0}. Waiting for {1}. Buffer Size: {2}", requestId, nextPlaybackId, playbackBuffer.Count));
+                // SLog.Message(string.Format("[TTS Debug] ProcessPlaybackBuffer: Recvd ID {0}. Waiting for {1}. Buffer Size: {2}", requestId, nextPlaybackId, playbackBuffer.Count));
 
                 // Add to buffer (if successful) or just mark as ready-to-skip (if null)
                 // We use a dummy entry with null clip for failed items to keep sequence moving
@@ -386,7 +386,7 @@ namespace SocialInteractions
                 // Try to move items from buffer to queue in order
                 while (playbackBuffer.ContainsKey(nextPlaybackId))
                 {
-                    SLog.Message(string.Format("[TTS Debug] ProcessPlaybackBuffer: Promoting ID {0} to queue.", nextPlaybackId));
+                    // SLog.Message(string.Format("[TTS Debug] ProcessPlaybackBuffer: Promoting ID {0} to queue.", nextPlaybackId));
                     var entry = playbackBuffer[nextPlaybackId];
                     if (entry.clip != null) // Only valid clips
                     {
@@ -444,7 +444,7 @@ namespace SocialInteractions
                 audioSource.volume = entry.volume * (SocialInteractions.Settings.ttsVolume / 100f);
                 audioSource.Play();
                 
-                SLog.Message("[TTS Debug] Started playback of clip. Duration: " + entry.clip.length);
+                // SLog.Message("[TTS Debug] Started playback of clip. Duration: " + entry.clip.length);
 
                 // Wait for the clip to finish playing (clip.length is in seconds)
                 // We'll wait for the full duration of the clip

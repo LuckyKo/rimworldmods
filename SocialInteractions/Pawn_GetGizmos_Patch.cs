@@ -41,7 +41,28 @@ namespace SocialInteractions
                     targetingParams.validator = (TargetInfo target) => 
                     {
                         Pawn targetPawn = target.Thing as Pawn;
-                        return targetPawn != null && targetPawn != __instance && targetPawn.Spawned && !targetPawn.Dead && targetPawn.Name != null && !targetPawn.Name.Numerical;
+                        if (targetPawn == null || targetPawn == __instance || !targetPawn.Spawned || targetPawn.Dead || targetPawn.Name == null || targetPawn.Name.Numerical)
+                        {
+                            return false;
+                        }
+
+                        // Check cooldown
+                        if (Current.Game != null)
+                        {
+                            var comp = Current.Game.GetComponent<NegotiationCooldown_GameComponent>();
+                            if (comp != null)
+                            {
+                                string reason;
+                                if (comp.IsOnCooldown(targetPawn, targetPawn.Faction, out reason))
+                                {
+                                    // We can't easily show a reason in the validator return, but we can log it or show a message if they click.
+                                    // Actually, validator prevents the click from even resolving. 
+                                    // For better UX, we'll allow the click but check again in the action.
+                                    return true; 
+                                }
+                            }
+                        }
+                        return true;
                     };
                     
                     Find.Targeter.BeginTargeting(targetingParams, delegate (LocalTargetInfo target)
@@ -49,6 +70,21 @@ namespace SocialInteractions
                         Pawn targetPawn = target.Thing as Pawn;
                         if (targetPawn != null && targetPawn != __instance)
                         {
+                            // Check cooldown again to provide user feedback
+                            if (Current.Game != null)
+                            {
+                                var comp = Current.Game.GetComponent<NegotiationCooldown_GameComponent>();
+                                if (comp != null)
+                                {
+                                    string reason;
+                                    if (comp.IsOnCooldown(targetPawn, targetPawn.Faction, out reason))
+                                    {
+                                        Messages.Message(reason, MessageTypeDefOf.RejectInput, false);
+                                        return;
+                                    }
+                                }
+                            }
+
                             // Create and start the job
                             Job job = JobMaker.MakeJob(SI_JobDefOf.HaveChatWith, targetPawn);
                             __instance.jobs.TryTakeOrderedJob(job, JobTag.Misc);

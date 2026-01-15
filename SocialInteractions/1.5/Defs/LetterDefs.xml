@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <LetterDef>
+    <defName>SI_JoinRequest</defName>
+    <letterClass>SocialInteractions.SI_JoinRequestLetter</letterClass>
+    <flashColor>(0.6, 0.6, 0.6)</flashColor>
+    <bounce>true</bounce>
+  </LetterDef>
+</Defs>

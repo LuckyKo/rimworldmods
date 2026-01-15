@@ -39,7 +39,7 @@
   <!-- Backstabbing Settings -->
   <SocialInteractions_EnableBackstabbing>启用策略性背后捅刀</SocialInteractions_EnableBackstabbing>
   <SocialInteractions_EnableBackstabbingDesc>启用后，角色在成功背后议论后可能会进行策略性背后捅刀，设法让目标的盟友反对他们。</SocialInteractions_EnableBackstabbingDesc>
-
+  
   <!-- Children Misbehavior Settings -->
   <SocialInteractions_EnableChildrenMisbehavior>启用儿童恶作剧</SocialInteractions_EnableChildrenMisbehavior>
   <SocialInteractions_EnableChildrenMisbehaviorDesc>启用后，儿童会进行恶作剧行为，比如烦扰成人和乱放物品。</SocialInteractions_EnableChildrenMisbehaviorDesc>
@@ -152,4 +152,18 @@
   <SocialInteractions_RemapVoices>重置语音分配</SocialInteractions_RemapVoices>
   <SocialInteractions_AssignVoicesManually>手动分配语音</SocialInteractions_AssignVoicesManually>
   <SocialInteractions_VoicesAvailable>可用语音：{0}</SocialInteractions_VoicesAvailable>
+
+  <!-- Raid Negotiation -->
+  <SI_NegotiateWithRaiders>与袭击者协商</SI_NegotiateWithRaiders>
+  <SI_NegotiateWithRaidersDesc>尝试与 {0} 协商。你的殖民者将接近敌方队伍并试图避免战斗。</SI_NegotiateWithRaidersDesc>
+  <SI_RaidNegotiationFailed>{0} 与 {1} 的协商失败。他们立即发起了攻击！</SI_RaidNegotiationFailed>
+  <SI_RaidNegotiationNeutral>{0} 与 {1} 的协商未达成协议。袭击者仍然保持敌对。</SI_RaidNegotiationNeutral>
+  <SI_RaidNegotiationPositive>{0} 说服了 {1} 离开，但他们离去前会掠夺一些财物。</SI_RaidNegotiationPositive>
+  <SI_RaidNegotiationCriticalSuccess>{0} 说服了 {1} 和平离开，且没有拿走任何东西！</SI_RaidNegotiationCriticalSuccess>
+  <SI_TraderLeavingNegative>协商进展不顺。{0} 及其团队决定立即离开。</SI_TraderLeavingNegative>
+  <SI_VisitorGoodwillReduced>协商进展不顺。与 {0} 的关系下降了 {1}点。</SI_VisitorGoodwillReduced>
+  <SI_VisitorGoodwillImproved>协商成功！与 {0} 的关系提升了 {1}点。</SI_VisitorGoodwillImproved>
+  
+  <SocialInteractions_NegotiationCooldownHours>协商冷却时间</SocialInteractions_NegotiationCooldownHours>
+  <SocialInteractions_Hours>小时</SocialInteractions_Hours>
 </LanguageData>

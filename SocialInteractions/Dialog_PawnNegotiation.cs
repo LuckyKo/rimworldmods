@@ -23,6 +23,7 @@ namespace SocialInteractions
         private string customInputText = "";
         private bool waitingForLLM = false;
         private string waitingMessage = "Waiting for response...";
+        private float closeTime = -1f; // Real-time at which the window should close
         
         // Scroll positions
         private Vector2 conversationScrollPos = Vector2.zero;
@@ -89,6 +90,15 @@ namespace SocialInteractions
             
             DrawConversationHistory(conversationRect);
             DrawChoicesArea(choicesRect);
+        }
+
+        public override void WindowUpdate()
+        {
+            base.WindowUpdate();
+            if (closeTime > 0 && Time.realtimeSinceStartup >= closeTime)
+            {
+                Close();
+            }
         }
         
         private void DrawHeader(Rect inRect)
@@ -207,19 +217,29 @@ namespace SocialInteractions
         
         private float CalculateChoicesAreaHeight()
         {
-            int choiceCount = currentChoices.Count;
-            if (choiceCount == 0) choiceCount = 1; // At least show "waiting" or end button
+            float height = 2 * DialogMargin; // Fixed top and bottom margins
             
-            // Choices + custom input + end button + margins
-            return (choiceCount * (ChoiceButtonHeight + ChoiceSpacing)) 
-                   + CustomInputHeight + ChoiceSpacing 
-                   + BottomButtonsHeight + Margin * 2;
+            // Choices area
+            int choiceCount = currentChoices.Count;
+            if (waitingForLLM && choiceCount == 0) height += ChoiceButtonHeight + ChoiceSpacing;
+            else if (choiceCount > 0) height += choiceCount * ChoiceButtonHeight + choiceCount * ChoiceSpacing;
+            
+            // Custom input area (if not concluded)
+            if (closeTime <= 0)
+            {
+                height += CustomInputHeight + ChoiceSpacing;
+            }
+            
+            // End button area - always present
+            height += BottomButtonsHeight;
+            
+            return height;
         }
         
         private void DrawChoicesArea(Rect rect)
         {
             Widgets.DrawMenuSection(rect);
-            Rect innerRect = rect.ContractedBy(Margin);
+            Rect innerRect = rect.ContractedBy(DialogMargin);
             
             float y = innerRect.y;
             float buttonWidth = innerRect.width;
@@ -254,28 +274,49 @@ namespace SocialInteractions
                 y += ChoiceButtonHeight + ChoiceSpacing;
             }
             
-            // Custom input field
-            Rect inputLabelRect = new Rect(innerRect.x, y, 100f, CustomInputHeight);
-            Rect inputFieldRect = new Rect(innerRect.x + 65f, y, buttonWidth - 65f - 80f, CustomInputHeight);
-            Rect sendButtonRect = new Rect(innerRect.x + buttonWidth - 70f, y, 70f, CustomInputHeight);
-            
-            Widgets.Label(inputLabelRect, "Or say:");
-            customInputText = Widgets.TextField(inputFieldRect, customInputText);
-            
-            bool canSend = !waitingForLLM && !string.IsNullOrEmpty(customInputText.Trim());
-            if (Widgets.ButtonText(sendButtonRect, "Send", true, true, canSend) && canSend)
+            // Custom input field - hide when concluded or failed
+            if (closeTime <= 0)
             {
-                manager.OnCustomInput(customInputText.Trim());
-                customInputText = "";
+                Rect inputLabelRect = new Rect(innerRect.x, y, 100f, CustomInputHeight);
+                Rect inputFieldRect = new Rect(innerRect.x + 65f, y, buttonWidth - 65f - 80f, CustomInputHeight);
+                Rect sendButtonRect = new Rect(innerRect.x + buttonWidth - 70f, y, 70f, CustomInputHeight);
+
+                Widgets.Label(inputLabelRect, "Or say:");
+
+                // Capture enter key event BEFORE TextField might consume it
+                bool enterPressed = Event.current.type == EventType.KeyDown && (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter);
+                
+                GUI.SetNextControlName("CustomInput");
+                customInputText = Widgets.TextField(inputFieldRect, customInputText);
+
+                bool canSend = !waitingForLLM && !string.IsNullOrEmpty(customInputText.Trim());
+
+                // Handle Enter key to send - uses control name for focus check
+                if (canSend && enterPressed && (GUI.GetNameOfFocusedControl() == "CustomInput" || string.IsNullOrEmpty(GUI.GetNameOfFocusedControl())))
+                {
+                    manager.OnCustomInput(customInputText.Trim());
+                    customInputText = "";
+                    Event.current.Use();
+                }
+
+                if (Widgets.ButtonText(sendButtonRect, "Send", true, true, canSend) && canSend)
+                {
+                    manager.OnCustomInput(customInputText.Trim());
+                    customInputText = "";
+                }
+                
+                y += CustomInputHeight + ChoiceSpacing;
             }
             
-            y += CustomInputHeight + ChoiceSpacing + Margin;
-            
-            // End conversation button
-            Rect endButtonRect = new Rect(innerRect.x, y, buttonWidth, BottomButtonsHeight);
+            // End conversation button - always at bottom of its area
+            Rect endButtonRect = new Rect(innerRect.x, innerRect.yMax - BottomButtonsHeight, buttonWidth, BottomButtonsHeight);
             if (Widgets.ButtonText(endButtonRect, "End Conversation"))
             {
-                manager.EndNegotiationEarly();
+                if (closeTime <= 0)
+                {
+                    manager.EndNegotiationEarly();
+                }
+                Close();
             }
         }
         
@@ -304,6 +345,15 @@ namespace SocialInteractions
             {
                 currentChoices.Clear();
             }
+        }
+
+        public void InitiateDelayedClose(float duration)
+        {
+            // Close after duration, but at least 2 seconds for feedback
+            closeTime = Time.realtimeSinceStartup + Mathf.Max(duration, 2f);
+            waitingForLLM = false;
+            currentChoices.Clear();
+            SLog.Message("[Negotiation] Initiated delayed close in " + duration + "s");
         }
         
         public void CloseDialog()

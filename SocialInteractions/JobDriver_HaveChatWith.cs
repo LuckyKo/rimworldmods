@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Verse;
 using Verse.AI;
+using Verse.AI.Group;
 using RimWorld;
 using UnityEngine;
 
@@ -48,9 +49,40 @@ namespace SocialInteractions
                     }
                     else if (SocialInteractions.Settings.enableManualChat && SocialInteractions.Settings.llmInteractionsEnabled)
                     {
-                        // Fallback for animals/non-humans: Use LLM bubbles without the dialog
-                        // This restores the "Simple Mode" LLM behavior
-                        SocialInteractions.HandleNonStoppingInteraction(pawn, target, SI_InteractionDefOf.ManualChat, "Having a casual chat", true, true);
+                        // Determine subject based on context
+                        string subject = "Having a casual chat";
+                        
+                        // Detect context
+                        if (RaidNegotiationContext.HasActiveRaid(pawn))
+                        {
+                            subject = "Negotiating with raiders for a peaceful resolution";
+                        }
+                        else if (target.TraderKind != null)
+                        {
+                            subject = "Negotiating a trade deal for better prices";
+                        }
+                        else
+                        {
+                            Lord lord = target.GetLord();
+                            if (lord != null)
+                            {
+                                if (lord.LordJob is LordJob_TradeWithColony)
+                                {
+                                    subject = "Negotiating a trade deal for better prices";
+                                }
+                                else if (lord.LordJob != null)
+                                {
+                                    string jobName = lord.LordJob.GetType().Name;
+                                    if (jobName.Contains("Visit") || jobName.Contains("Refugee") || jobName.Contains("Guest") || jobName.Contains("Traveler"))
+                                    {
+                                        subject = "Negotiating with a visitor for improved goodwill between the two factions";
+                                    }
+                                }
+                            }
+                        }
+
+                        // Fallback for animals/non-humans or when interactive negotiation is disabled: Use LLM bubbles without the dialog
+                        SocialInteractions.HandleNonStoppingInteraction(pawn, target, SI_InteractionDefOf.ManualChat, subject, true, true);
                         isNegotiationMode = false;
                     }
                     else
@@ -113,35 +145,52 @@ namespace SocialInteractions
                    Pawn target = (Pawn)job.GetTarget(TargetInd).Thing;
                    if (target != null)
                    {
-                       float socialLevel = pawn.skills.GetSkill(SkillDefOf.Social).Level;
-                       float normalizedLevel = Mathf.Clamp01(socialLevel / 20f);
+                       // Roll for outcome using centralized logic
+                       NegotiationOutcome outcome = NegotiationManager.RollSkillBasedOutcome(pawn);
                        
-                       float successChance = Mathf.Lerp(0f, 0.2f, normalizedLevel);
-                       float failChance = Mathf.Lerp(0.5f, 0f, normalizedLevel);
+                       // Detect context
+                       Lord raidContext = RaidNegotiationContext.GetActiveRaid(pawn);
+                       bool isTradeContext = target.TraderKind != null;
+                       bool isVisitorContext = false;
                        
-                       float roll = Rand.Value;
-                       
-                       if (roll < successChance)
+                       Lord lord = target.GetLord();
+                       if (!isTradeContext && lord != null)
                        {
-                           // Success
-                           Messages.Message("Negotiation Success: " + pawn.LabelShort + " convinced " + target.LabelShort + " (Social Skill " + socialLevel + ")", pawn, MessageTypeDefOf.PositiveEvent);
-                           if (pawn.needs != null && pawn.needs.mood != null)
+                           if (lord.LordJob is LordJob_TradeWithColony)
                            {
-                               pawn.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.SI_NegotiationPositive, target);
+                               isTradeContext = true;
+                           }
+                           else if (lord.LordJob != null)
+                           {
+                               string jobName = lord.LordJob.GetType().Name;
+                               if (jobName.Contains("Visit") || jobName.Contains("Refugee") || jobName.Contains("Guest") || jobName.Contains("Traveler"))
+                               {
+                                   isVisitorContext = true;
+                               }
                            }
                        }
-                       else if (roll < successChance + failChance)
+
+                       // Apply outcome using centralized logic
+                       NegotiationManager.ApplyUniversalOutcome(pawn, target, outcome, raidContext, isTradeContext, isVisitorContext);
+                       
+                       // Skill level for messages
+                       int socialLevel = pawn.skills != null ? pawn.skills.GetSkill(SkillDefOf.Social).Level : 0;
+                       
+                       // Feedback messages
+                       if (outcome == NegotiationOutcome.CriticalSuccess)
                        {
-                           // Failure
+                           Messages.Message("Negotiation CRITICAL Success: " + pawn.LabelShort + " masterfully handled " + target.LabelShort + " (Social Skill " + socialLevel + ")", pawn, MessageTypeDefOf.PositiveEvent);
+                       }
+                       else if (outcome == NegotiationOutcome.Positive)
+                       {
+                           Messages.Message("Negotiation Success: " + pawn.LabelShort + " convinced " + target.LabelShort + " (Social Skill " + socialLevel + ")", pawn, MessageTypeDefOf.PositiveEvent);
+                       }
+                       else if (outcome == NegotiationOutcome.Negative)
+                       {
                            Messages.Message("Negotiation Failed: " + pawn.LabelShort + " failed to convince " + target.LabelShort + " (Social Skill " + socialLevel + ")", pawn, MessageTypeDefOf.NegativeEvent);
-                           if (pawn.needs != null && pawn.needs.mood != null)
-                           {
-                               pawn.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.SI_NegotiationNegative, target);
-                           }
                        }
                        else
                        {
-                           // Neutral
                            Messages.Message("Negotiation Neutral: " + pawn.LabelShort + " and " + target.LabelShort + " chatted without reaching a conclusion.", pawn, MessageTypeDefOf.NeutralEvent);
                        }
                    }

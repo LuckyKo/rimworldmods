@@ -21,18 +21,21 @@ namespace SocialInteractions
         private NegotiatedRaidOutcome outcome;
         private Faction faction;
         private IntVec3 gatherSpot = IntVec3.Invalid;
+        private int originalGoodwill = -100;
         
         // Settings
-        private int lingerDurationTicks = 5000; // ~2 hours (Reduced from 15000 for faster pacing)
+        private int lingerDurationTicks = 5000;
         
         public LordJob_NegotiatedRaid() 
         { 
         }
 
-        public LordJob_NegotiatedRaid(Faction faction, NegotiatedRaidOutcome outcome)
+        public LordJob_NegotiatedRaid(Faction faction, NegotiatedRaidOutcome outcome, int originalGoodwill = -100)
         {
             this.faction = faction;
             this.outcome = outcome;
+            this.originalGoodwill = originalGoodwill;
+            this.lingerDurationTicks = Rand.Range(5000, 30000); // 2h to 12h
         }
 
         public override void ExposeData()
@@ -41,6 +44,7 @@ namespace SocialInteractions
             Scribe_References.Look(ref faction, "faction");
             Scribe_Values.Look(ref gatherSpot, "gatherSpot");
             Scribe_Values.Look(ref lingerDurationTicks, "lingerDurationTicks", 5000);
+            Scribe_Values.Look(ref originalGoodwill, "originalGoodwill", -100);
         }
         
         public override bool AddFleeToil
@@ -178,14 +182,13 @@ namespace SocialInteractions
         
         public void Notify_RaiderHarmed(Pawn victim, DamageInfo dinfo)
         {
-            // Manual trigger called by patch
-            if (dinfo.Instigator != null && dinfo.Instigator.Faction == Faction.OfPlayer)
+            // Called by custom patch to ensure instant response
+            if (outcome == NegotiatedRaidOutcome.Positive && dinfo.Instigator != null && dinfo.Instigator.Faction == Faction.OfPlayer)
             {
-                if (this.faction != null && this.faction.PlayerRelationKind != FactionRelationKind.Hostile)
+                if (this.faction != null && !this.faction.HostileTo(Faction.OfPlayer))
                 {
-                     // Trigger logic is handled by Trigger_PawnHarmed in the graph
-                     // But we can force relation change immediately here if needed, 
-                     // though graph trigger is cleaner.
+                    SLog.Message("[NegotiatedRaid] Colonist attacked raider! Breaking deal and restoring hostility instantly.");
+                    RaidOutcomeUtility.CheckAndRestoreHostility(this.faction, this.Map, this.originalGoodwill, this.lord);
                 }
             }
         }
@@ -199,7 +202,7 @@ namespace SocialInteractions
         {
             base.Cleanup();
             // Re-check hostility when the lord is gone.
-            RaidOutcomeUtility.CheckAndRestoreHostility(this.faction, this.Map);
+            RaidOutcomeUtility.CheckAndRestoreHostility(this.faction, this.Map, this.originalGoodwill);
         }
     }
     
@@ -251,6 +254,12 @@ namespace SocialInteractions
         public static void ApplyRaidOutcome(Lord lord, NegotiatedRaidOutcome outcome)
         {
             if (lord == null) return;
+            
+            if (outcome == NegotiatedRaidOutcome.Neutral)
+            {
+                SLog.Message("[RaidOutcome] Neutral outcome: Raiders will continue their original attack pattern.");
+                return;
+            }
             
             Map map = lord.Map;
             Faction faction = lord.faction;
@@ -322,9 +331,14 @@ namespace SocialInteractions
             }
             else if (outcome == NegotiatedRaidOutcome.Positive)
             {
+                int originalGoodwill = -100;
                 // Positive: Negotiation success, raiders leave peacefully.
                 if (faction != null)
                 {
+                    // Save original goodwill
+                    originalGoodwill = faction.GoodwillWith(Faction.OfPlayer);
+                    SLog.Message("[RaidOutcome] Saved original goodwill: " + originalGoodwill);
+
                     // Force Neutrality so they don't get shot while loitering
                     // SetRelationDirect causes errors for goodwill factions, so we use goodwill math.
                     int currentGoodwill = faction.GoodwillWith(Faction.OfPlayer);
@@ -348,11 +362,11 @@ namespace SocialInteractions
                 Messages.Message("Raiders agreed to a deal. They will hang around before leaving.", MessageTypeDefOf.PositiveEvent);
                 
                 // Use custom LordJob for "Loiter and Plunder" logic
-                LordJob_NegotiatedRaid positiveJob = new LordJob_NegotiatedRaid(faction, NegotiatedRaidOutcome.Positive);
+                LordJob_NegotiatedRaid positiveJob = new LordJob_NegotiatedRaid(faction, NegotiatedRaidOutcome.Positive, originalGoodwill);
                 newLord = LordMaker.MakeNewLord(faction, positiveJob, map, pawns);
-                SLog.Message("[RaidOutcome] Created LordJob_NegotiatedRaid (Positive) for " + pawns.Count + " pawns");
+                SLog.Message("[RaidOutcome] Created LordJob_NegotiatedRaid (Positive) for " + pawns.Count + " pawns with originalGoodwill " + originalGoodwill);
             }
-             else if (outcome == NegotiatedRaidOutcome.Failure || outcome == NegotiatedRaidOutcome.Neutral)
+             else if (outcome == NegotiatedRaidOutcome.Failure)
             {
                  // Failure: Attack
                  Messages.Message("Negotiation Failed! Raiders are attacking!", MessageTypeDefOf.NegativeEvent);
@@ -388,35 +402,39 @@ namespace SocialInteractions
             }
         }
 
-        public static void CheckAndRestoreHostility(Faction faction, Map map)
+        public static void CheckAndRestoreHostility(Faction faction, Map map, int originalGoodwill, Lord ignoreLord = null)
         {
             if (faction == null || map == null) return;
             
             // Check if current goodwill is "Negotiated Neutral" (around 0)
             int currentGoodwill = faction.GoodwillWith(Faction.OfPlayer);
             
-            // If they are a permanent enemy and we made them neutral (>= -50)
-            if (faction.def.permanentEnemy && currentGoodwill > -50)
+            // If they are still neutralish (between -50 and 50) and we should restore their hostility
+            if (currentGoodwill > -50)
             {
                 // Check if ANY other lord of this faction with NegotiatedRaid exists on the map
-                // We should also check for any OTHER hostile lord jobs that might be neutral too?
-                // But specifically for our mod-added lords.
                 bool anotherNegotiatedLord = false;
-                foreach (Lord lord in map.lordManager.lords)
+                if (map.lordManager != null && map.lordManager.lords != null)
                 {
-                    if (lord.faction == faction && lord.LordJob is LordJob_NegotiatedRaid)
+                    foreach (Lord lord in map.lordManager.lords)
                     {
-                        anotherNegotiatedLord = true;
-                        break;
+                        if (lord != null && lord != ignoreLord && lord.faction == faction && lord.LordJob is LordJob_NegotiatedRaid)
+                        {
+                            anotherNegotiatedLord = true;
+                            break;
+                        }
                     }
                 }
                 
                 if (!anotherNegotiatedLord)
                 {
-                    // Reset to -100
-                    int needed = -100 - currentGoodwill;
-                    faction.TryAffectGoodwillWith(Faction.OfPlayer, needed, canSendMessage: false, canSendHostilityLetter: false);
-                    SLog.Message("[RaidOutcome] Restored permanent hostility for " + faction.Name + " (Goodwill reset to -100).");
+                    // Restore to original goodwill
+                    int needed = originalGoodwill - currentGoodwill;
+                    if (needed != 0)
+                    {
+                        faction.TryAffectGoodwillWith(Faction.OfPlayer, needed, canSendMessage: false, canSendHostilityLetter: false);
+                        SLog.Message("[RaidOutcome] Restored original hostility for " + faction.Name + " (Goodwill reset to " + originalGoodwill + ").");
+                    }
                 }
             }
         }
