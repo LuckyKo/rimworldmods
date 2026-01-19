@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Collections;
 using UnityEngine;
 using Verse;
+using Verse.AI;
 using RimWorld;
 using Verse.Sound;
 using Verse.AI.Group;
@@ -42,6 +43,8 @@ namespace SocialInteractions
         private Lord raidContext = null;
         private bool isTradeContext = false;
         private bool isVisitorContext = false;
+        private bool isSocialFightContext = false;
+        private Pawn otherFighter = null;
         
         public NegotiationManager(Pawn initiator, Pawn target, Dialog_PawnNegotiation dialog)
         {
@@ -83,6 +86,22 @@ namespace SocialInteractions
                         this.isVisitorContext = true;
                         SLog.Message("[Negotiation] Visitor context detected for " + target.LabelShort + " (Job: " + jobName + ")");
                     }
+                }
+            }
+            
+            // Check if this is a social fight negotiation
+            if (target.MentalStateDef == MentalStateDefOf.SocialFighting)
+            {
+                this.isSocialFightContext = true;
+                MentalState_SocialFighting socialFight = target.MentalState as MentalState_SocialFighting;
+                if (socialFight != null)
+                {
+                    this.otherFighter = socialFight.otherPawn;
+                }
+                
+                if (this.otherFighter != null)
+                {
+                    SLog.Message("[Negotiation] Social fight context detected between " + target.LabelShort + " and " + otherFighter.LabelShort);
                 }
             }
         }
@@ -242,6 +261,10 @@ namespace SocialInteractions
             if (isVisitorContext)
             {
                 return BuildVisitorPrompt(selectedChoice);
+            }
+            if (isSocialFightContext)
+            {
+                return BuildSocialFightPrompt(selectedChoice);
             }
             
             sb.AppendLine("You are writing a negotiation dialogue between two pawns in the colony survival game RimWorld.");
@@ -734,6 +757,20 @@ namespace SocialInteractions
             if (raidContext != null) ApplyRaidOutcomeStatic(raidContext, initiator, outcome);
             else if (isTradeContext) ApplyTradeOutcomeStatic(initiator, target, outcome);
             else if (isVisitorContext) ApplyVisitorOutcomeStatic(target, outcome, initiator);
+            
+            // Detect social fight context (can happen alongside colonist-to-colonist)
+            if (target.MentalStateDef == MentalStateDefOf.SocialFighting)
+            {
+                MentalState_SocialFighting socialFight = target.MentalState as MentalState_SocialFighting;
+                if (socialFight != null)
+                {
+                    Pawn otherPawn = socialFight.otherPawn;
+                    if (otherPawn != null)
+                    {
+                        ApplySocialFightOutcomeStatic(target, otherPawn, outcome);
+                    }
+                }
+            }
 
             // Set cooldown
             SetCooldownStatic(initiator, target, raidContext, isTradeContext);
@@ -1274,6 +1311,124 @@ namespace SocialInteractions
             }
         }
 
+        /// <summary>
+        /// Build a social fight specific negotiation prompt.
+        /// </summary>
+        private string BuildSocialFightPrompt(string selectedChoice)
+        {
+            StringBuilder sb = new StringBuilder();
+            
+            sb.AppendLine("You are writing a dialogue in the colony survival game RimWorld.");
+            sb.AppendLine("A physical brawl (social fight) has broken out between two colonists. " + initiator.LabelShort + " is intervening to try and stop the fight.");
+            sb.AppendLine();
+            
+            // Negotiator context
+            var pawn1Data = SocialInteractions.ExtractPawnData(initiator, "pawn1", target);
+            sb.AppendLine("[Intervenor - " + initiator.LabelShort + "]");
+            AppendPawnContext(sb, pawn1Data, "pawn1", initiator);
+            sb.AppendLine();
+            
+            // Target context (one of the fighters)
+            var pawn2Data = SocialInteractions.ExtractPawnData(target, "pawn2", initiator);
+            sb.AppendLine("[Fighter 1 - " + target.LabelShort + "]");
+            AppendPawnContext(sb, pawn2Data, "pawn2", target);
+            sb.AppendLine();
+            
+            // Other fighter context
+            if (otherFighter != null)
+            {
+                var pawn3Data = SocialInteractions.ExtractPawnData(otherFighter, "pawn3", initiator);
+                sb.AppendLine("[Fighter 2 - " + otherFighter.LabelShort + "]");
+                AppendPawnContext(sb, pawn3Data, "pawn3", otherFighter);
+                sb.AppendLine();
+            }
+            
+            // Relationship
+            sb.AppendLine("[Relationships]");
+            sb.AppendLine(initiator.LabelShort + " and " + target.LabelShort + ": " + SocialInteractions.GetRelationship(initiator, target));
+            if (otherFighter != null)
+            {
+                sb.AppendLine(initiator.LabelShort + " and " + otherFighter.LabelShort + ": " + SocialInteractions.GetRelationship(initiator, otherFighter));
+                sb.AppendLine(target.LabelShort + " and " + otherFighter.LabelShort + ": " + SocialInteractions.GetRelationship(target, otherFighter));
+            }
+            sb.AppendLine();
+            
+            // World context
+            AppendWorldContext(sb);
+            sb.AppendLine();
+            
+            // Conversation history
+            if (conversationHistory.Length > 0)
+            {
+                sb.AppendLine("[Conversation so far]");
+                sb.AppendLine(conversationHistory.ToString());
+                sb.AppendLine();
+            }
+            
+            // Selected choice
+            if (!string.IsNullOrEmpty(selectedChoice))
+            {
+                sb.AppendLine("[" + initiator.LabelShort + " says: \"" + selectedChoice + "\"]");
+                sb.AppendLine();
+            }
+            
+            string punchTarget = (otherFighter != null) ? otherFighter.LabelShort : "someone";
+            sb.AppendLine("Continue the dialogue. Write what " + initiator.LabelShort + " says, then " + target.LabelShort + "'s response (who is currently punching " + punchTarget + ").");
+            sb.AppendLine("If the fighters are convinced to stop, provide a POSITIVE outcome.");
+            sb.AppendLine("If they are not only stopped but also reconciled and regret their actions, provide a CRITICAL_SUCCESS outcome.");
+            sb.AppendLine("Otherwise, provide a NEUTRAL or NEGATIVE outcome (where they keep fighting or turn on the intervenor).");
+            sb.AppendLine("Respect the following format for the response to be parsed properly.");
+            sb.AppendLine();
+            sb.AppendLine("FORMAT:");
+            sb.AppendLine(initiator.LabelShort + ": dialogue");
+            sb.AppendLine(target.LabelShort + ": response");
+            sb.AppendLine();
+            sb.AppendLine("OUTCOME: POSITIVE | NEUTRAL | NEGATIVE | CRITICAL_SUCCESS");
+            sb.AppendLine();
+            sb.AppendLine("CHOICES:");
+            sb.AppendLine("1. action/statement");
+            sb.AppendLine("2. action/statement");
+            sb.AppendLine("3. action/statement");
+            sb.AppendLine("END_CHOICES");
+            
+            return sb.ToString();
+        }
+
+        public static void ApplySocialFightOutcomeStatic(Pawn target, Pawn otherFighter, NegotiationOutcome outcome)
+        {
+            if (outcome == NegotiationOutcome.Positive || outcome == NegotiationOutcome.CriticalSuccess)
+            {
+                // Stop the fight
+                if (target.MentalStateDef == MentalStateDefOf.SocialFighting)
+                {
+                    target.mindState.mentalStateHandler.CurState.RecoverFromState();
+                    SLog.Message("[Negotiation] Stopped social fight for " + target.LabelShort);
+                }
+                if (otherFighter.MentalStateDef == MentalStateDefOf.SocialFighting)
+                {
+                    otherFighter.mindState.mentalStateHandler.CurState.RecoverFromState();
+                    SLog.Message("[Negotiation] Stopped social fight for " + otherFighter.LabelShort);
+                }
+
+                if (outcome == NegotiationOutcome.CriticalSuccess)
+                {
+                    // Reconcile relationship
+                    if (SI_ThoughtDefOf.FoundCommonGround != null)
+                    {
+                        if (target.needs != null && target.needs.mood != null && target.needs.mood.thoughts != null && target.needs.mood.thoughts.memories != null)
+                        {
+                            target.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.FoundCommonGround, otherFighter);
+                        }
+                        if (otherFighter.needs != null && otherFighter.needs.mood != null && otherFighter.needs.mood.thoughts != null && otherFighter.needs.mood.thoughts.memories != null)
+                        {
+                            otherFighter.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.FoundCommonGround, target);
+                        }
+                        SLog.Message("[Negotiation] Applied FoundCommonGround reconciliation between " + target.LabelShort + " and " + otherFighter.LabelShort);
+                    }
+                }
+            }
+        }
+
         private void SendOutcomeNotification(NegotiationOutcome outcome)
         {
             if (outcome == NegotiationOutcome.Neutral) return;
@@ -1298,6 +1453,11 @@ namespace SocialInteractions
             {
                 string factionName = (target.Faction != null) ? target.Faction.Name : "Unknown Faction";
                 message = string.Format("Negotiation with {0} of {1}: {2}", target.LabelShort, factionName, outcomeLabel);
+            }
+            else if (isSocialFightContext)
+            {
+                string otherName = (otherFighter != null) ? otherFighter.LabelShort : "someone";
+                message = string.Format("Negotiation to stop the fight between {0} and {1}: {2}", target.LabelShort, otherName, outcomeLabel);
             }
             else
             {

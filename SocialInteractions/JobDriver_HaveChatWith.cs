@@ -57,6 +57,10 @@ namespace SocialInteractions
                         {
                             subject = "Negotiating with raiders for a peaceful resolution";
                         }
+                        else if (target.MentalStateDef == MentalStateDefOf.SocialFighting)
+                        {
+                            subject = "Attempting to break up the social fight through negotiation";
+                        }
                         else if (target.TraderKind != null)
                         {
                             subject = "Negotiating a trade deal for better prices";

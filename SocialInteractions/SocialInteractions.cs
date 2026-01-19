@@ -1090,13 +1090,24 @@ namespace SocialInteractions
                 return "None";
             }
 
+            List<string> afflictionsList = new List<string>();
+
+            // 1. Get missing external parts (not replaced by prosthetics)
+            var missingParts = pawn.health.hediffSet.GetMissingPartsCommonAncestors()
+                .Where(mp => mp.Part != null && mp.Part.depth == BodyPartDepth.Outside)
+                .Select(mp => mp.Part.LabelCap + " " + mp.Label);
+            
+            afflictionsList.AddRange(missingParts);
+
+            // 2. Get significant bad hediffs (excluding implants and missing parts which are handled above)
             var significantHediffs = pawn.health.hediffSet.hediffs
                 .Where(h => h.Visible && h.def.defName != "OnDate" && h.def.defName != "ImplantedIUD" && !(h is Hediff_MissingPart) && !(h is Hediff_Implant) && (h.def.isBad || h.def.makesSickThought))
                 .OrderByDescending(h => h.Severity)
-                .Take(3)
-                .Select(h => h.LabelCap);
+                .Select(h => (h.Part != null ? h.Part.LabelCap + " " : "") + h.LabelCap);
 
-            // Check for pregnancy separately since it's not considered a "bad" hediff
+            afflictionsList.AddRange(significantHediffs);
+
+            // 3. Check for pregnancy separately since it's not considered a "bad" hediff
             Hediff pregnancyHediff = null;
             if (ModsConfig.BiotechActive)
             {
@@ -1105,12 +1116,6 @@ namespace SocialInteractions
             else
             {
                 pregnancyHediff = pawn.health.hediffSet.GetFirstHediffOfDef(HediffDefOf.Pregnant);
-            }
-
-            List<string> afflictionsList = new List<string>();
-            if (significantHediffs.Any())
-            {
-                afflictionsList.AddRange(significantHediffs);
             }
 
             if (pregnancyHediff != null)
@@ -1136,15 +1141,12 @@ namespace SocialInteractions
                 afflictionsList.Add(pregnancyInfo);
             }
 
-            // Limit to 3 most significant afflictions
-            if (afflictionsList.Count > 3)
-            {
-                afflictionsList = afflictionsList.Take(3).ToList();
-            }
+            // Limit to 3 most significant afflictions, removing duplicates if any (though unlikely with this logic)
+            var finalAfflictions = afflictionsList.Distinct().Take(3);
 
-            if (afflictionsList.Any())
+            if (finalAfflictions.Any())
             {
-                return string.Join(", ", afflictionsList.ToArray());
+                return string.Join(", ", finalAfflictions.ToArray());
             }
 
             return "None";

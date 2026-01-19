@@ -35,6 +35,18 @@ namespace SocialInteractions
         public bool Stream { get; set; }
         [DataMember(Name = "stop")]
         public List<string> Stop { get; set; }
+        
+        // Extended sampler settings for OpenAI-compatible servers
+        [DataMember(Name = "top_p", EmitDefaultValue = false)]
+        public float? TopP { get; set; }
+        [DataMember(Name = "top_k", EmitDefaultValue = false)]
+        public int? TopK { get; set; }
+        [DataMember(Name = "min_p", EmitDefaultValue = false)]
+        public float? MinP { get; set; }
+        [DataMember(Name = "xtc_threshold", EmitDefaultValue = false)]
+        public float? XtcThreshold { get; set; }
+        [DataMember(Name = "xtc_probability", EmitDefaultValue = false)]
+        public float? XtcProbability { get; set; }
 
         public OpenAiApiRequest()
         {
@@ -145,8 +157,20 @@ namespace SocialInteractions
                     Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
                     MaxTokens = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
                     Stream = false,
-                    Stop = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
+                    Stop = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)),
+                    
+                    // Populate extended sampler settings
+                    TopK = topK ?? (SocialInteractions.Settings.llmTopK > 0 ? (int?)SocialInteractions.Settings.llmTopK : null),
+                    TopP = topP ?? (SocialInteractions.Settings.llmTopP < 1.0f ? (float?)SocialInteractions.Settings.llmTopP : null),
+                    MinP = minP ?? (SocialInteractions.Settings.llmMinP > 0.0f ? (float?)SocialInteractions.Settings.llmMinP : null)
                 };
+
+                // Add XTC sampling if enabled
+                if (enableXtcSampling ?? SocialInteractions.Settings.enableXtcSampling)
+                {
+                    request.XtcProbability = 0.5f;
+                    request.XtcThreshold = 0.1f;
+                }
 
                 // Add system message to guide response format
                 request.Messages.Add(new OpenAiApiMessage

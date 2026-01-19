@@ -19,6 +19,12 @@ Enhance your RimWorld experience with an expanded set of social interactions aug
 - **Voice matching**: Automatic voice matching to pawns based on gender (if available voices are prefixed with "af_" or "am_").
 - **Persistent Voices**: Voice mappings are saved and persist throughout sessions, or they can be reset in settings.
 
+### Interactive Negotiation System
+- **Live AI Dialogue**: Engage in real-time, back-and-forth negotiations with Raiders, Traders, and Visitors.
+- **Dynamic Outcomes**: Convince Raiders to leave peacefully, haggle with Traders for better prices, or impress Visitors enough that they [b]offer to join your colony[/b].
+- **Skill Matters**: Negotiation success depends on your pawn's Social skill and your dialogue choices.
+- **Simple Mode Toggle**: Toggle interactive negotiation off in mod settings for a simple, Social skill based roll to decide the outcome.
+
 ### Advanced Dating System
 - **Realistic Dating Mechanics**: Pawns can ask others on dates with acceptance based on opinion and mood
 - **Date Activities**: Partners follow and participate in joy activities together
