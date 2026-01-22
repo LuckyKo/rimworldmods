@@ -147,6 +147,14 @@ namespace SocialInteractions
             if (interactionDef == SI_InteractionDefOf.ChildAnnoying && Settings.enableChildrenMisbehavior) return true;
             if (interactionDef == SI_InteractionDefOf.ChildPlayTag && Settings.enableChildrenMisbehavior) return true;
             if (interactionDef.defName == "KindWords" && Settings.enableKindWordsInteractions) return true;
+            if (interactionDef.defName == "Flirt" && Settings.enableFlirt) return true;
+            if (interactionDef.defName == "Slight" && Settings.enableSlight) return true;
+            if (interactionDef.defName == "IncestuousFlirt" && Settings.enableIncestuousFlirt) return true;
+            if (interactionDef.defName == "Rapport" && Settings.enableRapport) return true;
+            if (interactionDef == InteractionDefOf.RecruitAttempt && Settings.enableRecruitAttempt) return true;
+            if (interactionDef.defName == "ReduceResistance" && Settings.enableReduceResistance) return true;
+            if (interactionDef == InteractionDefOf.ReduceWill && Settings.enableReduceWill) return true;
+            if ((interactionDef.defName == "EnslaveAttempt" || (InteractionDefOf.EnslaveAttempt != null && interactionDef == InteractionDefOf.EnslaveAttempt)) && Settings.enableEnslaveAttempt) return true;
             return false;
         }
 

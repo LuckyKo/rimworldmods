@@ -54,7 +54,15 @@ namespace SocialInteractions
                         (interactionDef == InteractionDefOf.Reassure && SocialInteractions.Settings.enableReassure) ||
                         (interactionDef == InteractionDefOf.DisturbingChat && SocialInteractions.Settings.enableDisturbingChat) ||
                         (interactionDef.defName == "KindWords" && SocialInteractions.Settings.enableKindWordsInteractions) ||
-                        (interactionDef == SI_InteractionDefOf.ChildAnnoying && SocialInteractions.Settings.enableChildrenMisbehavior))
+                        (interactionDef == SI_InteractionDefOf.ChildAnnoying && SocialInteractions.Settings.enableChildrenMisbehavior) ||
+                        (interactionDef.defName == "Flirt" && SocialInteractions.Settings.enableFlirt) ||
+                        (interactionDef.defName == "Slight" && SocialInteractions.Settings.enableSlight) ||
+                        (interactionDef.defName == "IncestuousFlirt" && SocialInteractions.Settings.enableIncestuousFlirt) ||
+                        (interactionDef.defName == "Rapport" && SocialInteractions.Settings.enableRapport) ||
+                        (interactionDef == InteractionDefOf.RecruitAttempt && SocialInteractions.Settings.enableRecruitAttempt) ||
+                        (interactionDef.defName == "ReduceResistance" && SocialInteractions.Settings.enableReduceResistance) ||
+                        (interactionDef == InteractionDefOf.ReduceWill && SocialInteractions.Settings.enableReduceWill) ||
+                        ((interactionDef.defName == "EnslaveAttempt" || (InteractionDefOf.EnslaveAttempt != null && interactionDef == InteractionDefOf.EnslaveAttempt)) && SocialInteractions.Settings.enableEnslaveAttempt))
                     {
                         // SLog.Message(string.Format("[SocialInteractions] Interaction {0} matches criteria, checking if LLM interaction is enabled.", interactionDef.defName));
 

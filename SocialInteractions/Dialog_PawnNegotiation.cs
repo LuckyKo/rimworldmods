@@ -274,8 +274,8 @@ namespace SocialInteractions
                 y += ChoiceButtonHeight + ChoiceSpacing;
             }
             
-            // Custom input field - hide when concluded or failed
-            if (closeTime <= 0)
+            // Custom input field - hide when concluded or failed or max turns reached
+            if (closeTime <= 0 && !manager.IsInteractionLimitReached)
             {
                 Rect inputLabelRect = new Rect(innerRect.x, y, 100f, CustomInputHeight);
                 Rect inputFieldRect = new Rect(innerRect.x + 65f, y, buttonWidth - 65f - 80f, CustomInputHeight);

@@ -61,6 +61,10 @@ namespace SocialInteractions
                         {
                             subject = "Attempting to break up the social fight through negotiation";
                         }
+                        else if (target.InMentalState)
+                        {
+                            subject = string.Format("Attempting to snap {0} out of their {1} through negotiation", target.LabelShort, target.MentalStateDef.label);
+                        }
                         else if (target.TraderKind != null)
                         {
                             subject = "Negotiating a trade deal for better prices";

@@ -139,6 +139,14 @@
   <SocialInteractions_EnableBreakups>Breakups</SocialInteractions_EnableBreakups>
   <SocialInteractions_EnableIdeologyConversionInteractions>Ideology Conversion</SocialInteractions_EnableIdeologyConversionInteractions>
   <SocialInteractions_EnableKindWordsInteractions>Kind Words</SocialInteractions_EnableKindWordsInteractions>
+  <SocialInteractions_EnableFlirt>Flirt</SocialInteractions_EnableFlirt>
+  <SocialInteractions_EnableSlight>Slight</SocialInteractions_EnableSlight>
+  <SocialInteractions_EnableIncestuousFlirt>Incestuous Flirt</SocialInteractions_EnableIncestuousFlirt>
+  <SocialInteractions_EnableRapport>Rapport (Prisoner)</SocialInteractions_EnableRapport>
+  <SocialInteractions_EnableRecruitAttempt>Recruit Attempt</SocialInteractions_EnableRecruitAttempt>
+  <SocialInteractions_EnableReduceResistance>Reduce Resistance</SocialInteractions_EnableReduceResistance>
+  <SocialInteractions_EnableReduceWill>Reduce Will</SocialInteractions_EnableReduceWill>
+  <SocialInteractions_EnableEnslaveAttempt>Enslave Attempt</SocialInteractions_EnableEnslaveAttempt>
   
   <!-- TTS Settings -->
   <SocialInteractions_TTSSettings>Text-to-Speech Settings</SocialInteractions_TTSSettings>

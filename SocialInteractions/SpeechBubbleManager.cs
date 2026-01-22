@@ -97,54 +97,63 @@ namespace SocialInteractions
                     SpeechBubble bubble = speechBubbleQueue.Dequeue();
                     nextQueuedBubbleDisplayTime = Time.time + bubble.duration;
                     
-                    // Trigger TTS when bubble pops out
-                    if (!string.IsNullOrEmpty(bubble.ttsText))
+                    try
                     {
-                        SpeakIfEnabled(bubble.ttsText, bubble.speaker);
-                    }
-
-                    if (bubble.speaker != null && bubble.speaker.Map != null)
-                    {
-                        if (bubble.useCustomMote)
+                        // Trigger TTS when bubble pops out
+                        if (!string.IsNullOrEmpty(bubble.ttsText))
                         {
-                            // Use custom mote for LLM-generated text
-                            if (bubble.color.HasValue)
+                            SpeakIfEnabled(bubble.ttsText, bubble.speaker);
+                        }
+
+                        if (bubble.speaker != null && bubble.speaker.Map != null)
+                        {
+                            if (bubble.useCustomMote)
                             {
-                                MakeCustomMote(bubble.speaker, bubble.text, bubble.color.Value, bubble.duration);
+                                // Use custom mote for LLM-generated text
+                                if (bubble.color.HasValue)
+                                {
+                                    MakeCustomMote(bubble.speaker, bubble.text, bubble.color.Value, bubble.duration);
+                                }
+                                else
+                                {
+                                    MakeCustomMote(bubble.speaker, bubble.text, Color.white, bubble.duration);
+                                }
                             }
                             else
                             {
-                                MakeCustomMote(bubble.speaker, bubble.text, Color.white, bubble.duration);
+                                // Use standard mote for fallback text and combat dialogue
+                                if (bubble.color.HasValue)
+                                {
+                                    MakeStandardMote(bubble.speaker, bubble.text, bubble.color.Value, bubble.duration);
+                                }
+                                else
+                                {
+                                    MakeStandardMote(bubble.speaker, bubble.text, Color.white, bubble.duration);
+                                }
                             }
                         }
-                        else
-                        {
-                            // Use standard mote for fallback text and combat dialogue
-                            if (bubble.color.HasValue)
-                            {
-                                MakeStandardMote(bubble.speaker, bubble.text, bubble.color.Value, bubble.duration);
-                            }
-                            else
-                            {
-                                MakeStandardMote(bubble.speaker, bubble.text, Color.white, bubble.duration);
-                            }
-                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        SLog.Error("[SpeechBubbleManager] Error displaying speech bubble: " + ex.Message);
                     }
 
-                    // Check if there are more bubbles in the queue with the same conversation ID
-                    bool hasMoreBubblesInConversation = false;
-                    foreach (SpeechBubble queuedBubble in speechBubbleQueue)
+                    if (bubble.conversationId != -1)
                     {
-                        if (queuedBubble.conversationId == bubble.conversationId)
+                        bool hasMoreBubblesInConversation = false;
+                        foreach (SpeechBubble queuedBubble in speechBubbleQueue)
                         {
-                            hasMoreBubblesInConversation = true;
-                            break;
+                            if (queuedBubble.conversationId == bubble.conversationId)
+                            {
+                                hasMoreBubblesInConversation = true;
+                                break;
+                            }
                         }
-                    }
-                    
-                    if (!hasMoreBubblesInConversation)
-                    {
-                        EndConversation(bubble.conversationId);
+                        
+                        if (!hasMoreBubblesInConversation)
+                        {
+                            EndConversation(bubble.conversationId);
+                        }
                     }
                 }
             }

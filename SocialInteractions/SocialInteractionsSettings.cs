@@ -24,7 +24,7 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        private const string CURRENT_VERSION = "1.4.2";
+        private const string CURRENT_VERSION = "1.4.5";
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
@@ -146,6 +146,17 @@ Current event: [pawn1] [subject]
         public bool enableIdeologyConversionInteractions = true; // Whether ideology conversion interactions are enabled
         public bool enableKindWordsInteractions = true; // Whether kind words interactions are enabled
         public bool enableRaidNegotiation = true; // Whether negotiation with enemy raids is enabled
+        
+        // New interaction toggles
+        public bool enableFlirt = true;
+        public bool enableSlight = true;
+        public bool enableIncestuousFlirt = true;
+        public bool enableRapport = true;
+        public bool enableRecruitAttempt = true;
+        public bool enableReduceResistance = true;
+        public bool enableReduceWill = true;
+        public bool enableEnslaveAttempt = true;
+
         public float negotiationCooldownHours = 24.0f; // New setting for negotiation cooldown
         
         // String settings
@@ -290,6 +301,17 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref enableIdeologyConversionInteractions, "enableIdeologyConversionInteractions", true);
             Scribe_Values.Look(ref enableKindWordsInteractions, "enableKindWordsInteractions", true);
             Scribe_Values.Look(ref enableRaidNegotiation, "enableRaidNegotiation", true);
+            
+            // New interaction toggles
+            Scribe_Values.Look(ref enableFlirt, "enableFlirt", true);
+            Scribe_Values.Look(ref enableSlight, "enableSlight", true);
+            Scribe_Values.Look(ref enableIncestuousFlirt, "enableIncestuousFlirt", true);
+            Scribe_Values.Look(ref enableRapport, "enableRapport", true);
+            Scribe_Values.Look(ref enableRecruitAttempt, "enableRecruitAttempt", true);
+            Scribe_Values.Look(ref enableReduceResistance, "enableReduceResistance", true);
+            Scribe_Values.Look(ref enableReduceWill, "enableReduceWill", true);
+            Scribe_Values.Look(ref enableEnslaveAttempt, "enableEnslaveAttempt", true);
+
             Scribe_Values.Look(ref negotiationCooldownHours, "negotiationCooldownHours", 24.0f);
             Scribe_Values.Look(ref enableDrama, "enableDrama", false);
             Scribe_Values.Look(ref llmStoppingStrings, "llmStoppingStrings", "");
@@ -466,7 +488,7 @@ Current event: [pawn1] [subject]
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
-            Rect viewRect = new Rect(inRect.x, inRect.y, inRect.width - 16f, inRect.height * 5); // Adjust height as needed
+            Rect viewRect = new Rect(inRect.x, inRect.y, inRect.width - 16f, inRect.height * 6); // Adjust height as needed
             Widgets.BeginScrollView(inRect, ref scrollPosition, viewRect);
 
             Listing_Standard listingStandard = new Listing_Standard();
@@ -981,6 +1003,14 @@ Current event: [pawn1] [subject]
             //listingStandard.CheckboxLabeled("SocialInteractions_UseLlmForBreakups".Translate(), ref SocialInteractions.Settings.useLlmForBreakups);
             listingStandard.CheckboxLabeled("SocialInteractions_EnableIdeologyConversionInteractions".Translate(), ref SocialInteractions.Settings.enableIdeologyConversionInteractions);
             listingStandard.CheckboxLabeled("SocialInteractions_EnableKindWordsInteractions".Translate(), ref SocialInteractions.Settings.enableKindWordsInteractions);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableFlirt".Translate(), ref SocialInteractions.Settings.enableFlirt);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableSlight".Translate(), ref SocialInteractions.Settings.enableSlight);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableIncestuousFlirt".Translate(), ref SocialInteractions.Settings.enableIncestuousFlirt);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableRapport".Translate(), ref SocialInteractions.Settings.enableRapport);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableRecruitAttempt".Translate(), ref SocialInteractions.Settings.enableRecruitAttempt);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableReduceResistance".Translate(), ref SocialInteractions.Settings.enableReduceResistance);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableReduceWill".Translate(), ref SocialInteractions.Settings.enableReduceWill);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableEnslaveAttempt".Translate(), ref SocialInteractions.Settings.enableEnslaveAttempt);
 
             listingStandard.End();
 

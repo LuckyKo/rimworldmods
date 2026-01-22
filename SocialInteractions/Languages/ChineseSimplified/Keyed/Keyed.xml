@@ -139,6 +139,14 @@
   <SocialInteractions_EnableBreakups>分手</SocialInteractions_EnableBreakups>
   <SocialInteractions_EnableIdeologyConversionInteractions>思想转化</SocialInteractions_EnableIdeologyConversionInteractions>
   <SocialInteractions_EnableKindWordsInteractions>友善言辞</SocialInteractions_EnableKindWordsInteractions>
+  <SocialInteractions_EnableFlirt>调情</SocialInteractions_EnableFlirt>
+  <SocialInteractions_EnableSlight>轻视</SocialInteractions_EnableSlight>
+  <SocialInteractions_EnableIncestuousFlirt>乱伦调情</SocialInteractions_EnableIncestuousFlirt>
+  <SocialInteractions_EnableRapport>建立关系</SocialInteractions_EnableRapport>
+  <SocialInteractions_EnableRecruitAttempt>尝试招募</SocialInteractions_EnableRecruitAttempt>
+  <SocialInteractions_EnableReduceResistance>降低抵抗</SocialInteractions_EnableReduceResistance>
+  <SocialInteractions_EnableReduceWill>降低意志</SocialInteractions_EnableReduceWill>
+  <SocialInteractions_EnableEnslaveAttempt>尝试奴役</SocialInteractions_EnableEnslaveAttempt>
   
   <!-- TTS Settings -->
   <SocialInteractions_TTSSettings>文本转语音设置</SocialInteractions_TTSSettings>
