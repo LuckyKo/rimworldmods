@@ -12,6 +12,7 @@ using System.Collections.Generic;
 namespace SocialInteractions
 {
     // Text completion request format
+// Text completion classes (Legacy)
     [DataContract]
     public class LMStudioCompletionRequest
     {
@@ -34,7 +35,6 @@ namespace SocialInteractions
         }
     }
 
-    // Text completion choice format
     [DataContract]
     public class LMStudioCompletionChoice
     {
@@ -46,7 +46,6 @@ namespace SocialInteractions
         public string FinishReason { get; set; }
     }
 
-    // Text completion response format
     [DataContract]
     public class LMStudioCompletionResponse
     {
@@ -62,6 +61,53 @@ namespace SocialInteractions
         public LMStudioCompletionChoice[] Choices { get; set; }
         [DataMember(Name = "usage")]
         public object Usage { get; set; }
+    }
+
+    // Chat completion classes (OpenAI compatible)
+    [DataContract]
+    public class LMStudioChatMessage
+    {
+        [DataMember(Name = "role")]
+        public string Role { get; set; }
+        [DataMember(Name = "content")]
+        public string Content { get; set; }
+    }
+
+    [DataContract]
+    public class LMStudioChatRequest
+    {
+        [DataMember(Name = "model")]
+        public string Model { get; set; }
+        [DataMember(Name = "messages")]
+        public List<LMStudioChatMessage> Messages { get; set; }
+        [DataMember(Name = "temperature")]
+        public float Temperature { get; set; }
+        [DataMember(Name = "max_tokens")]
+        public int? MaxTokens { get; set; }
+        [DataMember(Name = "stream")]
+        public bool Stream { get; set; }
+        [DataMember(Name = "stop")]
+        public List<string> Stop { get; set; }
+
+        public LMStudioChatRequest()
+        {
+            Stream = false;
+            Messages = new List<LMStudioChatMessage>();
+        }
+    }
+
+    [DataContract]
+    public class LMStudioChatResponse
+    {
+        [DataMember(Name = "choices")]
+        public LMStudioChatChoice[] Choices { get; set; }
+    }
+
+    [DataContract]
+    public class LMStudioChatChoice
+    {
+        [DataMember(Name = "message")]
+        public LMStudioChatMessage Message { get; set; }
     }
 
     public class LMStudioApiClient : IDisposable
@@ -86,6 +132,11 @@ namespace SocialInteractions
 
             try
             {
+                if (SocialInteractions.Settings.forceChatCompletion)
+                {
+                    return await GenerateChatText(prompt, maxLength, temperature, stopSequence);
+                }
+
                 var request = new LMStudioCompletionRequest
                 {
                     Model = _modelName,
@@ -127,7 +178,7 @@ namespace SocialInteractions
 
                 if (apiResponse != null && apiResponse.Choices != null && apiResponse.Choices.Length > 0)
                 {
-                    return apiResponse.Choices[0].Text;
+                    return CleanChatResponse(apiResponse.Choices[0].Text);
                 }
                 return null;
             }
@@ -141,6 +192,60 @@ namespace SocialInteractions
                 SLog.Warning(string.Format("[SocialInteractions] LMStudioApiClient: Unexpected error during text generation: {0}", ex.Message));
                 return null;
             }
+        }
+
+        private async Task<string> GenerateChatText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null)
+        {
+            var request = new LMStudioChatRequest
+            {
+                Model = _modelName,
+                Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
+                MaxTokens = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
+                Stream = false,
+                Stop = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
+            };
+
+            request.Messages.Add(new LMStudioChatMessage { Role = "system", Content = "You are generating dialogue for characters in a story. Respond with only the dialogue lines, without any thinking, reasoning, or meta-commentary." });
+            request.Messages.Add(new LMStudioChatMessage { Role = "user", Content = prompt });
+
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(LMStudioChatRequest));
+            MemoryStream stream = new MemoryStream();
+            serializer.WriteObject(stream, request);
+            stream.Position = 0;
+            StreamReader reader = new StreamReader(stream);
+            string jsonContent = reader.ReadToEnd();
+
+            var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(_apiUrl.TrimEnd('/') + "/v1/chat/completions", httpContent);
+            response.EnsureSuccessStatusCode();
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            DataContractJsonSerializer deserializer = new DataContractJsonSerializer(typeof(LMStudioChatResponse));
+            using (var responseStream = new MemoryStream(Encoding.UTF8.GetBytes(responseBody)))
+            {
+                var apiResponse = (LMStudioChatResponse)deserializer.ReadObject(responseStream);
+                if (apiResponse != null && apiResponse.Choices != null && apiResponse.Choices.Length > 0)
+                {
+                    return CleanChatResponse(apiResponse.Choices[0].Message.Content);
+                }
+            }
+            return null;
+        }
+
+        private string CleanChatResponse(string response)
+        {
+            if (string.IsNullOrEmpty(response))
+                return response;
+
+            // Remove thinking blocks with various tag formats
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"<thinking>.*?</thinking>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"<think>.*?</think>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"\[thinking\].*?\[/thinking\]", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
+            // Trim whitespace
+            response = response.Trim();
+            
+            return response;
         }
 
         protected virtual void Dispose(bool disposing)

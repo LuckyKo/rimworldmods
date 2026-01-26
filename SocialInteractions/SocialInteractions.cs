@@ -147,7 +147,7 @@ namespace SocialInteractions
             if (interactionDef == SI_InteractionDefOf.ChildAnnoying && Settings.enableChildrenMisbehavior) return true;
             if (interactionDef == SI_InteractionDefOf.ChildPlayTag && Settings.enableChildrenMisbehavior) return true;
             if (interactionDef.defName == "KindWords" && Settings.enableKindWordsInteractions) return true;
-            if (interactionDef.defName == "Flirt" && Settings.enableFlirt) return true;
+            if (interactionDef.defName == "VRE_Flirted" && Settings.enableFlirt) return true;
             if (interactionDef.defName == "Slight" && Settings.enableSlight) return true;
             if (interactionDef.defName == "IncestuousFlirt" && Settings.enableIncestuousFlirt) return true;
             if (interactionDef.defName == "Rapport" && Settings.enableRapport) return true;
@@ -192,9 +192,10 @@ namespace SocialInteractions
             string pawn2Name = recipient != null ? recipient.LabelShort : "Pawn2";
 
             // Determine if using text completion or chat completion API
-            bool isTextCompletion = Settings.llmApiType == LlmApiType.KoboldCpp || 
-                                    Settings.llmApiType == LlmApiType.LMStudio || 
-                                    Settings.llmApiType == LlmApiType.Ollama;
+            bool isLocalApi = Settings.llmApiType == LlmApiType.KoboldCpp || 
+                              Settings.llmApiType == LlmApiType.LMStudio || 
+                              Settings.llmApiType == LlmApiType.Ollama;
+            bool isTextCompletion = isLocalApi && !Settings.forceChatCompletion;
 
             if (isTextCompletion)
             {
@@ -386,9 +387,10 @@ namespace SocialInteractions
 
             // Add API-specific ending for monologue
             string pawnName = pawn != null ? pawn.Name.ToStringShort : "Pawn";
-            bool isTextCompletion = Settings.llmApiType == LlmApiType.KoboldCpp || 
-                                    Settings.llmApiType == LlmApiType.LMStudio || 
-                                    Settings.llmApiType == LlmApiType.Ollama;
+            bool isLocalApi = Settings.llmApiType == LlmApiType.KoboldCpp || 
+                              Settings.llmApiType == LlmApiType.LMStudio || 
+                              Settings.llmApiType == LlmApiType.Ollama;
+            bool isTextCompletion = isLocalApi && !Settings.forceChatCompletion;
 
             if (isTextCompletion)
             {
@@ -724,7 +726,8 @@ namespace SocialInteractions
             string mood = "N/A";
             if (pawn.needs != null && pawn.needs.mood != null)
             {
-                mood = (pawn.needs.mood.CurLevelPercentage * 100).ToString("F0") + "%";
+                float level = pawn.needs.mood.CurLevelPercentage;
+                mood = string.Format("{0}% ({1})", (level * 100).ToString("F0"), GetMoodLabel(level));
             }
             data[prefix + "_mood"] = mood;
 
@@ -797,7 +800,63 @@ namespace SocialInteractions
             // Add custom flavor text (bio) for the pawn
             data[prefix + "_bio"] = GetPawnFlavorText(pawn);
 
+            // Opinion of target
+            data[prefix + "_opinion"] = GetOpinion(pawn, target);
+
             return data;
+        }
+
+        private static string GetOpinion(Pawn pawn, Pawn target)
+        {
+            if (pawn == null || target == null || pawn == target) return "N/A";
+            if (pawn.relations == null) return "N/A";
+
+            int opinion = pawn.relations.OpinionOf(target);
+            string rawReasons = pawn.relations.OpinionExplanation(target);
+            string reasons = "No specific reasons";
+
+            if (!string.IsNullOrEmpty(rawReasons))
+            {
+                // Split by common line endings
+                string[] lines = rawReasons.Split(new string[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
+                
+                // Skip the first line (header) and process the rest
+                List<string> cleanedReasons = new List<string>();
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    string line = lines[i].Trim();
+                    // Remove leading "- " if present
+                    if (line.StartsWith("- "))
+                    {
+                        line = line.Substring(2);
+                    }
+                    else if (line.StartsWith("-"))
+                    {
+                        line = line.Substring(1);
+                    }
+                    
+                    if (!string.IsNullOrEmpty(line))
+                    {
+                        cleanedReasons.Add(line);
+                    }
+                }
+
+                if (cleanedReasons.Count > 0)
+                {
+                    reasons = string.Join(", ", cleanedReasons.ToArray());
+                }
+            }
+
+            return string.Format("{0}% ({1})", opinion, reasons);
+        }
+
+        private static string GetMoodLabel(float level)
+        {
+            if (level < 0.15f) return "Deeply Upset";
+            if (level < 0.35f) return "Upset";
+            if (level < 0.60f) return "Neutral";
+            if (level < 0.80f) return "Content";
+            return "Happy";
         }
 
         public static string GetBiomeInfo(Map map)
@@ -1408,7 +1467,10 @@ namespace SocialInteractions
                         if (!string.IsNullOrEmpty(llmResponse))
                         {
                             // Split the response using multiple possible line break characters
-                            string[] messages = llmResponse.Split(new string[] { "\n", "\r\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                            string[] messages = llmResponse.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                                .Where(s => !string.IsNullOrWhiteSpace(s))
+                                .Take(Settings.llmMaxDialogueLines)
+                                .ToArray();
                             if (messages.Any())
                             {
                                 // --- For LLM Efficiency Timing ---
@@ -1594,7 +1656,10 @@ namespace SocialInteractions
                         if (!string.IsNullOrEmpty(llmResponse))
                         {
                             // Split the response using multiple possible line break characters
-                            string[] messages = llmResponse.Split(new string[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                            string[] messages = llmResponse.Split(new string[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries)
+                                .Where(s => !string.IsNullOrWhiteSpace(s))
+                                .Take(Settings.llmMaxDialogueLines)
+                                .ToArray();
                             if (messages.Any())
                             {
                                 // --- For LLM Efficiency Timing ---
@@ -1752,7 +1817,10 @@ namespace SocialInteractions
                         if (!string.IsNullOrEmpty(llmResponse))
                         {
                             // Split the response using multiple possible line break characters
-                            string[] messages = llmResponse.Split(new string[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                            string[] messages = llmResponse.Split(new string[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries)
+                                .Where(s => !string.IsNullOrWhiteSpace(s))
+                                .Take(Settings.llmMaxDialogueLines)
+                                .ToArray();
                             if (messages.Any())
                             {
                                 string rawMessage = messages[0].Trim();

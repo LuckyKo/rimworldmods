@@ -78,6 +78,19 @@ namespace SocialInteractions
                             // For LLM-enabled interactions, check if we can generate a prompt
                             string prompt = SocialInteractions.GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
 
+                            // Check if either pawn is on a date. If so, DO NOT disrupt with stopping jobs.
+                            bool eitherOnDate = DatingManager.IsOnDate(initiator) || (recipient != null && DatingManager.IsOnDate(recipient));
+
+                            if (eitherOnDate)
+                            {
+                                // Show bubble only, no jobs
+                                string formattedSubject = SpeechBubbleManager.FormatSpeakerName(initiator, subject);
+                                SpeechBubbleManager.ShowDefaultBubble(initiator, formattedSubject);
+                                // Handle the interaction without stopping, and skip spam protection since they are on a date
+                                SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, interactionDef, subject, true);
+                                return;
+                            }
+
                             // Check if LLM is busy and if we should prevent spam
                             if (SocialInteractions.Settings.preventSpam && SpeechBubbleManager.IsLlmCurrentlyBusy())
                             {

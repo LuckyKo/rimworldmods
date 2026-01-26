@@ -25,6 +25,10 @@
   <SocialInteractions_UseTextBackgroundDesc>启用后，LLM生成的文本将显示背景而不是阴影效果。</SocialInteractions_UseTextBackgroundDesc>
   <SocialInteractions_EnableVerboseLogging>启用详细日志</SocialInteractions_EnableVerboseLogging>
   <SocialInteractions_EnableVerboseLoggingDesc>启用后，详细日志将写入Player.log文件用于调试。</SocialInteractions_EnableVerboseLoggingDesc>
+  <SocialInteractions_ForceChatCompletion>强制聊天补全</SocialInteractions_ForceChatCompletion>
+  <SocialInteractions_ForceChatCompletionDesc>启用后，KoboldCpp、LM Studio和Ollama将使用与OpenAI兼容的聊天补全端点，而不是文本生成端点。建议用于较新的模型。</SocialInteractions_ForceChatCompletionDesc>
+  <SocialInteractions_DisableLlmThinking>禁用模型推理 (想法)</SocialInteractions_DisableLlmThinking>
+  <SocialInteractions_DisableLlmThinkingDesc>如果启用，对于支持该功能的模型（如 Gemini 2+、Claude 3.7+、Deepseek R1），将尝试最小化或禁用其内部推理/思考过程。这可以节省输出标记数并显著提高响应速度。</SocialInteractions_DisableLlmThinkingDesc>
   
   <!-- Badmouthing Settings -->
   <SocialInteractions_BadmouthingSettings>背后议论/八卦设置：</SocialInteractions_BadmouthingSettings>
@@ -85,6 +89,7 @@
   <!-- Display Settings -->
   <SocialInteractions_WordsPerLine>每行单词限制（用于对话气泡）：</SocialInteractions_WordsPerLine>
   <SocialInteractions_WordsPerSecond>每秒单词数（用于对话气泡持续时间）：</SocialInteractions_WordsPerSecond>
+  <SocialInteractions_MaxDialogueLines>每次互动的最大对话行数 (1 - 20)：</SocialInteractions_MaxDialogueLines>
   
   <!-- LLM Parameters -->
   <SocialInteractions_MaxTokens>最大输出标记数（1 - 2000）：</SocialInteractions_MaxTokens>
@@ -171,6 +176,10 @@
   <SI_TraderLeavingNegative>协商进展不顺。{0} 及其团队决定立即离开。</SI_TraderLeavingNegative>
   <SI_VisitorGoodwillReduced>协商进展不顺。与 {0} 的关系下降了 {1}点。</SI_VisitorGoodwillReduced>
   <SI_VisitorGoodwillImproved>协商成功！与 {0} 的关系提升了 {1}点。</SI_VisitorGoodwillImproved>
+  
+  <SI_JoinRequestLabel>{0} 想要加入</SI_JoinRequestLabel>
+  <SI_JoinRequestText>{0} 在交流中对你的殖民地留下了深刻印象。他们希望能永久加入你们的社区。\n\n我们应该接受吗？</SI_JoinRequestText>
+  <SI_PawnJoinedColony>{0} 加入了殖民地！</SI_PawnJoinedColony>
   
   <SocialInteractions_NegotiationCooldownHours>协商冷却时间</SocialInteractions_NegotiationCooldownHours>
   <SocialInteractions_Hours>小时</SocialInteractions_Hours>

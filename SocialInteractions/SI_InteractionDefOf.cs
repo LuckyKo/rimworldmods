@@ -6,7 +6,11 @@ namespace SocialInteractions
     [DefOf]
     public static class SI_InteractionDefOf
     {
-        
+        static SI_InteractionDefOf()
+        {
+            DefOfHelper.EnsureInitializedInCtor(typeof(SI_InteractionDefOf));
+        }
+
         public static InteractionDef DateRejected;
         public static InteractionDef DateAccepted;
         public static InteractionDef TendPatient;

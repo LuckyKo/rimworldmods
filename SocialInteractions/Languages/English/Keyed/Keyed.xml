@@ -25,6 +25,10 @@
   <SocialInteractions_UseTextBackgroundDesc>If enabled, LLM-generated text will be displayed with a background instead of a drop shadow.</SocialInteractions_UseTextBackgroundDesc>
   <SocialInteractions_EnableVerboseLogging>Enable Verbose Logging</SocialInteractions_EnableVerboseLogging>
   <SocialInteractions_EnableVerboseLoggingDesc>If enabled, detailed logs will be written to the Player.log file for debugging purposes.</SocialInteractions_EnableVerboseLoggingDesc>
+  <SocialInteractions_ForceChatCompletion>Force Chat Completion</SocialInteractions_ForceChatCompletion>
+  <SocialInteractions_ForceChatCompletionDesc>If enabled, KoboldCpp, LM Studio, and Ollama will use OpenAI-compatible chat completion endpoints instead of text completion. This is recommended for newer models.</SocialInteractions_ForceChatCompletionDesc>
+  <SocialInteractions_DisableLlmThinking>Disable Reasoning (Thoughts)</SocialInteractions_DisableLlmThinking>
+  <SocialInteractions_DisableLlmThinkingDesc>If enabled, tries to minimize or disable internal reasoning/thinking for models that support it (Gemini 2+, Claude 3.7+, Deepseek R1). This saves output tokens and makes responses significantly faster.</SocialInteractions_DisableLlmThinkingDesc>
   
   <!-- Badmouthing Settings -->
   <SocialInteractions_BadmouthingSettings>Badmouthing/gossip Settings:</SocialInteractions_BadmouthingSettings>
@@ -85,6 +89,7 @@
   <!-- Display Settings -->
   <SocialInteractions_WordsPerLine>Words per line limit (for speech bubbles):</SocialInteractions_WordsPerLine>
   <SocialInteractions_WordsPerSecond>Words per second (for speech bubble duration):</SocialInteractions_WordsPerSecond>
+  <SocialInteractions_MaxDialogueLines>Max dialogue lines per interaction (1 - 20):</SocialInteractions_MaxDialogueLines>
   
   <!-- LLM Parameters -->
   <SocialInteractions_MaxTokens>Max Output Tokens (1 - 2000):</SocialInteractions_MaxTokens>

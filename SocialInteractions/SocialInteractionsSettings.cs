@@ -24,7 +24,7 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        private const string CURRENT_VERSION = "1.4.5";
+        private const string CURRENT_VERSION = "1.4.7";
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
@@ -49,6 +49,7 @@ namespace SocialInteractions
          * [pawn#_bio]: Backstory/bio
          * [pawn#_action]: Current job/activity
          * [pawn#_journal]: Recent log entry (when last spoke)
+         * [pawn#_opinion]: Opinion of the conversation target
          * 
          * [relation]: Relationship between pawns (Spouse, Lover, etc.)
          * [tile]: Biome/terrain type of the map
@@ -69,6 +70,8 @@ namespace SocialInteractions
 [pawn2] is currently [pawn2_action]
 
 [pawn2] is [pawn1]'s [relation].
+[pawn1]'s opinion of [pawn2]: [pawn1_opinion]
+[pawn2]'s opinion of [pawn1]: [pawn2_opinion]
 Last time they spoke: [pawn1_journal]
 
 The colony is in a [tile] area, has [colony], and [event]. 
@@ -96,20 +99,23 @@ Current event: [pawn1] [subject]
         public bool llmInteractionsEnabled = false;
         public int wordsPerLineLimit = 10; // Default to 10 words per line
         public float wordsPerSecond = 3.0f; // Default to 5 words per second
+        public int llmMaxDialogueLines = 10; // Default to 10 lines
         public float llmTemperature = 0.7f; // Default temperature
-        public int llmMaxTokens = 300; // Default max tokens
+        public int llmMaxTokens = 1024; // Default max tokens
         public int llmTopK = 40; // Default Top K (0 = disabled)
         public float llmTopP = 1.0f; // Default Top P (1.0 = disabled)
         public float llmMinP = 0.05f; // Default Min P (0.0 = disabled)
         public string ollamaModelName = "llama3.2"; // Default Ollama model name
         public string lmStudioModelName = "gemma-2-2b-it"; // Default LM Studio model name
         public string openAiModelName = "gpt-3.5-turbo"; // Default OpenAI model name
-        public string geminiModelName = "gemini-2.5-flash"; // Default Gemini model name
+        public string geminiModelName = "gemini-flash-latest"; // Default Gemini model name
         public string qwenModelName = "qwen-max"; // Default Qwen model name
         public string deepseekModelName = "deepseek-chat"; // Default Deepseek model name
         public string grokModelName = "grok-3-mini"; // Default Grok model name
+        public bool disableLlmThinking = true; // Whether to disable LLM thinking/reasoning
         public string claudeModelName = "claude-3-sonnet-20240229"; // Default Claude model name
         public bool preventSpam = false;
+        public bool forceChatCompletion = true; // New setting to force chat completion for local APIs
 
         // API settings
         public LlmApiType llmApiType = LlmApiType.KoboldCpp; // Default to KoboldCpp
@@ -257,6 +263,7 @@ Current event: [pawn1] [subject]
         {
             base.ExposeData();
             Scribe_Values.Look(ref pawnsStopOnInteraction, "pawnsStopOnInteraction", true);
+            Scribe_Values.Look(ref disableLlmThinking, "disableLlmThinking", true);
             Scribe_Values.Look(ref enableCombatTaunts, "enableCombatTaunts", true);
             Scribe_Values.Look(ref llmInteractionsEnabled, "llmInteractionsEnabled", false);
             Scribe_Values.Look(ref llmApiType, "llmApiType", LlmApiType.KoboldCpp);
@@ -266,6 +273,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref llmMonologuePromptTemplate, "llmMonologuePromptTemplate", "");
             Scribe_Values.Look(ref wordsPerLineLimit, "wordsPerLineLimit", 10);
             Scribe_Values.Look(ref wordsPerSecond, "wordsPerSecond", 3.0f);
+            Scribe_Values.Look(ref llmMaxDialogueLines, "llmMaxDialogueLines", 10);
             
             Scribe_Values.Look(ref llmTemperature, "llmTemperature", 0.7f);
             Scribe_Values.Look(ref llmMaxTokens, "llmMaxTokens", 300);
@@ -319,6 +327,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref enableXtcSampling, "enableXtcSampling", false);
             Scribe_Values.Look(ref joyThresholdForDate, "joyThresholdForDate", 0.8f);
             Scribe_Values.Look(ref verboseLogging, "verboseLogging", false);
+            Scribe_Values.Look(ref forceChatCompletion, "forceChatCompletion", true);
             
             Scribe_Values.Look(ref useBackgroundTextRendering, "useBackgroundTextRendering", false);
             
@@ -918,6 +927,18 @@ Current event: [pawn1] [subject]
                 }
             }
 
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("SocialInteractions_DisableLlmThinking".Translate(), ref SocialInteractions.Settings.disableLlmThinking, "SocialInteractions_DisableLlmThinkingDesc".Translate());
+
+            if (SocialInteractions.Settings.llmApiType == LlmApiType.KoboldCpp || 
+                SocialInteractions.Settings.llmApiType == LlmApiType.Ollama || 
+                SocialInteractions.Settings.llmApiType == LlmApiType.LMStudio)
+            {
+                listingStandard.Gap();
+                listingStandard.CheckboxLabeled("SocialInteractions_ForceChatCompletion".Translate(), ref SocialInteractions.Settings.forceChatCompletion, "SocialInteractions_ForceChatCompletionDesc".Translate());
+            }
+
+            listingStandard.Gap();
             listingStandard.Label("SocialInteractions_PromptTemplate".Translate());
             string newPromptTemplate = Widgets.TextArea(listingStandard.GetRect(200f), llmPromptTemplateBuffer);
             if (newPromptTemplate != llmPromptTemplateBuffer)
@@ -956,8 +977,11 @@ Current event: [pawn1] [subject]
             Widgets.TextFieldNumeric(listingStandard.GetRect(Text.LineHeight), ref SocialInteractions.Settings.wordsPerLineLimit, ref wordsPerLineBuffer, 1, 50);
 
             listingStandard.Gap();
-            listingStandard.Label(string.Format("SocialInteractions_WordsPerSecond".Translate() + " {0}", SocialInteractions.Settings.wordsPerSecond));
-            SocialInteractions.Settings.wordsPerSecond = listingStandard.Slider(SocialInteractions.Settings.wordsPerSecond, 1f, 20f);
+            listingStandard.Label(string.Format("SocialInteractions_WordsPerSecond".Translate() + ": {0} " + "SocialInteractions_WordsPerSecond".Translate(), SocialInteractions.Settings.wordsPerSecond.ToString("F1")));
+            SocialInteractions.Settings.wordsPerSecond = listingStandard.Slider(SocialInteractions.Settings.wordsPerSecond, 0.5f, 10.0f);
+
+            listingStandard.Label("SocialInteractions_MaxDialogueLines".Translate() + ": " + SocialInteractions.Settings.llmMaxDialogueLines);
+            SocialInteractions.Settings.llmMaxDialogueLines = (int)listingStandard.Slider(SocialInteractions.Settings.llmMaxDialogueLines, 1f, 20f);
 
             listingStandard.Gap();
             listingStandard.Label("SocialInteractions_MaxTokens".Translate());

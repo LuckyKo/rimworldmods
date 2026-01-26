@@ -11,6 +11,7 @@ using System.Collections.Generic;
 
 namespace SocialInteractions
 {
+// Text completion classes (Legacy)
     [DataContract]
     public class KoboldApiRequest
     {
@@ -54,6 +55,54 @@ namespace SocialInteractions
     {
         [DataMember(Name = "text")]
         public string Text { get; set; }
+    }
+
+    // Chat completion classes (OpenAI compatible)
+    [DataContract]
+    public class KoboldChatMessage
+    {
+        [DataMember(Name = "role")]
+        public string Role { get; set; }
+        [DataMember(Name = "content")]
+        public string Content { get; set; }
+    }
+
+    [DataContract]
+    public class KoboldChatRequest
+    {
+        [DataMember(Name = "messages")]
+        public List<KoboldChatMessage> Messages { get; set; }
+        [DataMember(Name = "max_tokens")]
+        public int MaxTokens { get; set; }
+        [DataMember(Name = "temperature")]
+        public float Temperature { get; set; }
+        [DataMember(Name = "stop")]
+        public List<string> Stop { get; set; }
+        [DataMember(Name = "top_k", EmitDefaultValue = false)]
+        public int? TopK { get; set; }
+        [DataMember(Name = "top_p", EmitDefaultValue = false)]
+        public float? TopP { get; set; }
+        [DataMember(Name = "min_p", EmitDefaultValue = false)]
+        public float? MinP { get; set; }
+
+        public KoboldChatRequest()
+        {
+            Messages = new List<KoboldChatMessage>();
+        }
+    }
+
+    [DataContract]
+    public class KoboldChatResponse
+    {
+        [DataMember(Name = "choices")]
+        public KoboldChatChoice[] Choices { get; set; }
+    }
+
+    [DataContract]
+    public class KoboldChatChoice
+    {
+        [DataMember(Name = "message")]
+        public KoboldChatMessage Message { get; set; }
     }
 
     public class KoboldApiClient : IDisposable
@@ -130,6 +179,11 @@ namespace SocialInteractions
 
             try
             {
+                if (SocialInteractions.Settings.forceChatCompletion)
+                {
+                    return await GenerateChatText(prompt, maxLength, temperature, stopSequence, topK, topP, minP);
+                }
+
                 var request = new KoboldApiRequest
                 {
                     Prompt = prompt,
@@ -176,7 +230,7 @@ namespace SocialInteractions
                     // SLog.Message(string.Format("[SocialInteractions] LLM API Request: {0}", prompt));
                     // SLog.Message(string.Format("[SocialInteractions] LLM API Response: {0}", apiResponse.Results[0].Text));
                     
-                    return apiResponse.Results[0].Text;
+                    return CleanChatResponse(apiResponse.Results[0].Text);
                 }
                 return null;
             }
@@ -196,6 +250,61 @@ namespace SocialInteractions
         {
             Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        private async Task<string> GenerateChatText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, int? topK = null, float? topP = null, float? minP = null)
+        {
+            var request = new KoboldChatRequest
+            {
+                MaxTokens = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
+                Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
+                Stop = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)),
+                TopK = topK ?? (SocialInteractions.Settings.llmTopK > 0 ? (int?)SocialInteractions.Settings.llmTopK : null),
+                TopP = topP ?? (SocialInteractions.Settings.llmTopP < 1.0f ? (float?)SocialInteractions.Settings.llmTopP : null),
+                MinP = minP ?? (SocialInteractions.Settings.llmMinP > 0.0f ? (float?)SocialInteractions.Settings.llmMinP : null)
+            };
+
+            request.Messages.Add(new KoboldChatMessage { Role = "system", Content = "You are generating dialogue for characters in a story. Respond with only the dialogue lines, without any thinking, reasoning, or meta-commentary." });
+            request.Messages.Add(new KoboldChatMessage { Role = "user", Content = prompt });
+
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(KoboldChatRequest));
+            MemoryStream stream = new MemoryStream();
+            serializer.WriteObject(stream, request);
+            stream.Position = 0;
+            StreamReader reader = new StreamReader(stream);
+            string jsonContent = reader.ReadToEnd();
+
+            var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(_apiUrl.TrimEnd('/') + "/v1/chat/completions", httpContent);
+            response.EnsureSuccessStatusCode();
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            DataContractJsonSerializer deserializer = new DataContractJsonSerializer(typeof(KoboldChatResponse));
+            using (var responseStream = new MemoryStream(Encoding.UTF8.GetBytes(responseBody)))
+            {
+                var apiResponse = (KoboldChatResponse)deserializer.ReadObject(responseStream);
+                if (apiResponse != null && apiResponse.Choices != null && apiResponse.Choices.Length > 0)
+                {
+                    return CleanChatResponse(apiResponse.Choices[0].Message.Content);
+                }
+            }
+            return null;
+        }
+
+        private string CleanChatResponse(string response)
+        {
+            if (string.IsNullOrEmpty(response))
+                return response;
+
+            // Remove thinking blocks with various tag formats
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"<thinking>.*?</thinking>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"<think>.*?</think>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            response = System.Text.RegularExpressions.Regex.Replace(response, @"\[thinking\].*?\[/thinking\]", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
+            // Trim whitespace
+            response = response.Trim();
+            
+            return response;
         }
 
         protected virtual void Dispose(bool disposing)

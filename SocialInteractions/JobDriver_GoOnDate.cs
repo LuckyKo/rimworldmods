@@ -146,8 +146,9 @@ namespace SocialInteractions
 
                 // Re-validate the recipient before asking for the date
                 // Check if the recipient is still valid for dating
-                if (recipient.Downed || !recipient.Awake() || recipient.InMentalState || recipient.Drafted)
+                if (recipient.Downed || !recipient.Awake() || recipient.InMentalState || recipient.Drafted || DatingManager.IsOnDate(recipient))
                 {
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Recipient {0} is no longer available (Downed/Drafted/OnDate), cancelling.", recipient.LabelShort));
                     Find.PlayLog.Add(new PlayLogEntry_Interaction(DefDatabase<InteractionDef>.GetNamed("DateRejected"), this.pawn, this.Partner, null));
                     DatingManager.RejectDate(this.pawn, this.Partner);
                     SocialInteractions.HandleNonStoppingInteraction(this.pawn, this.Partner, SI_InteractionDefOf.DateRejected, SpeechBubbleManager.GetDateRejectionSubject(this.pawn, this.Partner));
@@ -219,13 +220,28 @@ namespace SocialInteractions
                 Job joyJob = FindJoyJobFor(this.pawn, this.Partner);
                 if (joyJob == null)
                 {
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Could not find joy job for {0} and {1}, ending date.", this.pawn.LabelShort, this.Partner.LabelShort));
+                    SocialInteractions.HandleNonStoppingInteraction(this.pawn, this.Partner, SI_InteractionDefOf.DateRejected, 
+                        string.Format("{0} accepted the date, but they couldn't find anything to do together.", this.Partner.LabelShort));
                     this.EndJobWith(JobCondition.Incompletable);
                     return;
                 }
                 
                 // --- Trigger LLM Interaction with correct subject ---
-                string dateSubject = SpeechBubbleManager.GetDateSubject(this.pawn, this.Partner, joyJob.targetA);
-                SocialInteractions.HandleNonStoppingInteraction(this.pawn, this.Partner, SI_InteractionDefOf.DateAccepted, dateSubject);
+                string dateSubject = "";
+                if (joyJob.def == SI_JobDefOf.SocialRelaxDate)
+                {
+                    if (joyJob.targetA.Thing != null)
+                        dateSubject = string.Format("{0} has accepted {1}'s invitation to hang out and now they are hanging out at the {2}.", this.Partner.LabelShort, this.pawn.LabelShort, joyJob.targetA.Thing.Label);
+                    else
+                        dateSubject = string.Format("{0} has accepted {1}'s invitation to hang out and now they are going for a walk.", this.Partner.LabelShort, this.pawn.LabelShort);
+                }
+                else
+                {
+                    dateSubject = SpeechBubbleManager.GetDateSubject(this.pawn, this.Partner, joyJob.targetA);
+                }
+                
+                SocialInteractions.HandleNonStoppingInteraction(this.pawn, this.Partner, SI_InteractionDefOf.DateAccepted, dateSubject, true);
                 // --- End LLM Interaction ---
                 
                 // Create the FollowAndWatch job for the partner
@@ -396,6 +412,23 @@ namespace SocialInteractions
                 }
             }
             
+            // --- Fallback: SocialRelaxDate ---
+            // If we reach here, no vanilla joy giver worked.
+            // We'll create a SocialRelaxDate job instead of returning null.
+            SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: No vanilla joy found for {0} and {1}, using SocialRelaxDate fallback.", 
+                initiator.LabelShort, partner.LabelShort));
+
+            IntVec3 fallbackSpot = initiator.Position;
+            
+            // For the fallback, we'll just find a random spot nearby to "walk around" during the date.
+            // This is simple and always works.
+            fallbackSpot = RCellFinder.RandomWanderDestFor(initiator, initiator.Position, 7f, null, Danger.None);
+            
+            if (fallbackSpot.IsValid)
+            {
+                return JobMaker.MakeJob(SI_JobDefOf.SocialRelaxDate, fallbackSpot);
+            }
+
             return null;
         }
     }

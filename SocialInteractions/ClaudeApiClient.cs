@@ -54,11 +54,22 @@ namespace SocialInteractions
         public string System { get; set; }
         [DataMember(Name = "stop_sequences", EmitDefaultValue = false)]
         public List<string> StopSequences { get; set; }
+        [DataMember(Name = "thinking", EmitDefaultValue = false)]
+        public ClaudeApiThinking Thinking { get; set; }
 
         public ClaudeApiRequest()
         {
             Messages = new List<ClaudeApiMessage>();
         }
+    }
+
+    [DataContract]
+    public class ClaudeApiThinking
+    {
+        [DataMember(Name = "type")]
+        public string Type { get; set; }
+        [DataMember(Name = "budget_tokens")]
+        public int BudgetTokens { get; set; }
     }
 
     [DataContract]
@@ -178,6 +189,23 @@ namespace SocialInteractions
                     Role = "user",
                     Content = prompt
                 });
+
+                if (SocialInteractions.Settings.disableLlmThinking)
+                {
+                    request.Thinking = new ClaudeApiThinking
+                    {
+                        Type = "disabled"
+                    };
+                }
+                else
+                {
+                    // By default, if the model supports it, enable it with a reasonable budget
+                    request.Thinking = new ClaudeApiThinking
+                    {
+                        Type = "enabled",
+                        BudgetTokens = Math.Max(1024, SocialInteractions.Settings.llmMaxTokens)
+                    };
+                }
 
                 // Convert to JSON
                 DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(ClaudeApiRequest));

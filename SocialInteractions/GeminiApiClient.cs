@@ -23,13 +23,14 @@ namespace SocialInteractions
     {
         [DataMember(Name = "parts")]
         public List<GeminiApiPart> Parts { get; set; }
+        [DataMember(Name = "role", EmitDefaultValue = false)]
+        public string Role { get; set; }
 
         public GeminiApiContent()
         {
             Parts = new List<GeminiApiPart>();
         }
     }
-
     [DataContract]
     public class GeminiApiGenerationConfig
     {
@@ -39,6 +40,17 @@ namespace SocialInteractions
         public List<string> StopSequences { get; set; }
         [DataMember(Name = "temperature")]
         public float Temperature { get; set; }
+        [DataMember(Name = "thinkingConfig", EmitDefaultValue = false)]
+        public GeminiApiThinkingConfig ThinkingConfig { get; set; }
+    }
+
+    [DataContract]
+    public class GeminiApiThinkingConfig
+    {
+        [DataMember(Name = "thinkingBudget", EmitDefaultValue = false)]
+        public int? ThinkingBudget { get; set; }
+        [DataMember(Name = "thinkingLevel", EmitDefaultValue = false)]
+        public string ThinkingLevel { get; set; }
     }
 
     [DataContract]
@@ -60,7 +72,7 @@ namespace SocialInteractions
         public List<GeminiApiContent> Contents { get; set; }
         [DataMember(Name = "generationConfig", EmitDefaultValue = false)]
         public GeminiApiGenerationConfig GenerationConfig { get; set; }
-        [DataMember(Name = "systemInstruction", EmitDefaultValue = false)]
+        [DataMember(Name = "system_instruction", EmitDefaultValue = false)]
         public GeminiApiSystemInstruction SystemInstruction { get; set; }
 
         public GeminiApiRequest()
@@ -74,6 +86,8 @@ namespace SocialInteractions
     {
         [DataMember(Name = "content")]
         public GeminiApiContent Content { get; set; }
+        [DataMember(Name = "finishReason", EmitDefaultValue = false)]
+        public string FinishReason { get; set; }
     }
 
     [DataContract]
@@ -116,12 +130,27 @@ namespace SocialInteractions
                 var request = new GeminiApiRequest();
                 
                 // Add generation config
+                var stopSequences = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
+                // Gemini API supports a maximum of 5 stop sequences
+                if (stopSequences.Count > 5)
+                {
+                    stopSequences = stopSequences.GetRange(0, 5);
+                }
+
                 request.GenerationConfig = new GeminiApiGenerationConfig
                 {
                     MaxOutputTokens = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
                     Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
-                    StopSequences = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
+                    StopSequences = stopSequences
                 };
+
+                if (SocialInteractions.Settings.disableLlmThinking)
+                {
+                    request.GenerationConfig.ThinkingConfig = new GeminiApiThinkingConfig
+                    {
+                        ThinkingBudget = 0
+                    };
+                }
 
                 // Add system instruction
                 request.SystemInstruction = new GeminiApiSystemInstruction();
@@ -132,6 +161,7 @@ namespace SocialInteractions
                 
                 // Add the prompt as a user message content part
                 var content = new GeminiApiContent();
+                content.Role = "user";
                 content.Parts.Add(new GeminiApiPart { Text = prompt });
                 request.Contents.Add(content);
 
@@ -159,12 +189,17 @@ namespace SocialInteractions
 
                 var response = await _httpClient.PostAsync(fullUrl, httpContent);
                 
-                // Log the response status code for debugging
+                // Get response body BEFORE checking success status to capture error details
+                var responseBody = await response.Content.ReadAsStringAsync();
+                
+                // Log the response status code and body for debugging
                 SLog.Message(string.Format("[SocialInteractions] Gemini API Response Status: {0}", response.StatusCode));
+                if (!response.IsSuccessStatusCode)
+                {
+                    SLog.Warning(string.Format("[SocialInteractions] Gemini API Error Body: {0}", responseBody));
+                }
                 
                 response.EnsureSuccessStatusCode(); // Throws an exception if the HTTP response status is an error code
-
-                var responseBody = await response.Content.ReadAsStringAsync();
                 
                 // Log the response body for debugging
                 SLog.Message(string.Format("[SocialInteractions] Gemini API Response Body: {0}", responseBody));
@@ -177,6 +212,12 @@ namespace SocialInteractions
                 {
                     // Extract the text from the first candidate's content
                     var candidate = apiResponse.Candidates[0];
+                    
+                    if (candidate.FinishReason == "MAX_TOKENS")
+                    {
+                        SLog.Warning("[SocialInteractions] Gemini API response was truncated due to MAX_TOKENS. Consider increasing 'llmMaxTokens' in mod settings.");
+                    }
+
                     if (candidate.Content != null && candidate.Content.Parts != null && candidate.Content.Parts.Count > 0)
                     {
                         return CleanChatResponse(candidate.Content.Parts[0].Text);

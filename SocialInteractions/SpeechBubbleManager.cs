@@ -186,11 +186,11 @@ namespace SocialInteractions
 
             if (isRomantic)
             {
-                return string.Format("A date between {0} and {1} at {2}.", initiator.LabelShort, recipient.LabelShort, joySpotLabel);
+                return string.Format("{0} has accepted {1}'s invitation for a date! Now they are hanging out together at {2}.", recipient.LabelShort, initiator.LabelShort, joySpotLabel);
             }
             else
             {
-                return string.Format("{0} and {1} are hanging out together at {2}.", initiator.LabelShort, recipient.LabelShort, joySpotLabel);
+                return string.Format("{0} has accepted {1}'s invitation to hang out! Now they are visiting {2} together.", recipient.LabelShort, initiator.LabelShort, joySpotLabel);
             }
         }
 

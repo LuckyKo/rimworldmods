@@ -161,7 +161,7 @@ namespace SocialInteractions
                                 
                                 if (!string.IsNullOrEmpty(llmResponse))
                                 {
-                                    messages = llmResponse.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                                    messages = llmResponse.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
                                 }
                                 else
                                 {

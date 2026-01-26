@@ -6,6 +6,11 @@ namespace SocialInteractions
     [DefOf]
     public static class SI_JobDefOf
     {
+        static SI_JobDefOf()
+        {
+            DefOfHelper.EnsureInitializedInCtor(typeof(SI_JobDefOf));
+        }
+
         public static JobDef DateLovin;
         public static JobDef GoOnDate;
         public static JobDef FollowAndWatchInitiator;
@@ -24,6 +29,7 @@ namespace SocialInteractions
         public static JobDef SI_PlayTagRunner;
         public static JobDef SI_PlayTagChaser;
         public static JobDef ChildPlayWithRadio;
+        public static JobDef SocialRelaxDate;
         public static JobDef ChildBreakBuilding;
     }
 }

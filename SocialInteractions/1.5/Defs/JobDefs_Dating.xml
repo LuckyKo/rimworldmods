@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Defs>
   
-
   <JobDef>
     <defName>GoOnDate</defName>
     <driverClass>SocialInteractions.JobDriver_GoOnDate</driverClass>
@@ -21,10 +20,17 @@
     <defName>DateLovin</defName>
     <driverClass>SocialInteractions.JobDriver_DateLovin</driverClass>
     <reportString>Doing some Lovin' with TargetA</reportString>
-    
     <suspendable>false</suspendable>
     <casualInterruptible>false</casualInterruptible>
   </JobDef>
 
-  
+  <JobDef>
+    <defName>SocialRelaxDate</defName>
+    <driverClass>SocialInteractions.JobDriver_SocialRelaxDate</driverClass>
+    <reportString>Socializing on a date at TargetA.</reportString>
+    <joyKind>Dating</joyKind>
+    <suspendable>false</suspendable>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
 </Defs>

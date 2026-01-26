@@ -168,11 +168,12 @@ namespace SocialInteractions
                         }
                     }
                     
-                    // Special case: If the initiator is doing a DateLovin job, we should also advance the date
-                    bool isInitiatorDoingDateLovin = (initiator.jobs.curJob != null && initiator.jobs.curJob.def == SI_JobDefOf.DateLovin);
+                    // Special case: If the initiator is doing a DateLovin job or SocialRelaxDate, we should account for it
+                    bool isInitiatorDoingDatingJob = (initiator.jobs.curJob != null && 
+                        (initiator.jobs.curJob.def == SI_JobDefOf.DateLovin || initiator.jobs.curJob.def == SI_JobDefOf.SocialRelaxDate));
                     
-                    // If the initiator is not doing a joy job or is doing the DateLovin job, advance the date
-                    if (!isInitiatorDoingJoyJob || isInitiatorDoingDateLovin)
+                    // If the initiator is not doing a joy job and not doing a dating job, advance the date
+                    if (!isInitiatorDoingJoyJob && !isInitiatorDoingDatingJob)
                     {
                         // Advance the date stage. The DatingManager will handle ending this job.
                         DatingManager.AdvanceDateStage(this.pawn);

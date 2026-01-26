@@ -87,16 +87,28 @@ namespace SocialInteractions
             lock (datesLock)
             {
                 if (initiator == null || partner == null) return;
-                if (!IsOnDate(initiator) && !IsOnDate(partner))
+                
+                // Fail-safe: Don't start a date if either is already on one
+                if (IsOnDate(initiator))
                 {
-                    HediffDef onDateHediffDef = HediffDef.Named("OnDate");
-                    if (onDateHediffDef != null)
-                    {
-                        if (initiator.health != null) initiator.health.AddHediff(onDateHediffDef);
-                        if (partner.health != null) partner.health.AddHediff(onDateHediffDef);
-                    }
-                    dates.Add(new Date(initiator, partner));
+                    SLog.Warning(string.Format("[SocialInteractions] StartDate: Aborting. Initiator {0} is already on a date.", initiator.LabelShort));
+                    return;
                 }
+                if (IsOnDate(partner))
+                {
+                    SLog.Warning(string.Format("[SocialInteractions] StartDate: Aborting. Partner {0} is already on a date.", partner.LabelShort));
+                    return;
+                }
+
+                if (initiator.health != null) initiator.health.AddHediff(SI_HediffDefOf.OnDate);
+                // SLog.Message(string.Format("[SocialInteractions] StartDate: Applied OnDate hediff to initiator {0}.", initiator.LabelShort));
+                
+                if (partner.health != null) partner.health.AddHediff(SI_HediffDefOf.OnDate);
+                // SLog.Message(string.Format("[SocialInteractions] StartDate: Applied OnDate hediff to partner {0}.", partner.LabelShort));
+
+                // Add to active dates
+                dates.Add(new Date(initiator, partner));
+                SLog.Message(string.Format("[SocialInteractions] StartDate: Date started between {0} and {1}.", initiator.LabelShort, partner.LabelShort));
             }
         }
 
@@ -223,7 +235,11 @@ namespace SocialInteractions
                         try
                         {
                             Hediff hediffInitiator = date.Initiator.health.hediffSet.GetFirstHediffOfDef(onDateDef);
-                            if (hediffInitiator != null) date.Initiator.health.RemoveHediff(hediffInitiator);
+                            if (hediffInitiator != null) 
+                            {
+                                date.Initiator.health.RemoveHediff(hediffInitiator);
+                                SLog.Message(string.Format("[SocialInteractions] EndDate: Removed OnDate hediff from initiator {0}.", initiatorLabel));
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -236,7 +252,11 @@ namespace SocialInteractions
                         try
                         {
                             Hediff hediffPartner = date.Partner.health.hediffSet.GetFirstHediffOfDef(onDateDef);
-                            if (hediffPartner != null) date.Partner.health.RemoveHediff(hediffPartner);
+                            if (hediffPartner != null) 
+                            {
+                                date.Partner.health.RemoveHediff(hediffPartner);
+                                SLog.Message(string.Format("[SocialInteractions] EndDate: Removed OnDate hediff from partner {0}.", partnerLabel));
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -333,17 +353,19 @@ namespace SocialInteractions
                 return false;
             }
             
-            HediffDef onDateDef = HediffDef.Named("OnDate");
+            HediffDef onDateDef = SI_HediffDefOf.OnDate;
             if (onDateDef == null) 
+            {
+                // Fallback attempt if DefOf fails
+                onDateDef = HediffDef.Named("OnDate");
+            }
+
+            if (onDateDef == null)
             {
                 return false;
             }
             
             bool hasHediff = pawn.health.hediffSet.HasHediff(onDateDef);
-            // Only log when a pawn is actually on a date to reduce log spam
-            // SLog.Message(string.Format("[SocialInteractions] DatingManager.IsOnDate: Pawn {0} has OnDate hediff: {1}", 
-            //     pawn.Name != null ? pawn.Name.ToStringShort : "NULL", 
-            //     hasHediff));
             return hasHediff;
         }
 
@@ -512,13 +534,13 @@ namespace SocialInteractions
                         if (initiator != null && initiator.jobs != null && initiator.CurJob != null)
                         {
                             if (isDoingJoyJob || initiator.CurJobDef == dateLovinJobDef || initiator.CurJobDef == goOnDateJobDef || 
-                                initiator.CurJobDef == waitMaintainPostureJobDef) // Add Wait_MaintainPosture as valid job
+                                initiator.CurJobDef == waitMaintainPostureJobDef || initiator.CurJobDef == SI_JobDefOf.SocialRelaxDate) // Include SocialRelaxDate
                             {
                                 // Date is not stuck
                                 continue;
                             }
                             
-                            // Check if the initiator is pathing to a joy job or DateLovin job
+                            // Check if the initiator is pathing to a joy job, DateLovin job, or SocialRelaxDate
                             if (initiator.pather != null && initiator.pather.curPath != null && !initiator.pather.curPath.NodesLeftCount.Equals(0))
                             {
                                 // Initiator is still pathing, so the date is not stuck
@@ -526,11 +548,11 @@ namespace SocialInteractions
                             }
                         }
                         
-                        // If we can't find a valid initiator or the initiator is not doing a joy job, DateLovin job, GoOnDate job, or Wait_MaintainPosture job, 
+                        // If we can't find a valid initiator or the initiator is not doing a joy job, DateLovin job, GoOnDate job, Wait_MaintainPosture job, or SocialRelaxDate,
                         // and they're not pathing to one, advance the date
                         if (initiator == null || initiator.jobs == null || initiator.CurJob == null || 
                             (!isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef && initiator.CurJobDef != goOnDateJobDef && 
-                             initiator.CurJobDef != waitMaintainPostureJobDef)) // Add Wait_MaintainPosture as valid job
+                             initiator.CurJobDef != waitMaintainPostureJobDef && initiator.CurJobDef != SI_JobDefOf.SocialRelaxDate)) // Include SocialRelaxDate
                         {
                             AdvanceDateStage(pawn);
                         }

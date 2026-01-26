@@ -40,12 +40,23 @@ namespace SocialInteractions
         public bool? Stream { get; set; }
         [DataMember(Name = "stop", EmitDefaultValue = false)]
         public List<string> Stop { get; set; }
+        [DataMember(Name = "thinking", EmitDefaultValue = false)]
+        public DeepseekApiThinking Thinking { get; set; }
 
         public DeepseekApiRequest()
         {
             Messages = new List<DeepseekApiMessage>();
             Stream = false;
         }
+    }
+
+    [DataContract]
+    public class DeepseekApiThinking
+    {
+        [DataMember(Name = "type")]
+        public string Type { get; set; }
+        [DataMember(Name = "budget_tokens")]
+        public int BudgetTokens { get; set; }
     }
 
     [DataContract]
@@ -166,6 +177,23 @@ namespace SocialInteractions
                     Role = "user",
                     Content = prompt
                 });
+
+                if (SocialInteractions.Settings.disableLlmThinking)
+                {
+                    request.Thinking = new DeepseekApiThinking
+                    {
+                        Type = "disabled"
+                    };
+                }
+                else
+                {
+                    // By default, if the model supports it, enable it with a reasonable budget
+                    request.Thinking = new DeepseekApiThinking
+                    {
+                        Type = "enabled",
+                        BudgetTokens = Math.Max(1024, SocialInteractions.Settings.llmMaxTokens)
+                    };
+                }
 
                 // Convert to JSON
                 DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(DeepseekApiRequest));
