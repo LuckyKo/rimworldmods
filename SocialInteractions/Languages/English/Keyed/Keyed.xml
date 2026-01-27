@@ -152,6 +152,9 @@
   <SocialInteractions_EnableReduceResistance>Reduce Resistance</SocialInteractions_EnableReduceResistance>
   <SocialInteractions_EnableReduceWill>Reduce Will</SocialInteractions_EnableReduceWill>
   <SocialInteractions_EnableEnslaveAttempt>Enslave Attempt</SocialInteractions_EnableEnslaveAttempt>
+
+  <SocialInteractions_EnableMasterworkMonologue>Monologue: Masterwork/Legendary items</SocialInteractions_EnableMasterworkMonologue>
+  <SocialInteractions_EnableInspirationMonologue>Monologue: Inspiration received</SocialInteractions_EnableInspirationMonologue>
   
   <!-- TTS Settings -->
   <SocialInteractions_TTSSettings>Text-to-Speech Settings</SocialInteractions_TTSSettings>

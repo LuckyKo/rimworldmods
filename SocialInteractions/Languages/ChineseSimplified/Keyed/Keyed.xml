@@ -152,6 +152,9 @@
   <SocialInteractions_EnableReduceResistance>降低抵抗</SocialInteractions_EnableReduceResistance>
   <SocialInteractions_EnableReduceWill>降低意志</SocialInteractions_EnableReduceWill>
   <SocialInteractions_EnableEnslaveAttempt>尝试奴役</SocialInteractions_EnableEnslaveAttempt>
+
+  <SocialInteractions_EnableMasterworkMonologue>独白：大师/传奇级物品制作</SocialInteractions_EnableMasterworkMonologue>
+  <SocialInteractions_EnableInspirationMonologue>独白：获得灵感</SocialInteractions_EnableInspirationMonologue>
   
   <!-- TTS Settings -->
   <SocialInteractions_TTSSettings>文本转语音设置</SocialInteractions_TTSSettings>

@@ -56,6 +56,7 @@ namespace SocialInteractions
                         (interactionDef.defName == "KindWords" && SocialInteractions.Settings.enableKindWordsInteractions) ||
                         (interactionDef == SI_InteractionDefOf.ChildAnnoying && SocialInteractions.Settings.enableChildrenMisbehavior) ||
                         (interactionDef.defName == "Flirt" && SocialInteractions.Settings.enableFlirt) ||
+                        (interactionDef.defName == "VRE_FlirtingAttempt" && SocialInteractions.Settings.enableFlirt) ||
                         (interactionDef.defName == "Slight" && SocialInteractions.Settings.enableSlight) ||
                         (interactionDef.defName == "IncestuousFlirt" && SocialInteractions.Settings.enableIncestuousFlirt) ||
                         (interactionDef.defName == "Rapport" && SocialInteractions.Settings.enableRapport) ||

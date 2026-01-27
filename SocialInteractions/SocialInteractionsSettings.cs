@@ -24,7 +24,7 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        private const string CURRENT_VERSION = "1.4.7";
+        private const string CURRENT_VERSION = "1.4.8";
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
@@ -162,6 +162,10 @@ Current event: [pawn1] [subject]
         public bool enableReduceResistance = true;
         public bool enableReduceWill = true;
         public bool enableEnslaveAttempt = true;
+
+        // Monologue event toggles
+        public bool enableMasterworkMonologue = true; // Monologue when crafting masterwork/legendary
+        public bool enableInspirationMonologue = true; // Monologue when receiving inspiration
 
         public float negotiationCooldownHours = 24.0f; // New setting for negotiation cooldown
         
@@ -319,6 +323,10 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref enableReduceResistance, "enableReduceResistance", true);
             Scribe_Values.Look(ref enableReduceWill, "enableReduceWill", true);
             Scribe_Values.Look(ref enableEnslaveAttempt, "enableEnslaveAttempt", true);
+
+            // Monologue event toggles
+            Scribe_Values.Look(ref enableMasterworkMonologue, "enableMasterworkMonologue", true);
+            Scribe_Values.Look(ref enableInspirationMonologue, "enableInspirationMonologue", true);
 
             Scribe_Values.Look(ref negotiationCooldownHours, "negotiationCooldownHours", 24.0f);
             Scribe_Values.Look(ref enableDrama, "enableDrama", false);
@@ -1035,6 +1043,8 @@ Current event: [pawn1] [subject]
             listingStandard.CheckboxLabeled("SocialInteractions_EnableReduceResistance".Translate(), ref SocialInteractions.Settings.enableReduceResistance);
             listingStandard.CheckboxLabeled("SocialInteractions_EnableReduceWill".Translate(), ref SocialInteractions.Settings.enableReduceWill);
             listingStandard.CheckboxLabeled("SocialInteractions_EnableEnslaveAttempt".Translate(), ref SocialInteractions.Settings.enableEnslaveAttempt);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableMasterworkMonologue".Translate(), ref SocialInteractions.Settings.enableMasterworkMonologue);
+            listingStandard.CheckboxLabeled("SocialInteractions_EnableInspirationMonologue".Translate(), ref SocialInteractions.Settings.enableInspirationMonologue);
 
             listingStandard.End();
 

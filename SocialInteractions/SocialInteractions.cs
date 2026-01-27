@@ -147,7 +147,7 @@ namespace SocialInteractions
             if (interactionDef == SI_InteractionDefOf.ChildAnnoying && Settings.enableChildrenMisbehavior) return true;
             if (interactionDef == SI_InteractionDefOf.ChildPlayTag && Settings.enableChildrenMisbehavior) return true;
             if (interactionDef.defName == "KindWords" && Settings.enableKindWordsInteractions) return true;
-            if (interactionDef.defName == "VRE_Flirted" && Settings.enableFlirt) return true;
+            if (interactionDef.defName == "VRE_FlirtingAttempt" && Settings.enableFlirt) return true;
             if (interactionDef.defName == "Slight" && Settings.enableSlight) return true;
             if (interactionDef.defName == "IncestuousFlirt" && Settings.enableIncestuousFlirt) return true;
             if (interactionDef.defName == "Rapport" && Settings.enableRapport) return true;
