@@ -127,6 +127,12 @@ NegotiationCooldown_GameComponent.cs
 SI_JoinRequestLetter.cs
 QualityUtility_SendCraftNotification_Patch.cs
 InspirationHandler_TryStartInspiration_Patch.cs
+JoyGiver_PesterPrisoner.cs
+JobDriver_PesterPrisoner.cs
+JobDriver_PesterPrisonerPartner.cs
+JobDriver_AbusiveThreesome.cs
+JobDriver_AbusiveThreesomeParticipant.cs
+
 /r:m:/Games/Rimworld.v1.6.4566/game/RimWorldWin64_Data/Managed/UnityEngine.UnityWebRequestModule.dll
 /r:m:/Games/Rimworld.v1.6.4566/game/RimWorldWin64_Data/Managed/UnityEngine.UnityWebRequestAudioModule.dll
 /r:m:/Games/Rimworld.v1.6.4566/game/RimWorldWin64_Data/Managed/UnityEngine.AudioModule.dll

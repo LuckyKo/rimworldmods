@@ -79,15 +79,18 @@ namespace SocialInteractions
                             // For LLM-enabled interactions, check if we can generate a prompt
                             string prompt = SocialInteractions.GenerateDeepTalkPrompt(initiator, recipient, interactionDef, subject);
 
-                            // Check if either pawn is on a date. If so, DO NOT disrupt with stopping jobs.
+                            // Check if either pawn is on a date OR doing a specialized activity.
                             bool eitherOnDate = DatingManager.IsOnDate(initiator) || (recipient != null && DatingManager.IsOnDate(recipient));
+                            
+                            bool eitherDoingSpecializedJob = (initiator.CurJobDef != null && (initiator.CurJobDef.defName == "PesterPrisoner" || initiator.CurJobDef.defName == "PesterPrisonerPartner" || initiator.CurJobDef.defName == "AbusiveThreesome" || initiator.CurJobDef.defName == "AbusiveThreesomeParticipant" || initiator.CurJobDef.defName == "SocialRelaxDate" || initiator.CurJobDef.defName == "DateLovin")) ||
+                                                             (recipient != null && recipient.CurJobDef != null && (recipient.CurJobDef.defName == "PesterPrisoner" || recipient.CurJobDef.defName == "PesterPrisonerPartner" || recipient.CurJobDef.defName == "AbusiveThreesome" || recipient.CurJobDef.defName == "AbusiveThreesomeParticipant" || recipient.CurJobDef.defName == "SocialRelaxDate" || recipient.CurJobDef.defName == "DateLovin"));
 
-                            if (eitherOnDate)
+                            if (eitherOnDate || eitherDoingSpecializedJob)
                             {
                                 // Show bubble only, no jobs
                                 string formattedSubject = SpeechBubbleManager.FormatSpeakerName(initiator, subject);
                                 SpeechBubbleManager.ShowDefaultBubble(initiator, formattedSubject);
-                                // Handle the interaction without stopping, and skip spam protection since they are on a date
+                                // Handle the interaction without stopping
                                 SocialInteractions.HandleNonStoppingInteraction(initiator, recipient, interactionDef, subject, true);
                                 return;
                             }

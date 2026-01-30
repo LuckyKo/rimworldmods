@@ -91,6 +91,10 @@ namespace SocialInteractions
                     // and the grace period has expired
                     if (!shouldKeepHediff && (pawn.jobs == null || pawn.jobs.curDriver == null || 
                        (pawn.jobs.curDriver.GetType().Name != "JobDriver_DateLovin" && 
+                        pawn.jobs.curDriver.GetType().Name != "JobDriver_AbusiveThreesome" &&
+                        pawn.jobs.curDriver.GetType().Name != "JobDriver_AbusiveThreesomeParticipant" &&
+                        pawn.jobs.curDriver.GetType().Name != "JobDriver_PesterPrisoner" &&
+                        pawn.jobs.curDriver.GetType().Name != "JobDriver_PesterPrisonerPartner" &&
                         pawn.jobs.curDriver.GetType().Name != "JobDriver_CaughtCheating")))
                     {
                         SLog.Message(string.Format("[SocialInteractions] Found pawn {0} with SI_Naked hediff but not in lovin' job. Removing hediff.", pawn.LabelShort));

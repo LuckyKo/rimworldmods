@@ -42,6 +42,7 @@ namespace SocialInteractions
 
         public static void Speak(string text, Pawn speaker, float speed = 1.0f, int volume = 100)
         {
+            if (string.IsNullOrEmpty(text)) return;
             if (!SocialInteractions.Settings.enableTTS || SocialInteractions.Settings.ttsMuted) return;
 
             string voiceName = "alloy";
@@ -72,12 +73,14 @@ namespace SocialInteractions
                 playbackBuffer.Clear();
                 // Fast-forward playback ID to ignore any in-flight requests that might arrive later
                 nextPlaybackId = nextRequestId;
+                isPlaying = false;
             }
             
             // Stop current audio
-            if (audioSource != null && audioSource.isPlaying)
+            if (audioSource != null)
             {
                 audioSource.Stop();
+                audioSource.clip = null;
             }
         }
 
@@ -209,149 +212,106 @@ namespace SocialInteractions
             // Yield once to ensure we don't choke the frame if batching calls
             yield return null;
 
+            AudioClip clip = null;
+            float vol = 0;
+            bool success = false;
+
             string url = SocialInteractions.Settings.ttsApiUrl;
             string apiKey = SocialInteractions.Settings.ttsApiKey;
             string model = SocialInteractions.Settings.ttsModel;
-
-            // Use provided voice name, or fallback to "alloy" (OpenAI default) or whatever is set in settings (though settings voice is removed)
-            // We will refine this when we implement the VoiceAssignmentManager
             string voice = !string.IsNullOrEmpty(voiceName) ? voiceName : "alloy";
+            float speed = Mathf.Clamp(SocialInteractions.Settings.ttsSpeed, 0.25f, 4.0f);
 
-            // Create JSON payload
-            // Use speed directly from settings
-            float speed = SocialInteractions.Settings.ttsSpeed;
-            
-            // Clamp strictly to OpenAI bounds (0.25 to 4.0) just in case
-            speed = Mathf.Clamp(speed, 0.25f, 4.0f);
-
-            // Create JSON payload with speed
             string json = string.Format("{{\"model\": \"{0}\", \"input\": \"{1}\", \"voice\": \"{2}\", \"speed\": {3}}}", 
                 model, 
                 text.Replace("\"", "\\\"").Replace("\n", " ").Replace("\r", ""), 
                 voice, 
                 speed.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
-            
-            // Create a PUT request and change to POST (the original approach from the working code)
-            var request = UnityWebRequest.Put(url, json);
-            request.method = "POST";  // Change to POST method after creation, but keep it first try as WAV
+
+            // Try WAV
+            UnityWebRequest request = UnityWebRequest.Put(url, json);
+            request.method = "POST";
             request.SetRequestHeader("Content-Type", "application/json");
-
-            // Use default audio type (WAV) for initial request
             request.downloadHandler = new DownloadHandlerAudioClip(url, AudioType.WAV);
-
-            if (!string.IsNullOrEmpty(apiKey))
-            {
-                request.SetRequestHeader("Authorization", "Bearer " + apiKey);
-            }
+            if (!string.IsNullOrEmpty(apiKey)) request.SetRequestHeader("Authorization", "Bearer " + apiKey);
 
             yield return request.SendWebRequest();
 
-            if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
+            if (request.result != UnityWebRequest.Result.ConnectionError && request.result != UnityWebRequest.Result.ProtocolError)
             {
-                SLog.Error("[SocialInteractions] TTSManager: TTS API Error: " + request.error + "\n" + request.downloadHandler.text);
-                ProcessPlaybackBuffer(requestId, null, 0); // Mark failed
+                clip = DownloadHandlerAudioClip.GetContent(request);
             }
             else
             {
-                // Try to get the audio clip with WAV format first
-                AudioClip clip = DownloadHandlerAudioClip.GetContent(request);
+                SLog.Error("[SocialInteractions] TTSManager: WAV Error: " + request.error);
+            }
 
-                // If it failed with WAV, try with other formats
-                if (clip == null || clip.frequency == 0)  // Check if clip has no valid data
+            // Try MPEG if WAV failed
+            if (clip == null || clip.frequency == 0)
+            {
+                SLog.Message("[SocialInteractions] TTSManager: Trying MPEG...");
+                UnityWebRequest mpegRequest = UnityWebRequest.Put(url, json);
+                mpegRequest.method = "POST";
+                mpegRequest.SetRequestHeader("Content-Type", "application/json");
+                mpegRequest.downloadHandler = new DownloadHandlerAudioClip(url, AudioType.MPEG);
+                if (!string.IsNullOrEmpty(apiKey)) mpegRequest.SetRequestHeader("Authorization", "Bearer " + apiKey);
+
+                yield return mpegRequest.SendWebRequest();
+
+                if (mpegRequest.result != UnityWebRequest.Result.ConnectionError && mpegRequest.result != UnityWebRequest.Result.ProtocolError)
                 {
-                    SLog.Message("[SocialInteractions] TTSManager: WAV format failed, trying MPEG format...");
-
-                    // Retry with MPEG format
-                    var mpegRequest = UnityWebRequest.Put(url, json);
-                    mpegRequest.method = "POST";
-                    mpegRequest.SetRequestHeader("Content-Type", "application/json");
-                    mpegRequest.downloadHandler = new DownloadHandlerAudioClip(url, AudioType.MPEG);
-
-                    if (!string.IsNullOrEmpty(apiKey))
-                    {
-                        mpegRequest.SetRequestHeader("Authorization", "Bearer " + apiKey);
-                    }
-
-                    yield return mpegRequest.SendWebRequest();
-
-                    if (mpegRequest.result == UnityWebRequest.Result.ConnectionError || mpegRequest.result == UnityWebRequest.Result.ProtocolError)
-                    {
-                        SLog.Error("[SocialInteractions] TTSManager: TTS API MPEG Error: " + mpegRequest.error);
-                         ProcessPlaybackBuffer(requestId, null, 0); // Mark failed
-                    }
-                    else
-                    {
-                        clip = DownloadHandlerAudioClip.GetContent(mpegRequest);
-                        // Check if the clip has valid data (frequency > 0)
-                        if (clip != null && clip.frequency == 0)
-                        {
-                            SLog.Message("[SocialInteractions] TTSManager: MPEG format also invalid, clip has 0 frequency, trying OGG...");
-
-                            // Final fallback to OGG
-                            var oggRequest = UnityWebRequest.Put(url, json);
-                            oggRequest.method = "POST";
-                            oggRequest.SetRequestHeader("Content-Type", "application/json");
-                            oggRequest.downloadHandler = new DownloadHandlerAudioClip(url, AudioType.OGGVORBIS);
-
-                            if (!string.IsNullOrEmpty(apiKey))
-                            {
-                                oggRequest.SetRequestHeader("Authorization", "Bearer " + apiKey);
-                            }
-
-                            yield return oggRequest.SendWebRequest();
-
-                            if (oggRequest.result == UnityWebRequest.Result.ConnectionError || oggRequest.result == UnityWebRequest.Result.ProtocolError)
-                            {
-                                SLog.Error("[SocialInteractions] TTSManager: TTS API OGG Error: " + oggRequest.error);
-                                ProcessPlaybackBuffer(requestId, null, 0); // Mark failed
-                            }
-                            else
-                            {
-                                clip = DownloadHandlerAudioClip.GetContent(oggRequest);
-                            }
-                        }
-                    }
-                }
-
-                if (clip == null)
-                {
-                    SLog.Warning("[SocialInteractions] TTSManager: Failed to get audio clip from TTS response with any format. Server may be returning incompatible audio format.");
-                    ProcessPlaybackBuffer(requestId, null, 0); // Mark failed
+                    clip = DownloadHandlerAudioClip.GetContent(mpegRequest);
                 }
                 else
                 {
-                    //SLog.Message(string.Format("[SocialInteractions] TTSManager: Audio clip loaded: {0}Hz, {1} seconds, {2} channels", clip.frequency, clip.length, clip.channels));
-
-                    // Ensure audio source is created and configured properly
-                    if (audioSource == null)
-                    {
-                        GameObject go = new GameObject("SocialInteractions_TTS_Audio");
-                        UnityEngine.Object.DontDestroyOnLoad(go);
-                        audioSource = go.AddComponent<AudioSource>();
-                        audioSource.playOnAwake = false; // Don't play automatically
-                        audioSource.spatialBlend = 0f; // 2D sound (0 = fully 2D, 1 = fully 3D)
-                    }
-
-                    // Ensure audio source is configured properly
-                    audioSource.spatialBlend = 0f; // Ensure 2D sound
-                    audioSource.rolloffMode = AudioRolloffMode.Logarithmic; // Set rolloff mode
-                    audioSource.maxDistance = 500f; // Set a reasonable max distance
-                    audioSource.minDistance = 1f; // Set min distance
-
-                    // Apply volume from settings (0-100 to 0-1 range)
-                    float vol = SocialInteractions.Settings.ttsVolume / 100f;
-                    //SLog.Message(string.Format("[SocialInteractions] TTSManager: Playing audio clip with volume: {0}", vol));
-
-                    // Add the clip to the playback queue to prevent overlapping, respecting order
-                    ProcessPlaybackBuffer(requestId, clip, vol);
-                    //SLog.Message("[SocialInteractions] TTSManager: Added audio clip to playback queue.");
-
-                    // Start the playback manager coroutine if not already running
-                    if (Current.Game != null && Current.Root != null)
-                    {
-                        ((MonoBehaviour)Current.Root).StartCoroutine(ManagePlaybackQueue());
-                    }
+                    SLog.Error("[SocialInteractions] TTSManager: MPEG Error: " + mpegRequest.error);
                 }
+                mpegRequest.Dispose();
+            }
+
+            // Try OGG if MPEG failed
+            if (clip == null || clip.frequency == 0)
+            {
+                SLog.Message("[SocialInteractions] TTSManager: Trying OGG...");
+                UnityWebRequest oggRequest = UnityWebRequest.Put(url, json);
+                oggRequest.method = "POST";
+                oggRequest.SetRequestHeader("Content-Type", "application/json");
+                oggRequest.downloadHandler = new DownloadHandlerAudioClip(url, AudioType.OGGVORBIS);
+                if (!string.IsNullOrEmpty(apiKey)) oggRequest.SetRequestHeader("Authorization", "Bearer " + apiKey);
+
+                yield return oggRequest.SendWebRequest();
+
+                if (oggRequest.result != UnityWebRequest.Result.ConnectionError && oggRequest.result != UnityWebRequest.Result.ProtocolError)
+                {
+                    clip = DownloadHandlerAudioClip.GetContent(oggRequest);
+                }
+                else
+                {
+                    SLog.Error("[SocialInteractions] TTSManager: OGG Error: " + oggRequest.error);
+                }
+                oggRequest.Dispose();
+            }
+
+            request.Dispose();
+
+            if (clip != null && clip.frequency > 0)
+            {
+                success = true;
+            }
+
+            if (success)
+            {
+                // We pass 1.0f here because ManagePlaybackQueue applies the settings volume dynamically
+                ProcessPlaybackBuffer(requestId, clip, 1.0f);
+                if (Current.Game != null && Current.Root != null)
+                {
+                    ((MonoBehaviour)Current.Root).StartCoroutine(ManagePlaybackQueue());
+                }
+            }
+            else
+            {
+                SLog.Warning("[SocialInteractions] TTSManager: All formats failed for request " + requestId);
+                ProcessPlaybackBuffer(requestId, null, 0);
             }
         }
 
@@ -438,9 +398,11 @@ namespace SocialInteractions
                 audioSource.rolloffMode = AudioRolloffMode.Logarithmic; // Set rolloff mode
                 audioSource.maxDistance = 500f; // Set a reasonable max distance
                 audioSource.minDistance = 1f; // Set min distance
-                audioSource.ignoreListenerPause = true; // Play even if game is paused
+                audioSource.ignoreListenerVolume = true; // Make TTS independent of game's master volume slider
 
                 audioSource.clip = entry.clip;
+                // entry.volume is now 1.0f by default from ProcessPlaybackBuffer
+                // We apply the settings volume here so it reacts to slider changes in real-time
                 audioSource.volume = entry.volume * (SocialInteractions.Settings.ttsVolume / 100f);
                 audioSource.Play();
                 

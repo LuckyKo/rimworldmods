@@ -36,5 +36,11 @@ namespace SocialInteractions
         // Negotiation thoughts
         public static ThoughtDef SI_NegotiationPositive;
         public static ThoughtDef SI_NegotiationNegative;
+        
+        // Pester prisoner thoughts
+        public static ThoughtDef WasAbused;
+        public static ThoughtDef AbusedMe;
+        public static ThoughtDef PesteredPrisoner;
+
     }
 }

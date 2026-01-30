@@ -24,7 +24,7 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        private const string CURRENT_VERSION = "1.4.8";
+        private const string CURRENT_VERSION = "1.4.9";
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
@@ -263,6 +263,15 @@ Current event: [pawn1] [subject]
         public float makeUpPositiveOpinionMultiplier = 1.5f; // Multiplier when opinion is positive
         public float makeUpNegativeOpinionMultiplier = 0.7f; // Multiplier when opinion is negative
         
+        // Pester Prisoner/Slave settings
+        public bool enablePesterPrisonerFeature = true; // Whether pester prisoner feature is enabled
+        public int pesterPrisonerDuration = 7200; // Duration in ticks (2 minutes)
+        public int pesterInsultIntervalMin = 900; // Minimum interval between insults (15 seconds)
+        public int pesterInsultIntervalMax = 1800; // Maximum interval between insults (30 seconds)
+        public float pesterJoyGainRate = 0.0001f; // Joy gain per tick
+        public float pesterSuppressionAmount = 0.1f; // Default suppression increase per insult
+
+        
         public override void ExposeData()
         {
             base.ExposeData();
@@ -406,6 +415,15 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref baseMakeUpChance, "baseMakeUpChance", 0.08f);
             Scribe_Values.Look(ref makeUpPositiveOpinionMultiplier, "makeUpPositiveOpinionMultiplier", 1.5f);
             Scribe_Values.Look(ref makeUpNegativeOpinionMultiplier, "makeUpNegativeOpinionMultiplier", 0.7f);
+
+            // Pester Prisoner/Slave settings
+            Scribe_Values.Look(ref enablePesterPrisonerFeature, "enablePesterPrisonerFeature", true);
+            Scribe_Values.Look(ref pesterPrisonerDuration, "pesterPrisonerDuration", 7200);
+            Scribe_Values.Look(ref pesterInsultIntervalMin, "pesterInsultIntervalMin", 1800);
+            Scribe_Values.Look(ref pesterInsultIntervalMax, "pesterInsultIntervalMax", 3600);
+            Scribe_Values.Look(ref pesterJoyGainRate, "pesterJoyGainRate", 0.0001f);
+            Scribe_Values.Look(ref pesterSuppressionAmount, "pesterSuppressionAmount", 0.1f);
+
 
             // TTS Settings
             Scribe_Values.Look(ref enableTTS, "enableTTS", false);
@@ -656,8 +674,8 @@ Current event: [pawn1] [subject]
             
             if (SocialInteractions.Settings.enableTTS)
             {
-                listingStandard.Label(string.Format("SocialInteractions_TTSVolume".Translate() + ": {0}", (int)SocialInteractions.Settings.ttsVolume));
-                SocialInteractions.Settings.ttsVolume = listingStandard.Slider(SocialInteractions.Settings.ttsVolume, 0f, 100f);
+                listingStandard.Label(string.Format("SocialInteractions_TTSVolume".Translate() + ": {0}%", (int)SocialInteractions.Settings.ttsVolume));
+                SocialInteractions.Settings.ttsVolume = listingStandard.Slider(SocialInteractions.Settings.ttsVolume, 0f, 200f);
                     
                 listingStandard.Label(string.Format("SocialInteractions_TTSSpeed".Translate() + ": {0}x", SocialInteractions.Settings.ttsSpeed.ToString("F2")));
                 SocialInteractions.Settings.ttsSpeed = listingStandard.Slider(SocialInteractions.Settings.ttsSpeed, 0.25f, 4.0f);

@@ -62,16 +62,29 @@ namespace SocialInteractions
                         }
                         else
                         {
-                            // This pawn is the partner, so restart their follow job
-                            // Get the initiator of the date
+                            // Check if the initiator is currently performing a specialized dating job
+                            // If they are, we should NOT force the partner to follow, but let them join the specialized job
                             Pawn dateInitiator = DatingManager.GetInitiatorOfDateWith(pawn);
-                            if (dateInitiator != null)
+                            bool initiatorInSpecialJob = (dateInitiator != null && dateInitiator.CurJobDef != null && 
+                                (dateInitiator.CurJobDef.defName == "PesterPrisoner" || 
+                                 dateInitiator.CurJobDef.defName == "AbusiveThreesome"));
+
+                            if (!initiatorInSpecialJob)
                             {
-                                // Create and start the FollowAndWatch job for the partner
-                                Job followJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, dateInitiator);
-                                // Add a small delay before starting the job to prevent race conditions
-                                pawn.jobs.jobQueue.EnqueueFirst(followJob);
-                                pawn.jobs.EndCurrentJob(JobCondition.InterruptForced);
+                                // This pawn is the partner, so restart their follow job
+                                if (dateInitiator != null)
+                                {
+                                    // Create and start the FollowAndWatch job for the partner
+                                    Job followJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, dateInitiator);
+                                    // Add a small delay before starting the job to prevent race conditions
+                                    pawn.jobs.jobQueue.EnqueueFirst(followJob);
+                                    pawn.jobs.EndCurrentJob(JobCondition.InterruptForced);
+                                }
+                            }
+                            else
+                            {
+                                SLog.Message(string.Format("[SocialInteractions] JobDriver_Joy_Patch: Skipping FollowAndWatch for {0} because initiator {1} is in specialized job {2}.", 
+                                    pawn.LabelShort, dateInitiator.LabelShort, dateInitiator.CurJobDef.defName));
                             }
                         }
                     }

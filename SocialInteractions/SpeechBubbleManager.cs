@@ -37,6 +37,9 @@ namespace SocialInteractions
 
             // Clear the chat log on game load
             ChatLogManager.ClearChatLog();
+
+            // Reset TTS state on game load
+            TTSManager.Initialize();
         }
 
         public override void GameComponentTick()
@@ -281,9 +284,11 @@ namespace SocialInteractions
                 // Clear all pending speech bubbles
                 speechBubbleQueue.Clear();
                 
-                // Also clear active conversations and pending jobs to reset the LLM state
-                activeConversations.Clear();
-                pendingJobs.Clear();
+                // Do NOT clear activeConversations or pendingJobs here.
+                // Clearing pendingJobs wipes out the high-priority jobs that were just 
+                // enqueued (like the new response we're about to show).
+                // Clearing activeConversations can interfere with the currently processing 
+                // state of the LLM request.
 
                 // Do NOT reset nextQueuedBubbleDisplayTime. This ensures that
                 // the next message (from the high-priority interaction) will
@@ -291,7 +296,7 @@ namespace SocialInteractions
                 // before appearing, preventing visual overlap.
                 // nextQueuedBubbleDisplayTime = Time.time; 
                 
-                SLog.Message("[SocialInteractions] Speech bubble queue and active conversations cleared. Timer unchanged to respect current display.");
+                SLog.Message("[SocialInteractions] Speech bubble queue cleared. Jobs and conversations preserved to handle high-priority response.");
             }
         }
         // --- End For Queue Management ---

@@ -148,6 +148,10 @@ namespace SocialInteractions
 
         public static void EndDate(Date date)
         {
+            if (date == null) return;
+            string initiatorLabel = (date.Initiator != null) ? date.Initiator.LabelShort : "NULL";
+            string partnerLabel = (date.Partner != null) ? date.Partner.LabelShort : "NULL";
+            SLog.Message(string.Format("[SocialInteractions] EndDate called for date between {0} and {1}", initiatorLabel, partnerLabel));
             lock (datesLock)
             {
                 if (date == null) 
@@ -162,9 +166,6 @@ namespace SocialInteractions
                     SLog.Warning("[SocialInteractions] DatingManager.EndDate called with date that has null initiator and partner.");
                     return;
                 }
-
-                string initiatorLabel = (date.Initiator != null) ? date.Initiator.LabelShort : "NULL";
-                string partnerLabel = (date.Partner != null) ? date.Partner.LabelShort : "NULL";
 
                 // Post-lovin LLM call is now handled in JobDriver_DateLovin.cs
 
@@ -507,6 +508,7 @@ namespace SocialInteractions
                     
                     if (initiatorCritical || partnerCritical)
                     {
+                        SLog.Message(string.Format("[SocialInteractions] CheckForStuckDates: Ending date due to critical interruption. initiatorCritical: {0}, partnerCritical: {1}", initiatorCritical, partnerCritical));
                         EndDate(date);
                         continue;
                     }
@@ -534,7 +536,8 @@ namespace SocialInteractions
                         if (initiator != null && initiator.jobs != null && initiator.CurJob != null)
                         {
                             if (isDoingJoyJob || initiator.CurJobDef == dateLovinJobDef || initiator.CurJobDef == goOnDateJobDef || 
-                                initiator.CurJobDef == waitMaintainPostureJobDef || initiator.CurJobDef == SI_JobDefOf.SocialRelaxDate) // Include SocialRelaxDate
+                                initiator.CurJobDef == waitMaintainPostureJobDef || initiator.CurJobDef == SI_JobDefOf.SocialRelaxDate ||
+                                initiator.CurJobDef == SI_JobDefOf.PesterPrisoner || initiator.CurJobDef == SI_JobDefOf.AbusiveThreesome) // Include PesterPrisoner and AbusiveThreesome
                             {
                                 // Date is not stuck
                                 continue;
@@ -551,9 +554,14 @@ namespace SocialInteractions
                         // If we can't find a valid initiator or the initiator is not doing a joy job, DateLovin job, GoOnDate job, Wait_MaintainPosture job, or SocialRelaxDate,
                         // and they're not pathing to one, advance the date
                         if (initiator == null || initiator.jobs == null || initiator.CurJob == null || 
-                            (!isDoingJoyJob && initiator.CurJobDef != dateLovinJobDef && initiator.CurJobDef != goOnDateJobDef && 
-                             initiator.CurJobDef != waitMaintainPostureJobDef && initiator.CurJobDef != SI_JobDefOf.SocialRelaxDate)) // Include SocialRelaxDate
+                            (!isDoingJoyJob && initiator.CurJobDef.defName != "DateLovin" && initiator.CurJobDef.defName != "GoOnDate" && 
+                             initiator.CurJobDef.defName != "Wait_MaintainPosture" && initiator.CurJobDef.defName != "SocialRelaxDate" &&
+                             initiator.CurJobDef.defName != "PesterPrisoner" && initiator.CurJobDef.defName != "AbusiveThreesome"))
                         {
+                            SLog.Message(string.Format("[SocialInteractions] CheckForStuckDates: Advancing date for {0}. isDoingJoyJob: {1}, CurJobDef: {2}", 
+                                initiator != null ? initiator.LabelShort : "NULL", 
+                                isDoingJoyJob, 
+                                (initiator != null && initiator.CurJob != null) ? initiator.CurJob.def.defName : "NULL"));
                             AdvanceDateStage(pawn);
                         }
                     }
@@ -570,14 +578,15 @@ namespace SocialInteractions
                         
                         bool initiatorInValidJob = (initiator != null && initiator.jobs != null && initiator.CurJob != null) && 
                             (initiator.CurJobDef == dateLovinJobDef || initiator.CurJobDef == waitMaintainPostureJobDef || 
-                             initiator.CurJobDef == JobDefOf.LayDown);
+                             initiator.CurJobDef == JobDefOf.LayDown || initiator.CurJobDef == SI_JobDefOf.AbusiveThreesome);
                         bool partnerInValidJob = (date.Partner != null && date.Partner.jobs != null && date.Partner.CurJob != null) && 
                             (date.Partner.CurJobDef == dateLovinJobDef || date.Partner.CurJobDef == waitMaintainPostureJobDef || 
-                             date.Partner.CurJobDef == JobDefOf.LayDown);
+                             date.Partner.CurJobDef == JobDefOf.LayDown || date.Partner.CurJobDef == SI_JobDefOf.AbusiveThreesome);
                         
                         // If either pawn is not in a valid job for the Lovin stage, end the date immediately
                         if (!initiatorInValidJob || !partnerInValidJob)
                         {
+                            SLog.Message(string.Format("[SocialInteractions] CheckForStuckDates: Ending date in Lovin stage. initiatorInValidJob: {0}, partnerInValidJob: {1}", initiatorInValidJob, partnerInValidJob));
                             EndDate(date);
                         }
                     }
@@ -615,11 +624,10 @@ namespace SocialInteractions
                     date.Stage++;
                     // Reset the stage transition tick when advancing the stage
                     date.StageTransitionTick = 0;
-                    // Reduce log spam by commenting out this message
-                    // SLog.Message(string.Format("[SocialInteractions] AdvanceDateStage: Advancing date stage for {0} and {1}. New stage: {2}", 
-                    //     date.Initiator != null ? (date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL") : "NULL", 
-                    //     date.Partner != null ? (date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL") : "NULL", 
-                    //     date.Stage));
+                    SLog.Message(string.Format("[SocialInteractions] AdvanceDateStage: Advancing date stage for {0} and {1}. New stage: {2}", 
+                        date.Initiator != null ? (date.Initiator.LabelShort != null ? date.Initiator.LabelShort : "NULL") : "NULL", 
+                        date.Partner != null ? (date.Partner.LabelShort != null ? date.Partner.LabelShort : "NULL") : "NULL", 
+                        date.Stage));
                     HandleDateStage(date);
                 }
                 else
@@ -781,7 +789,7 @@ namespace SocialInteractions
                 // Check if the bed is too far from the initiator
                 IntVec3 finalPosition = bed.Position;
 
-                if (date.Initiator != null && date.Initiator.Spawned && bed.Spawned)
+                if (date.Initiator != null && date.Initiator.Spawned && bed != null && bed.Spawned)
                 {
                     float distanceToBed = (date.Initiator.Position - bed.Position).LengthHorizontal;
                     if (distanceToBed > SocialInteractions.Settings.maxDistanceToLovinSpot)

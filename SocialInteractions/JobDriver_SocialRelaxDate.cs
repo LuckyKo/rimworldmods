@@ -57,7 +57,7 @@ namespace SocialInteractions
                 }
                 
                 // If not moving, face the partner to maintain the social atmosphere
-                if (!pawn.pather.Moving)
+                if (pawn.pather != null && !pawn.pather.Moving)
                 {
                     Pawn partner = DatingManager.GetPartnerOfDateWith(pawn);
                     if (partner != null && partner.Spawned && partner.Map == pawn.Map)
@@ -78,18 +78,32 @@ namespace SocialInteractions
             
             relax.AddFinishAction(delegate
             {
-                JoyUtility.TryGainRecRoomThought(pawn);
-                
-                // Advance the date stage only if they are still on a date.
-                // The interruption prevention in InteractionWorker_Interacted_Patch 
-                // will ensure they aren't kicked off the date by talk jobs.
-                if (DatingManager.IsOnDate(pawn))
+                try
                 {
-                    DatingManager.AdvanceDateStage(pawn);
+                    if (pawn != null && pawn.needs != null && pawn.needs.mood != null)
+                    {
+                        JoyUtility.TryGainRecRoomThought(pawn);
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    SLog.Warning("Exception in JobDriver_SocialRelaxDate finish action: " + ex.ToString());
                 }
             });
 
             yield return relax;
+
+            // Transition Toil - Separate from the main activity to avoid recursive cleanup NRE
+            Toil transition = ToilMaker.MakeToil("Transition");
+            transition.initAction = delegate
+            {
+                if (pawn != null && DatingManager.IsOnDate(pawn))
+                {
+                    DatingManager.AdvanceDateStage(pawn);
+                }
+            };
+            transition.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return transition;
         }
     }
 }

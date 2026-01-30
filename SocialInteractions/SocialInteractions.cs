@@ -1397,6 +1397,25 @@ namespace SocialInteractions
             return conversationId;
         }
 
+        public static int HandleAbusiveThreesomePrompt(Pawn initiator, Pawn partner, Pawn victim)
+        {
+            // Generate a descriptive subject line for the LLM
+            string subject = string.Format("After bullying {2}, {0} and {1} decide to have some 'fun' with {2}", 
+                initiator.LabelShort, partner.LabelShort, victim.LabelShort);
+                
+            // Trigger the LLM interaction and return the conversation ID
+            // We'll try to use DateLovin first if available, otherwise fallback to generic DeepTalk
+            InteractionDef def = SI_InteractionDefOf.DateLovin;
+            if (!IsLlmInteractionEnabled(def))
+            {
+                def = InteractionDefOf.DeepTalk;
+            }
+            
+            int conversationId = HandleNonStoppingInteraction(initiator, partner, def, subject, true, true);
+            
+            return conversationId;
+        }
+
         public static int HandleMonologue(Pawn pawn, string subject, bool skipSpamProtection = false, string topic = "monologue")
         {
             bool isCurrentlyBusy = SpeechBubbleManager.IsLlmCurrentlyBusy();

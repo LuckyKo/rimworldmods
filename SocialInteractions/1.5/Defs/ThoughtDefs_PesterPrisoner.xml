@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <!-- Memory thought for the victim -->
+  <ThoughtDef>
+    <defName>WasAbused</defName>
+    <thoughtClass>Thought_Memory</thoughtClass>
+    <durationDays>10</durationDays>
+    <stackLimit>1</stackLimit>
+    <stages>
+      <li>
+        <label>was abused</label>
+        <description>I was sexually abused. The memory haunts me.</description>
+        <baseMoodEffect>-15</baseMoodEffect>
+      </li>
+    </stages>
+  </ThoughtDef>
+
+  <!-- Social thought for opinion penalty -->
+  <ThoughtDef>
+    <defName>AbusedMe</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>30</durationDays>
+    <stackLimit>10</stackLimit>
+    <stages>
+      <li>
+        <label>sexually abused me</label>
+        <baseOpinionOffset>-30</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+
+  <!-- Mood buff for the abusers -->
+  <ThoughtDef>
+    <defName>PesteredPrisoner</defName>
+    <thoughtClass>Thought_Memory</thoughtClass>
+    <durationDays>1</durationDays>
+    <stackLimit>1</stackLimit>
+    <stages>
+      <li>
+        <label>pestered prisoner</label>
+        <description>Had some fun tormenting a prisoner. They deserved it.</description>
+        <baseMoodEffect>5</baseMoodEffect>
+      </li>
+    </stages>
+  </ThoughtDef>
+
+</Defs>

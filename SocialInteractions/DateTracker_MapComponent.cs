@@ -65,6 +65,12 @@ namespace SocialInteractions
                             Date dateStatus = DatingManager.GetDateWith(initiator);
                             if (dateStatus != null && dateStatus.Stage < DateStage.Lovin)
                             {
+                                // Don't advance if we are in a special job that we want to keep in Joy/initial stage
+                                if (initiator.CurJobDef == SI_JobDefOf.PesterPrisoner || initiator.CurJobDef == SI_JobDefOf.AbusiveThreesome)
+                                {
+                                    continue;
+                                }
+
                                 // Initiator's joy need is satisfied, advance to Lovin stage
                                 DatingManager.AdvanceDateStage(initiator);
                             }
@@ -160,8 +166,11 @@ namespace SocialInteractions
                 return;
             }
             
-            // Check if the partner is doing a DateLovin job
-            if (partner.CurJobDef == SI_JobDefOf.DateLovin)
+            // Check if the partner is doing a DateLovin job or other specialized dating jobs
+            if (partner.CurJobDef == SI_JobDefOf.DateLovin ||
+                partner.CurJobDef.defName == "PesterPrisonerPartner" ||
+                partner.CurJobDef.defName == "AbusiveThreesomeParticipant" ||
+                partner.CurJobDef.defName == "SocialRelaxDate")
             {
                 return;
             }

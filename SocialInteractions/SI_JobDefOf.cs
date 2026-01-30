@@ -31,5 +31,10 @@ namespace SocialInteractions
         public static JobDef ChildPlayWithRadio;
         public static JobDef SocialRelaxDate;
         public static JobDef ChildBreakBuilding;
+        public static JobDef PesterPrisoner;
+        public static JobDef PesterPrisonerPartner;
+        public static JobDef AbusiveThreesome;
+        public static JobDef AbusiveThreesomeParticipant;
+
     }
 }

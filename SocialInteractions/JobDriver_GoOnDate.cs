@@ -229,23 +229,46 @@ namespace SocialInteractions
                 
                 // --- Trigger LLM Interaction with correct subject ---
                 string dateSubject = "";
-                if (joyJob.def == SI_JobDefOf.SocialRelaxDate)
+                if (joyJob.def.defName == "SocialRelaxDate")
                 {
                     if (joyJob.targetA.Thing != null)
                         dateSubject = string.Format("{0} has accepted {1}'s invitation to hang out and now they are hanging out at the {2}.", this.Partner.LabelShort, this.pawn.LabelShort, joyJob.targetA.Thing.Label);
                     else
                         dateSubject = string.Format("{0} has accepted {1}'s invitation to hang out and now they are going for a walk.", this.Partner.LabelShort, this.pawn.LabelShort);
                 }
+                else if (joyJob.def.defName == "PesterPrisoner")
+                {
+                    string prisonerName = joyJob.targetA.Thing != null ? joyJob.targetA.Thing.LabelShort : "someone";
+                    dateSubject = string.Format("{0} has accepted {1}'s invitation for a date! Now they are hanging out together by pestering {2}.", this.Partner.LabelShort, this.pawn.LabelShort, prisonerName);
+                }
                 else
                 {
                     dateSubject = SpeechBubbleManager.GetDateSubject(this.pawn, this.Partner, joyJob.targetA);
                 }
+
                 
                 SocialInteractions.HandleNonStoppingInteraction(this.pawn, this.Partner, SI_InteractionDefOf.DateAccepted, dateSubject, true);
                 // --- End LLM Interaction ---
                 
                 // Create the FollowAndWatch job for the partner
-                Job partnerJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn);
+                // Create the job for the partner
+                Job partnerJob;
+                if (joyJob.def.defName == "PesterPrisoner")
+                {
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Selected PesterPrisoner activity. Assigning PesterPrisonerPartner to {0}.", this.Partner.LabelShort));
+                    partnerJob = JobMaker.MakeJob(SI_JobDefOf.PesterPrisonerPartner, joyJob.targetA, this.pawn);
+                }
+                else if (joyJob.def.defName == "AbusiveThreesome")
+                {
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Selected AbusiveThreesome activity. Assigning AbusiveThreesomeParticipant to {0}.", this.Partner.LabelShort));
+                    // Mapping: targetA = Abuser (initiator), targetB = Victim (joyJob targetA)
+                    partnerJob = JobMaker.MakeJob(SI_JobDefOf.AbusiveThreesomeParticipant, this.pawn, joyJob.targetA);
+                }
+                else
+                {
+                    SLog.Message(string.Format("[SocialInteractions] JobDriver_GoOnDate: Selected {0} activity. Assigning FollowAndWatchInitiator to {1}.", joyJob.def.defName, this.Partner.LabelShort));
+                    partnerJob = JobMaker.MakeJob(SI_JobDefOf.FollowAndWatchInitiator, this.pawn);
+                }
                 
                 // Start the partner's job
                 this.Partner.jobs.StartJob(partnerJob, JobCondition.InterruptForced);
@@ -378,8 +401,16 @@ namespace SocialInteractions
                 {
                     // Try to get a job from this joy giver
                     Job joyJob = selectedJoyGiverDef.Worker.TryGiveJob(initiator);
+
                     if (joyJob != null)
                     {
+                        // Check if partner accepts Pester Prisoner logic
+                        if (joyJob.def == SI_JobDefOf.PesterPrisoner && JobDriver_PesterPrisoner.ShouldPartnerRefuse(partner))
+                        {
+                             // Partner refuses this specific activity, try another
+                             continue;
+                        }
+
                         // Skip jobs that don't have a valid target
                         if (joyJob.targetA.Thing == null && !joyJob.targetA.Cell.IsValid)
                         {

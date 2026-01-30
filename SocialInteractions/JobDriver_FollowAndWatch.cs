@@ -10,8 +10,6 @@ namespace SocialInteractions
     public class JobDriver_FollowAndWatch : JobDriver
     {
         /// <summary>
-        /// Checks if a pawn is still valid for dating activities
-        /// </summary>
         /// <param name="pawn">The pawn to check</param>
         /// <returns>True if the pawn is valid for dating, false otherwise</returns>
         private bool IsPawnValidForDating(Pawn pawn)
@@ -47,9 +45,15 @@ namespace SocialInteractions
                 {
                     // Allow the DateLovin job to start
                     // If the pawn is in any other job, they should not be doing it
-                    if (pawn.jobs != null && pawn.jobs.curJob != null && pawn.jobs.curJob.def != SI_JobDefOf.DateLovin)
+                    // If the pawn is in any other job, they should not be doing it
+                    if (pawn.jobs != null && pawn.jobs.curJob != null && 
+                        pawn.jobs.curJob.def != SI_JobDefOf.DateLovin &&
+                        pawn.jobs.curJob.def.defName != "PesterPrisoner" &&
+                        pawn.jobs.curJob.def.defName != "PesterPrisonerPartner" &&
+                        pawn.jobs.curJob.def.defName != "AbusiveThreesome" &&
+                        pawn.jobs.curJob.def.defName != "AbusiveThreesomeParticipant")
                     {
-                        SLog.Message(string.Format("[SocialInteractions] IsPawnValidForDating: Pawn {0} is on a date in Lovin stage but not in DateLovin job.", pawn.LabelShort));
+                        SLog.Message(string.Format("[SocialInteractions] IsPawnValidForDating: Pawn {0} is on a date in Lovin stage but not in a valid date job.", pawn.LabelShort));
                         return false;
                     }
                 }
@@ -168,17 +172,53 @@ namespace SocialInteractions
                         }
                     }
                     
-                    // Special case: If the initiator is doing a DateLovin job or SocialRelaxDate, we should account for it
+                    // Special case: If the initiator is doing a DateLovin job, SocialRelaxDate, PesterPrisoner, or AbusiveThreesome, we should account for it
                     bool isInitiatorDoingDatingJob = (initiator.jobs.curJob != null && 
-                        (initiator.jobs.curJob.def == SI_JobDefOf.DateLovin || initiator.jobs.curJob.def == SI_JobDefOf.SocialRelaxDate));
+                        (initiator.jobs.curJob.def.defName == "DateLovin" || 
+                         initiator.jobs.curJob.def.defName == "SocialRelaxDate" ||
+                         initiator.jobs.curJob.def.defName == "PesterPrisoner" ||
+                         initiator.jobs.curJob.def.defName == "AbusiveThreesome"));
                     
                     // If the initiator is not doing a joy job and not doing a dating job, advance the date
                     if (!isInitiatorDoingJoyJob && !isInitiatorDoingDatingJob)
                     {
                         // Advance the date stage. The DatingManager will handle ending this job.
                         DatingManager.AdvanceDateStage(this.pawn);
-                        // We must not call ReadyForNextToil() here, as it will interfere with the job transition.
-                        return;
+                        return; // Stop processing this tick as the job may have been changed
+                    }
+
+                    // Specialized Job Joining: If the initiator is pestering a prisoner, join them!
+                    if (initiator.CurJobDef.defName == "PesterPrisoner")
+                    {
+                        // Only start if not already pestering the same target
+                        if (this.pawn.CurJobDef.defName != "PesterPrisonerPartner" || 
+                            this.pawn.CurJob.targetA != initiator.CurJob.targetA)
+                        {
+                            SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: {0} detected initiator {1} is pestering. Switching to PesterPrisonerPartner.", 
+                                this.pawn.LabelShort, initiator.LabelShort));
+                            
+                            Job partnerJob = JobMaker.MakeJob(SI_JobDefOf.PesterPrisonerPartner, initiator.CurJob.targetA, initiator);
+                            this.pawn.jobs.StartJob(partnerJob, JobCondition.InterruptForced);
+                            return;
+                        }
+                    }
+                    
+                    // Specialized Job Joining: If the initiator is in an Abusive Threesome, join them!
+                    if (initiator.CurJobDef.defName == "AbusiveThreesome" && SI_JobDefOf.AbusiveThreesomeParticipant != null)
+                    {
+                        // Only start if not already in the threesome
+                        if (this.pawn.CurJobDef.defName != "AbusiveThreesomeParticipant" || 
+                            this.pawn.CurJob.targetA != initiator || 
+                            this.pawn.CurJob.targetB != initiator.CurJob.targetA)
+                        {
+                             SLog.Message(string.Format("[SocialInteractions] JobDriver_FollowAndWatch: {0} detected initiator {1} is in Threesome. Switching to AbusiveThreesomeParticipant.", 
+                                this.pawn.LabelShort, initiator.LabelShort));
+                            
+                            // Mapping: targetA = Abuser (initiator), targetB = Victim (initiator's targetA)
+                            Job partnerJob = JobMaker.MakeJob(SI_JobDefOf.AbusiveThreesomeParticipant, initiator, initiator.CurJob.targetA);
+                            this.pawn.jobs.StartJob(partnerJob, JobCondition.InterruptForced);
+                            return;
+                        }
                     }
                 }
 

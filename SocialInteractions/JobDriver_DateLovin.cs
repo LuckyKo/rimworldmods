@@ -67,8 +67,22 @@ namespace SocialInteractions
         private TargetIndex PartnerInd = TargetIndex.A;
         private TargetIndex BedPosInd = TargetIndex.B;
 
-        private Pawn Partner { get { return (Pawn)(Thing)job.GetTarget(PartnerInd); } }
-        private IntVec3 BedPos { get { return job.GetTarget(BedPosInd).Cell; } }
+        private Pawn Partner 
+        { 
+            get 
+            { 
+                if (job == null) return null;
+                return (Pawn)(Thing)job.GetTarget(PartnerInd); 
+            } 
+        }
+        private IntVec3 BedPos 
+        { 
+            get 
+            { 
+                if (job == null) return IntVec3.Invalid;
+                return job.GetTarget(BedPosInd).Cell; 
+            } 
+        }
 
         public override void ExposeData()
         {

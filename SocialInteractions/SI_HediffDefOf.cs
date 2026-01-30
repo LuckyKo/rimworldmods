@@ -19,5 +19,7 @@ namespace SocialInteractions
         public static HediffDef OnDate;
         public static HediffDef SI_Naked;
         public static HediffDef SI_Negotiating;
+        public static HediffDef Abused;
+
     }
 }
