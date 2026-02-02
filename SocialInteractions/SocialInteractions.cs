@@ -1416,6 +1416,25 @@ namespace SocialInteractions
             return conversationId;
         }
 
+        public static int HandleSoloPesterPrompt(Pawn abuser, Pawn victim)
+        {
+            // Generate a descriptive subject line for the LLM
+            string subject = string.Format("{0} has met {1} and begins to mockingly pester and insult them.",
+                abuser.LabelShort, victim.LabelShort);
+
+            // Trigger the LLM interaction and return the conversation ID
+            // We'll use Insult as the interaction definition
+            InteractionDef def = InteractionDefOf.Insult;
+            if (!IsLlmInteractionEnabled(def))
+            {
+                def = InteractionDefOf.DeepTalk;
+            }
+
+            int conversationId = HandleNonStoppingInteraction(abuser, victim, def, subject, true, true);
+
+            return conversationId;
+        }
+
         public static int HandleMonologue(Pawn pawn, string subject, bool skipSpamProtection = false, string topic = "monologue")
         {
             bool isCurrentlyBusy = SpeechBubbleManager.IsLlmCurrentlyBusy();

@@ -24,7 +24,7 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        private const string CURRENT_VERSION = "1.4.9";
+        private const string CURRENT_VERSION = "1.5.0";
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
@@ -1007,7 +1007,7 @@ Current event: [pawn1] [subject]
             SocialInteractions.Settings.wordsPerSecond = listingStandard.Slider(SocialInteractions.Settings.wordsPerSecond, 0.5f, 10.0f);
 
             listingStandard.Label("SocialInteractions_MaxDialogueLines".Translate() + ": " + SocialInteractions.Settings.llmMaxDialogueLines);
-            SocialInteractions.Settings.llmMaxDialogueLines = (int)listingStandard.Slider(SocialInteractions.Settings.llmMaxDialogueLines, 1f, 20f);
+            SocialInteractions.Settings.llmMaxDialogueLines = (int)listingStandard.Slider(SocialInteractions.Settings.llmMaxDialogueLines, 1f, 40f);
 
             listingStandard.Gap();
             listingStandard.Label("SocialInteractions_MaxTokens".Translate());

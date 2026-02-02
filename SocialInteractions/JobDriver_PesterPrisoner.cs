@@ -86,6 +86,18 @@ namespace SocialInteractions
             // Go to the target first
             yield return Toils_Goto.GotoThing(TargetIndex.A, PathEndMode.Touch);
 
+            // Trigger solo pestering dialogue if no partner is present
+            Toil soloDialogue = ToilMaker.MakeToil("SoloDialogue");
+            soloDialogue.initAction = () =>
+            {
+                if (partner == null)
+                {
+                    SocialInteractions.HandleSoloPesterPrompt(this.pawn, this.Target);
+                }
+            };
+            soloDialogue.defaultCompleteMode = ToilCompleteMode.Instant;
+            yield return soloDialogue;
+
             // Follow and pester the target
             Toil followAndPester = new Toil();
             followAndPester.tickAction = () =>

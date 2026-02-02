@@ -213,7 +213,6 @@ namespace SocialInteractions
             yield return null;
 
             AudioClip clip = null;
-            float vol = 0;
             bool success = false;
 
             string url = SocialInteractions.Settings.ttsApiUrl;
@@ -228,75 +227,54 @@ namespace SocialInteractions
                 voice, 
                 speed.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
 
-            // Try WAV
-            UnityWebRequest request = UnityWebRequest.Put(url, json);
-            request.method = "POST";
-            request.SetRequestHeader("Content-Type", "application/json");
-            request.downloadHandler = new DownloadHandlerAudioClip(url, AudioType.WAV);
-            if (!string.IsNullOrEmpty(apiKey)) request.SetRequestHeader("Authorization", "Bearer " + apiKey);
+            // Define formats to try
+            var formats = new[] 
+            { 
+                new { Type = AudioType.WAV, Name = "WAV" },
+                new { Type = AudioType.MPEG, Name = "MPEG" },
+                new { Type = AudioType.OGGVORBIS, Name = "OGG" }
+            };
 
-            yield return request.SendWebRequest();
-
-            if (request.result != UnityWebRequest.Result.ConnectionError && request.result != UnityWebRequest.Result.ProtocolError)
+            foreach (var format in formats)
             {
-                clip = DownloadHandlerAudioClip.GetContent(request);
-            }
-            else
-            {
-                SLog.Error("[SocialInteractions] TTSManager: WAV Error: " + request.error);
-            }
-
-            // Try MPEG if WAV failed
-            if (clip == null || clip.frequency == 0)
-            {
-                SLog.Message("[SocialInteractions] TTSManager: Trying MPEG...");
-                UnityWebRequest mpegRequest = UnityWebRequest.Put(url, json);
-                mpegRequest.method = "POST";
-                mpegRequest.SetRequestHeader("Content-Type", "application/json");
-                mpegRequest.downloadHandler = new DownloadHandlerAudioClip(url, AudioType.MPEG);
-                if (!string.IsNullOrEmpty(apiKey)) mpegRequest.SetRequestHeader("Authorization", "Bearer " + apiKey);
-
-                yield return mpegRequest.SendWebRequest();
-
-                if (mpegRequest.result != UnityWebRequest.Result.ConnectionError && mpegRequest.result != UnityWebRequest.Result.ProtocolError)
+                using (UnityWebRequest request = UnityWebRequest.Put(url, json))
                 {
-                    clip = DownloadHandlerAudioClip.GetContent(mpegRequest);
+                    request.method = "POST";
+                    request.SetRequestHeader("Content-Type", "application/json");
+                    request.downloadHandler = new DownloadHandlerAudioClip(url, format.Type);
+                    if (!string.IsNullOrEmpty(apiKey)) request.SetRequestHeader("Authorization", "Bearer " + apiKey);
+
+                    yield return request.SendWebRequest();
+
+                    if (request.result != UnityWebRequest.Result.ConnectionError && request.result != UnityWebRequest.Result.ProtocolError)
+                    {
+                        clip = DownloadHandlerAudioClip.GetContent(request);
+                        if (clip != null && clip.frequency > 0)
+                        {
+                            success = true;
+                            break; // Success!
+                        }
+                    }
+                    else
+                    {
+                        // Check if it's a fatal connection error (server down, bad URL)
+                        if (request.result == UnityWebRequest.Result.ConnectionError)
+                        {
+                            SLog.Warning("[SocialInteractions] TTSManager: Connection Error (Aborting): " + request.error);
+                            break; // Don't try other formats if we can't even connect
+                        }
+                        
+                        // Protocol error (like 404 or 400) might be format specific, but often means the URL/API is wrong
+                        // For now, we'll just log it and potentially try the next format if it's not a 401/403
+                        if (request.responseCode == 401 || request.responseCode == 403 || request.responseCode == 404)
+                        {
+                            SLog.Warning(string.Format("[SocialInteractions] TTSManager: API Error {0} (Aborting): {1}", request.responseCode, request.error));
+                            break; 
+                        }
+
+                        // SLog.Message(string.Format("[SocialInteractions] TTSManager: {0} failed, trying next...", format.Name));
+                    }
                 }
-                else
-                {
-                    SLog.Error("[SocialInteractions] TTSManager: MPEG Error: " + mpegRequest.error);
-                }
-                mpegRequest.Dispose();
-            }
-
-            // Try OGG if MPEG failed
-            if (clip == null || clip.frequency == 0)
-            {
-                SLog.Message("[SocialInteractions] TTSManager: Trying OGG...");
-                UnityWebRequest oggRequest = UnityWebRequest.Put(url, json);
-                oggRequest.method = "POST";
-                oggRequest.SetRequestHeader("Content-Type", "application/json");
-                oggRequest.downloadHandler = new DownloadHandlerAudioClip(url, AudioType.OGGVORBIS);
-                if (!string.IsNullOrEmpty(apiKey)) oggRequest.SetRequestHeader("Authorization", "Bearer " + apiKey);
-
-                yield return oggRequest.SendWebRequest();
-
-                if (oggRequest.result != UnityWebRequest.Result.ConnectionError && oggRequest.result != UnityWebRequest.Result.ProtocolError)
-                {
-                    clip = DownloadHandlerAudioClip.GetContent(oggRequest);
-                }
-                else
-                {
-                    SLog.Error("[SocialInteractions] TTSManager: OGG Error: " + oggRequest.error);
-                }
-                oggRequest.Dispose();
-            }
-
-            request.Dispose();
-
-            if (clip != null && clip.frequency > 0)
-            {
-                success = true;
             }
 
             if (success)
@@ -310,7 +288,10 @@ namespace SocialInteractions
             }
             else
             {
-                SLog.Warning("[SocialInteractions] TTSManager: All formats failed for request " + requestId);
+                if (clip == null)
+                {
+                    SLog.Warning("[SocialInteractions] TTSManager: Failed to fetch TTS for request " + requestId);
+                }
                 ProcessPlaybackBuffer(requestId, null, 0);
             }
         }

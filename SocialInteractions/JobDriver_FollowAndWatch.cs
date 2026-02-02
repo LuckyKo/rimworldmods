@@ -10,6 +10,8 @@ namespace SocialInteractions
     public class JobDriver_FollowAndWatch : JobDriver
     {
         /// <summary>
+        /// Checks if a pawn is still valid for dating activities
+        /// </summary>
         /// <param name="pawn">The pawn to check</param>
         /// <returns>True if the pawn is valid for dating, false otherwise</returns>
         private bool IsPawnValidForDating(Pawn pawn)
