@@ -138,13 +138,19 @@ namespace SocialInteractions
 
             try
             {
+                var stopList = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries));
+                if (stopList.Count == 0)
+                {
+                    stopList = null;
+                }
+
                 var request = new GrokApiRequest
                 {
                     Model = _modelName,
                     Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
                     MaxTokens = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
                     Stream = false,
-                    Stop = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
+                    Stop = stopList
                 };
 
                 // Add system message to guide response format

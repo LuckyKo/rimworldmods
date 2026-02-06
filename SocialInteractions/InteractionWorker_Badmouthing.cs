@@ -152,15 +152,28 @@ namespace SocialInteractions
             if (SI_ThoughtDefOf.BondedOverSharedDislike != null)
             {
                 // Initiator bonds with recipient over shared dislike
-                initiator.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.BondedOverSharedDislike, recipient);
+                if (initiator.needs != null && initiator.needs.mood != null && initiator.needs.mood.thoughts != null && initiator.needs.mood.thoughts.memories != null)
+                {
+                    initiator.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.BondedOverSharedDislike, recipient);
+                }
+                
                 // Recipient bonds with initiator over shared dislike  
-                recipient.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.BondedOverSharedDislike, initiator);
+                if (recipient.needs != null && recipient.needs.mood != null && recipient.needs.mood.thoughts != null && recipient.needs.mood.thoughts.memories != null)
+                {
+                    recipient.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.BondedOverSharedDislike, initiator);
+                }
             }
             else if (SI_ThoughtDefOf.FoundCommonGround != null)
             {
                 // Fallback to FoundCommonGround thought if BondedOverSharedDislike is not available
-                initiator.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.FoundCommonGround, recipient);
-                recipient.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.FoundCommonGround, initiator);
+                if (initiator.needs != null && initiator.needs.mood != null && initiator.needs.mood.thoughts != null && initiator.needs.mood.thoughts.memories != null)
+                {
+                    initiator.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.FoundCommonGround, recipient);
+                }
+                if (recipient.needs != null && recipient.needs.mood != null && recipient.needs.mood.thoughts != null && recipient.needs.mood.thoughts.memories != null)
+                {
+                    recipient.needs.mood.thoughts.memories.TryGainMemory(SI_ThoughtDefOf.FoundCommonGround, initiator);
+                }
             }
             else
             {
@@ -171,8 +184,14 @@ namespace SocialInteractions
                 if (socialConnectionThought != null)
                 {
                     // Give a positive thought to both for having increased chemistry
-                    initiator.needs.mood.thoughts.memories.TryGainMemory(socialConnectionThought, recipient);
-                    recipient.needs.mood.thoughts.memories.TryGainMemory(socialConnectionThought, initiator);
+                    if (initiator.needs != null && initiator.needs.mood != null && initiator.needs.mood.thoughts != null && initiator.needs.mood.thoughts.memories != null)
+                    {
+                        initiator.needs.mood.thoughts.memories.TryGainMemory(socialConnectionThought, recipient);
+                    }
+                    if (recipient.needs != null && recipient.needs.mood != null && recipient.needs.mood.thoughts != null && recipient.needs.mood.thoughts.memories != null)
+                    {
+                        recipient.needs.mood.thoughts.memories.TryGainMemory(socialConnectionThought, initiator);
+                    }
                 }
                 else
                 {
@@ -180,8 +199,17 @@ namespace SocialInteractions
                     ThoughtDef positiveSocialThought = DefDatabase<ThoughtDef>.GetNamedSilentFail("SocialRecreationPartner");
                     if (positiveSocialThought != null)
                     {
-                        initiator.needs.mood.thoughts.memories.TryGainMemory(positiveSocialThought, recipient);
-                        recipient.needs.mood.thoughts.memories.TryGainMemory(positiveSocialThought, initiator);
+                    if (positiveSocialThought != null)
+                    {
+                        if (initiator.needs != null && initiator.needs.mood != null && initiator.needs.mood.thoughts != null && initiator.needs.mood.thoughts.memories != null)
+                        {
+                            initiator.needs.mood.thoughts.memories.TryGainMemory(positiveSocialThought, recipient);
+                        }
+                        if (recipient.needs != null && recipient.needs.mood != null && recipient.needs.mood.thoughts != null && recipient.needs.mood.thoughts.memories != null)
+                        {
+                            recipient.needs.mood.thoughts.memories.TryGainMemory(positiveSocialThought, initiator);
+                        }
+                    }
                     }
                 }
             }
@@ -192,7 +220,7 @@ namespace SocialInteractions
             {
                 // Reinforce negative opinion of the target through the interaction
                 // This helps solidify the "us vs them" dynamic that promotes clique formation
-                if (recipient.relations != null)
+                if (recipient.relations != null && recipient.needs != null && recipient.needs.mood != null && recipient.needs.mood.thoughts != null && recipient.needs.mood.thoughts.memories != null)
                 {
                     // Apply a thought to recipient about the target to reinforce negative opinion
                     ThoughtDef wasToldNegativeThingsThought = DefDatabase<ThoughtDef>.GetNamed("WasToldNegativeThings");
@@ -207,7 +235,7 @@ namespace SocialInteractions
                     }
                 }
                 
-                if (initiator.relations != null)
+                if (initiator.relations != null && initiator.needs != null && initiator.needs.mood != null && initiator.needs.mood.thoughts != null && initiator.needs.mood.thoughts.memories != null)
                 {
                     // Apply a thought to initiator about the target to reinforce negative opinion  
                     ThoughtDef wasToldNegativeThingsThought = DefDatabase<ThoughtDef>.GetNamed("WasToldNegativeThings");
@@ -232,18 +260,22 @@ namespace SocialInteractions
             // In this scenario, the recipient was told negative things about someone they already don't like much,
             // so they form an even worse opinion of that target
             // Apply the WasToldNegativeThings thought to the recipient about the target
-            ThoughtDef wasToldNegativeThingsThought = DefDatabase<ThoughtDef>.GetNamed("WasToldNegativeThings");
-            if (wasToldNegativeThingsThought != null)
+            // Apply the WasToldNegativeThings thought to the recipient about the target
+            if (recipient.needs != null && recipient.needs.mood != null && recipient.needs.mood.thoughts != null && recipient.needs.mood.thoughts.memories != null)
             {
-                recipient.needs.mood.thoughts.memories.TryGainMemory(wasToldNegativeThingsThought, targetPawn);
-            }
-            else
-            {
-                // Fallback to general insult thought if custom thought is not available
-                ThoughtDef insultedThought = DefDatabase<ThoughtDef>.GetNamedSilentFail("Insulted");
-                if (insultedThought != null)
+                ThoughtDef wasToldNegativeThingsThought = DefDatabase<ThoughtDef>.GetNamed("WasToldNegativeThings");
+                if (wasToldNegativeThingsThought != null)
                 {
-                    recipient.needs.mood.thoughts.memories.TryGainMemory(insultedThought, targetPawn);
+                    recipient.needs.mood.thoughts.memories.TryGainMemory(wasToldNegativeThingsThought, targetPawn);
+                }
+                else
+                {
+                    // Fallback to general insult thought if custom thought is not available
+                    ThoughtDef insultedThought = DefDatabase<ThoughtDef>.GetNamedSilentFail("Insulted");
+                    if (insultedThought != null)
+                    {
+                        recipient.needs.mood.thoughts.memories.TryGainMemory(insultedThought, targetPawn);
+                    }
                 }
             }
         }
@@ -256,18 +288,22 @@ namespace SocialInteractions
             // In this scenario, the recipient was told negative things about someone they respect by someone they trust less
             // This should damage the relationship with the initiator
             // Apply the HeardBadmouthing thought to the recipient about the initiator
-            ThoughtDef heardBadmouthingThought = DefDatabase<ThoughtDef>.GetNamed("HeardBadmouthing");
-            if (heardBadmouthingThought != null)
+            // Apply the HeardBadmouthing thought to the recipient about the initiator
+            if (recipient.needs != null && recipient.needs.mood != null && recipient.needs.mood.thoughts != null && recipient.needs.mood.thoughts.memories != null)
             {
-                recipient.needs.mood.thoughts.memories.TryGainMemory(heardBadmouthingThought, initiator);
-            }
-            else
-            {
-                // Fallback to general insult thought if custom thought is not available
-                ThoughtDef insultedThought = DefDatabase<ThoughtDef>.GetNamedSilentFail("Insulted");
-                if (insultedThought != null)
+                ThoughtDef heardBadmouthingThought = DefDatabase<ThoughtDef>.GetNamed("HeardBadmouthing");
+                if (heardBadmouthingThought != null)
                 {
-                    recipient.needs.mood.thoughts.memories.TryGainMemory(insultedThought, initiator);
+                    recipient.needs.mood.thoughts.memories.TryGainMemory(heardBadmouthingThought, initiator);
+                }
+                else
+                {
+                    // Fallback to general insult thought if custom thought is not available
+                    ThoughtDef insultedThought = DefDatabase<ThoughtDef>.GetNamedSilentFail("Insulted");
+                    if (insultedThought != null)
+                    {
+                        recipient.needs.mood.thoughts.memories.TryGainMemory(insultedThought, initiator);
+                    }
                 }
             }
         }

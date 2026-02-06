@@ -1495,8 +1495,9 @@ namespace SocialInteractions
             {
                 if (target.InMentalState)
                 {
+                    string mentalStateName = target.MentalStateDef != null ? target.MentalStateDef.defName : "unknown state";
                     target.mindState.mentalStateHandler.CurState.RecoverFromState();
-                    SLog.Message("[Negotiation] " + target.LabelShort + " recovered from " + target.MentalStateDef.defName + " through negotiation.");
+                    SLog.Message("[Negotiation] " + target.LabelShort + " recovered from " + mentalStateName + " through negotiation.");
                 }
 
                 // Apply mood buff for critical success

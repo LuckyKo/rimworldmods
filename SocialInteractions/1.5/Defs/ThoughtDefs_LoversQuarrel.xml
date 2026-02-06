@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <!-- Thoughts for participants in a lover's quarrel -->
+  
+  <!-- Standard quarrel - small debuff -->
+  <ThoughtDef>
+    <defName>LoversQuarrel_Participant</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>1.5</durationDays>
+    <stackLimit>1</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>had a quarrel with my partner</label>
+        <description>We argued again. It's exhausting, but these things happen.</description>
+        <baseMoodEffect>-5</baseMoodEffect>
+        <baseOpinionOffset>-5</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+  
+  <!-- Reconciliation - positive outcome -->
+  <ThoughtDef>
+    <defName>LoversQuarrel_Reconciled</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>2</durationDays>
+    <stackLimit>1</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>made up after an argument</label>
+        <description>We had a disagreement, but we worked through it together. I feel closer to them now.</description>
+        <baseMoodEffect>5</baseMoodEffect>
+        <baseOpinionOffset>5</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+  
+  <!-- Near-breakup - severe outcome -->
+  <ThoughtDef>
+    <defName>LoversQuarrel_NearBreakup</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>3</durationDays>
+    <stackLimit>1</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>had a terrible fight with my partner</label>
+        <description>That argument was brutal. We said things we can't take back. Is this relationship even working?</description>
+        <baseMoodEffect>-15</baseMoodEffect>
+        <baseOpinionOffset>-15</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+  
+  <!-- Witness thoughts -->
+  
+  <!-- Generic witness debuff -->
+  <ThoughtDef>
+    <defName>WitnessedLoversQuarrel</defName>
+    <thoughtClass>Thought_Memory</thoughtClass>
+    <durationDays>0.5</durationDays>
+    <stackLimit>3</stackLimit>
+    <stages>
+      <li>
+        <label>witnessed a lover's quarrel</label>
+        <description>I saw a couple arguing. It was pretty awkward to be around.</description>
+        <baseMoodEffect>-3</baseMoodEffect>
+      </li>
+    </stages>
+  </ThoughtDef>
+  
+  <!-- Child witnessing parents argue - larger debuff -->
+  <ThoughtDef>
+    <defName>WitnessedParentQuarrel</defName>
+    <thoughtClass>Thought_Memory</thoughtClass>
+    <durationDays>1</durationDays>
+    <stackLimit>3</stackLimit>
+    <stages>
+      <li>
+        <label>saw my parents fighting</label>
+        <description>I heard my parents arguing. It was scary and I hope they don't break up.</description>
+        <baseMoodEffect>-10</baseMoodEffect>
+      </li>
+    </stages>
+  </ThoughtDef>
+  
+</Defs>

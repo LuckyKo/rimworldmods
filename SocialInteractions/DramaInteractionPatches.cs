@@ -39,6 +39,13 @@ namespace SocialInteractions
                 return;
 
             // Process drama interactions in priority order
+            // First: Check for lover's quarrel (highest priority for insults between partners)
+            if (TryProcessLoversQuarrel(initiator, recipient, intDef))
+            {
+                // Lover's quarrel was triggered, exit to prevent other drama interactions
+                return;
+            }
+
             // Check for highest priority drama interaction that fits the context
             if (TryProcessBadmouthingGossip(initiator, recipient, intDef))
             {
@@ -525,6 +532,40 @@ namespace SocialInteractions
             }
 
             return SocialInteractions.GetWeightedLeastFavoritePawn(pawn);
+        }
+
+        /// <summary>
+        /// Attempts to process a lover's quarrel interaction when romantic partners would insult each other
+        /// Highest priority - intercepts insults between partners
+        /// </summary>
+        private static bool TryProcessLoversQuarrel(Pawn initiator, Pawn recipient, InteractionDef intDef)
+        {
+            // Only intercept Insult interactions
+            if (intDef != InteractionDefOf.Insult)
+            {
+                return false;
+            }
+
+            // Check if the two pawns are in a romantic relationship
+            if (!InteractionWorker_LoversQuarrel.AreRomanticPartners(initiator, recipient))
+            {
+                return false;
+            }
+
+            // Trigger the lover's quarrel interaction
+            SLog.Message(string.Format("[SocialInteractions] Intercepting insult between romantic partners {0} and {1} - triggering lover's quarrel",
+                initiator.LabelShort, recipient.LabelShort));
+
+            InteractionWorker_LoversQuarrel quarrelWorker = new InteractionWorker_LoversQuarrel();
+
+            string letterText, letterLabel;
+            LetterDef letterDef;
+            LookTargets lookTargets;
+
+            // Call the interaction worker's Interacted method directly
+            quarrelWorker.Interacted(initiator, recipient, null, out letterText, out letterLabel, out letterDef, out lookTargets);
+
+            return true; // Indicate that we processed this interaction
         }
 
         /// <summary>

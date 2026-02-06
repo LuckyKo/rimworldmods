@@ -36,6 +36,25 @@
   </InteractionDef>
 
   <InteractionDef>
+    <defName>LoversQuarrel</defName>
+    <label>lover's quarrel</label>
+    <workerClass>SocialInteractions.InteractionWorker_LoversQuarrel</workerClass>
+    <symbol>Things/Mote/SpeechSymbols/Insult</symbol>
+    <logRulesInitiator>
+      <rulesStrings>
+        <li>r_logentry->[INITIATOR_nameDef] had a quarrel with [RECIPIENT_nameDef].</li>
+        <li>r_logentry->[INITIATOR_nameDef] argued with [RECIPIENT_nameDef].</li>
+      </rulesStrings>
+    </logRulesInitiator>
+    <logRulesRecipient>
+      <rulesStrings>
+        <li>r_logentry->[RECIPIENT_nameDef] had a quarrel with [INITIATOR_nameDef].</li>
+        <li>r_logentry->[RECIPIENT_nameDef] argued with [INITIATOR_nameDef].</li>
+      </rulesStrings>
+    </logRulesRecipient>
+  </InteractionDef>
+
+  <InteractionDef>
     <defName>Admiration</defName>
     <label>admiration</label>
     <workerClass>SocialInteractions.InteractionWorker_Admiration</workerClass>

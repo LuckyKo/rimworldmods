@@ -26,12 +26,16 @@ namespace SocialInteractions
         private const float Level3Threshold = 0.3f; // Damaging property
         private const float Level4Threshold = 0.5f; // Dangerous behavior
 
-        // Track ongoing misbehavior activities to prevent spam
-        private static Dictionary<Pawn, int> lastMisbehaviorTick = new Dictionary<Pawn, int>();
+        // Cooldown constants
+        private const int ShortCooldownTicks = 3000; // ~1.2 hours
+        private const int LongCooldownTicks = 60000; // 24 hours
+
+        // Track when the child is allowed to misbehave next
+        private static Dictionary<Pawn, int> nextAllowedMisbehaviorTick = new Dictionary<Pawn, int>();
         private static int misbehaviorCheckInterval = 3000; // Check every 3000 ticks
 
         /// <summary>
-        /// Calculates the misbehavior factor for a child pawn based on parental relationship quality and other factors
+        /// Calculates the misbehavior factor for a child pawn based on parental opinion and other factors
         /// </summary>
         public static float CalculateMisbehaviorFactor(Pawn child)
         {
@@ -165,6 +169,12 @@ namespace SocialInteractions
                 return false;
             }
 
+            // Do not trigger misbehavior if the child is already in a mental state
+            if (child.InMentalState)
+            {
+                return false;
+            }
+
             // Check if children misbehavior is enabled in settings
             if (!SocialInteractions.Settings.enableChildrenMisbehavior)
             {
@@ -172,10 +182,10 @@ namespace SocialInteractions
             }
 
             // Check if enough time has passed since last misbehavior
-            if (lastMisbehaviorTick.ContainsKey(child))
+            if (nextAllowedMisbehaviorTick.ContainsKey(child))
             {
-                int lastTick = lastMisbehaviorTick[child];
-                if (Find.TickManager.TicksGame - lastTick < misbehaviorCheckInterval)
+                int nextTick = nextAllowedMisbehaviorTick[child];
+                if (Find.TickManager.TicksGame < nextTick)
                 {
                     return false;
                 }
@@ -206,7 +216,7 @@ namespace SocialInteractions
                 SLog.Message(string.Format("[SocialInteractions] ShouldChildMisbehave: Child {0} with misbehavior factor {1} will misbehave! (chance {2:F3} > random {3:F3})",
                     child.LabelShort, misbehaviorFactor, totalChance, randomValue));
                 misbehaviorLevel = misbehaviorFactor;
-                lastMisbehaviorTick[child] = Find.TickManager.TicksGame;
+                // Note: We do NOT set the tick here anymore. It's set in ExecuteMisbehavior based on what they actually do.
                 return true;
             }
 
@@ -237,48 +247,50 @@ namespace SocialInteractions
                 return; // No behaviors executed
             }
 
-            // Build a list of eligible misbehavior activities based on the calculated level
-            List<Action> eligibleBehaviors = new List<Action>();
+            // Build a list of eligible misbehavior activities and their associated cooldowns
+            // Using KeyValuePair<Action, int> where Key is the action and Value is the cooldown ticks
+            List<KeyValuePair<Action, int>> eligibleBehaviors = new List<KeyValuePair<Action, int>>();
 
             if (misbehaviorLevel >= Level1Threshold)
             {
-                eligibleBehaviors.Add(() => AnnoyAdults(child));
-                eligibleBehaviors.Add(() => SpyOnCouples(child));
+                eligibleBehaviors.Add(new KeyValuePair<Action, int>(() => AnnoyAdults(child), ShortCooldownTicks));
+                eligibleBehaviors.Add(new KeyValuePair<Action, int>(() => SpyOnCouples(child), ShortCooldownTicks));
             }
 
             if (misbehaviorLevel >= Level2Threshold)
             {
-                eligibleBehaviors.Add(() => MisplaceItems(child));
-                eligibleBehaviors.Add(() => PlayTag(child));
+                eligibleBehaviors.Add(new KeyValuePair<Action, int>(() => MisplaceItems(child), LongCooldownTicks));
+                eligibleBehaviors.Add(new KeyValuePair<Action, int>(() => PlayTag(child), LongCooldownTicks)); // Tag is social but Tier 2
             }
 
             if (misbehaviorLevel >= Level3Threshold)
             {
-                eligibleBehaviors.Add(() => TrampleCrops(child));
-                eligibleBehaviors.Add(() => DestroyRandomProperty(child));
+                eligibleBehaviors.Add(new KeyValuePair<Action, int>(() => TrampleCrops(child), LongCooldownTicks));
+                eligibleBehaviors.Add(new KeyValuePair<Action, int>(() => DestroyRandomProperty(child), LongCooldownTicks));
             }
 
             if (misbehaviorLevel >= Level4Threshold)
             {
-                 eligibleBehaviors.Add(() => LightFire(child));
-                 eligibleBehaviors.Add(() => PlayWithWeapon(child));
-                 eligibleBehaviors.Add(() => LeakLocation(child));
+                eligibleBehaviors.Add(new KeyValuePair<Action, int>(() => LightFire(child), LongCooldownTicks));
+                eligibleBehaviors.Add(new KeyValuePair<Action, int>(() => PlayWithWeapon(child), LongCooldownTicks));
+                eligibleBehaviors.Add(new KeyValuePair<Action, int>(() => LeakLocation(child), LongCooldownTicks));
             }
 
             // Select one behavior randomly from the eligible options
             if (eligibleBehaviors.Count > 0)
             {
                 int selectedIndex = Rand.Range(0, eligibleBehaviors.Count);
+                var selected = eligibleBehaviors[selectedIndex];
 
                 SLog.Message(string.Format("[SocialInteractions] ExecuteMisbehavior: Child misbehavior behavior selected. Index: {0}, Total eligible: {1}",
                     selectedIndex, eligibleBehaviors.Count));
 
                 // Execute the selected behavior
-                eligibleBehaviors[selectedIndex]();
+                selected.Key();
 
-                // Only trigger monologue for specific behaviors that need it
-                // Annoying adults has its own interaction, misplacing items has its own monologue in the method
-                // So we don't need a general monologue here for any behavior
+                // Apply cooldown based on the selected tier
+                int cooldown = selected.Value;
+                nextAllowedMisbehaviorTick[child] = Find.TickManager.TicksGame + cooldown;
             }
             else
             {
@@ -846,6 +858,10 @@ namespace SocialInteractions
                 // Randomly select a building to break
                 Thing buildingToBreak = breakableBuildings[Rand.Range(0, breakableBuildings.Count)];
 
+                // Show warning message to player that child is about to destroy property
+                Messages.Message(string.Format("{0} (child) is about to smash {1}!", child.LabelShort, buildingToBreak.Label),
+                    new LookTargets(child, buildingToBreak), MessageTypeDefOf.CautionInput);
+
                 // Create job for child to break the building
                 Job breakJob = JobMaker.MakeJob(SI_JobDefOf.ChildBreakBuilding, buildingToBreak);
                 bool jobTaken = child.jobs.TryTakeOrderedJob(breakJob);
@@ -1392,6 +1408,26 @@ namespace SocialInteractions
                 return false;
             }
 
+            // Check if pawn is humanlike and flesh (excludes mechanoids, androids, droids)
+            if (pawn.RaceProps == null || !pawn.RaceProps.Humanlike || !pawn.RaceProps.IsFlesh)
+            {
+                return false;
+            }
+
+            // Exclude specific droid flesh types or races that pretend to be flesh
+            // "Asimov_Automaton" is used by Outer Rim droids but claimed to be flesh for compatibility
+            if (pawn.RaceProps.FleshType != null)
+            {
+                string fleshName = pawn.RaceProps.FleshType.defName;
+                if (fleshName.Contains("Asimov") || 
+                    fleshName.Contains("Automaton") || 
+                    fleshName.Contains("Droid") || 
+                    fleshName.Contains("Robot"))
+                {
+                    return false;
+                }
+            }
+
             // Using the standard RimWorld age classification
             // Only process pawns that are between ChildMinAge-ChildAgeLimit (3-12 years old, exclude toddlers under 3)
             int age = pawn.ageTracker.AgeBiologicalYears;
@@ -1416,7 +1452,7 @@ namespace SocialInteractions
             // Remove references to pawns that are no longer valid
             List<Pawn> toRemove = new List<Pawn>();
             
-            foreach (var kvp in lastMisbehaviorTick)
+            foreach (var kvp in nextAllowedMisbehaviorTick)
             {
                 if (kvp.Key == null || kvp.Key.Dead || !kvp.Key.Spawned)
                 {
@@ -1426,7 +1462,7 @@ namespace SocialInteractions
             
             foreach (Pawn pawn in toRemove)
             {
-                lastMisbehaviorTick.Remove(pawn);
+                nextAllowedMisbehaviorTick.Remove(pawn);
             }
         }
     }

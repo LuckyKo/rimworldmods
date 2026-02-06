@@ -29,6 +29,7 @@ namespace SocialInteractions
         public static InteractionDef MakeUp;
         public static InteractionDef ChildAnnoying;
         public static InteractionDef ChildPlayTag;
+        public static InteractionDef LoversQuarrel;
 
     }
 }
