@@ -222,7 +222,23 @@
     </stages>
   </ThoughtDef>
 
-  <!-- Thoughts related to successful dates -->
+  <!-- Thoughts related to date outcomes -->
+  <ThoughtDef>
+    <defName>DateWentBadly</defName>
+    <thoughtClass>Thought_MemorySocial</thoughtClass>
+    <durationDays>2.5</durationDays>
+    <stackLimit>1</stackLimit>
+    <showBubble>true</showBubble>
+    <stages>
+      <li>
+        <label>date went badly with {0}</label>
+        <description>That date was awkward and uncomfortable. I don't think we're compatible.</description>
+        <baseMoodEffect>-8</baseMoodEffect>
+        <baseOpinionOffset>-10</baseOpinionOffset>
+      </li>
+    </stages>
+  </ThoughtDef>
+
   <ThoughtDef>
     <defName>EnjoyedDateWith</defName>
     <thoughtClass>Thought_MemorySocial</thoughtClass>

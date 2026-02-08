@@ -217,6 +217,11 @@ namespace SocialInteractions
             return string.Format("{0} and {1} have finished their intimate moment and are reflecting on the experience.", initiator.LabelShort, recipient.LabelShort);
         }
 
+        public static string GetDateWentBadlySubject(Pawn initiator, Pawn recipient)
+        {
+            return string.Format("{0} and {1} just had an awkward and uncomfortable date. The conversation was strained, there were misunderstandings, and both are feeling disappointed about how things went. They are expressing their frustration.", initiator.LabelShort, recipient.LabelShort);
+        }
+
         public static void EnqueueJob(Action jobAction)
         {
             lock (queueLock)

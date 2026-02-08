@@ -639,6 +639,42 @@ namespace SocialInteractions
             }
         }
 
+        /// <summary>
+        /// Calculates the chance the date goes badly based on the lowest mood of the two pawns.
+        /// Lower mood = higher chance of bad date.
+        /// </summary>
+        private static float CalculateBadDateChance(Date date)
+        {
+            if (date == null || date.Initiator == null || date.Partner == null)
+                return 0f;
+
+            float initiatorMood = 1.0f;
+            float partnerMood = 1.0f;
+
+            // Get initiator mood safely
+            if (date.Initiator.needs != null && date.Initiator.needs.mood != null)
+            {
+                initiatorMood = date.Initiator.needs.mood.CurLevelPercentage;
+            }
+
+            // Get partner mood safely
+            if (date.Partner.needs != null && date.Partner.needs.mood != null)
+            {
+                partnerMood = date.Partner.needs.mood.CurLevelPercentage;
+            }
+
+            // Use the lowest mood between the two pawns
+            float lowestMood = Mathf.Min(initiatorMood, partnerMood);
+
+            // Calculate bad date chance: lower mood = higher chance
+            // At 0% mood: 50% chance of bad date
+            // At 50% mood: 25% chance of bad date
+            // At 100% mood: 0% chance of bad date
+            float badDateChance = (1.0f - lowestMood) * 0.5f;
+
+            return badDateChance;
+        }
+
         private static void HandleDateStage(Date date)
         {
             switch (date.Stage)
@@ -651,6 +687,53 @@ namespace SocialInteractions
                     TransitionToLovin(date);
                     break;
                 case DateStage.Finished:
+                    // First check if the date went badly based on mood
+                    float badDateChance = CalculateBadDateChance(date);
+                    bool dateWentBadly = Rand.Chance(badDateChance);
+
+                    if (dateWentBadly && date.Initiator != null && date.Partner != null && 
+                        !date.Initiator.Dead && !date.Partner.Dead)
+                    {
+                        // Date went badly - apply debuff thoughts to both pawns
+                        SLog.Message(string.Format("[SocialInteractions] Date between {0} and {1} went badly (chance was {2:P0})",
+                            date.Initiator.LabelShort, date.Partner.LabelShort, badDateChance));
+
+                        // Apply DateWentBadly thought to initiator
+                        if (date.Initiator.needs != null && date.Initiator.needs.mood != null && 
+                            date.Initiator.needs.mood.thoughts != null && date.Initiator.needs.mood.thoughts.memories != null)
+                        {
+                            ThoughtDef badDateThought = SI_ThoughtDefOf.DateWentBadly;
+                            if (badDateThought != null)
+                            {
+                                var thought = (Thought_Memory)ThoughtMaker.MakeThought(badDateThought);
+                                thought.otherPawn = date.Partner;
+                                date.Initiator.needs.mood.thoughts.memories.TryGainMemory(thought, null);
+                            }
+                        }
+
+                        // Apply DateWentBadly thought to partner
+                        if (date.Partner.needs != null && date.Partner.needs.mood != null && 
+                            date.Partner.needs.mood.thoughts != null && date.Partner.needs.mood.thoughts.memories != null)
+                        {
+                            ThoughtDef badDateThought = SI_ThoughtDefOf.DateWentBadly;
+                            if (badDateThought != null)
+                            {
+                                var thought = (Thought_Memory)ThoughtMaker.MakeThought(badDateThought);
+                                thought.otherPawn = date.Initiator;
+                                date.Partner.needs.mood.thoughts.memories.TryGainMemory(thought, null);
+                            }
+                        }
+
+                        // Trigger LLM interaction for bad date
+                        SocialInteractions.HandleNonStoppingInteraction(date.Initiator, date.Partner, SI_InteractionDefOf.DateLovin, 
+                            SpeechBubbleManager.GetDateWentBadlySubject(date.Initiator, date.Partner), true);
+
+                        // End the date without giving positive buffs
+                        EndDate(date);
+                        break;
+                    }
+
+                    // Date went well - continue with normal positive outcomes
                     // Give "Got some lovin" thoughts to both pawns only if the date actually reached the lovin stage
                     if (date.Initiator != null && date.Partner != null && date.ReachedLovinStage)
                     {
