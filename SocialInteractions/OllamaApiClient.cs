@@ -35,10 +35,10 @@ namespace SocialInteractions
     {
         [DataMember(Name = "temperature")]
         public float Temperature { get; set; }
-        [DataMember(Name = "top_k")]
-        public int TopK { get; set; }
-        [DataMember(Name = "top_p")]
-        public float TopP { get; set; }
+        [DataMember(Name = "top_k", EmitDefaultValue = false)]
+        public int? TopK { get; set; }
+        [DataMember(Name = "top_p", EmitDefaultValue = false)]
+        public float? TopP { get; set; }
         [DataMember(Name = "num_predict")]
         public int NumPredict { get; set; }
         [DataMember(Name = "stop")]
@@ -49,6 +49,10 @@ namespace SocialInteractions
         public float MirostatTau { get; set; }
         [DataMember(Name = "mirostat_eta")]
         public float MirostatEta { get; set; }
+        [DataMember(Name = "repeat_penalty", EmitDefaultValue = false)]
+        public float? RepeatPenalty { get; set; }
+        [DataMember(Name = "min_p", EmitDefaultValue = false)]
+        public float? MinP { get; set; }
 
         public OllamaApiOptions()
         {
@@ -123,7 +127,7 @@ namespace SocialInteractions
             _httpClient = SharedHttpClient;
         }
 
-        public async Task<string> GenerateText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, bool? enableXtcSampling = null, int? topK = null, float? topP = null, float? minP = null)
+        public async Task<string> GenerateText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, bool? enableXtcSampling = null, int? topK = null, float? topP = null, float? minP = null, float? repetitionPenalty = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException("OllamaApiClient");
@@ -132,7 +136,7 @@ namespace SocialInteractions
             {
                 if (SocialInteractions.Settings.forceChatCompletion)
                 {
-                    return await GenerateChatText(prompt, maxLength, temperature, stopSequence, topK, topP, minP);
+                    return await GenerateChatText(prompt, maxLength, temperature, stopSequence, topK, topP, minP, repetitionPenalty);
                 }
 
                 var request = new OllamaApiRequest
@@ -143,8 +147,10 @@ namespace SocialInteractions
                     Options = new OllamaApiOptions
                     {
                         Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
-                        TopK = topK ?? SocialInteractions.Settings.llmTopK,
-                        TopP = topP ?? SocialInteractions.Settings.llmTopP,
+                        TopK = topK ?? (SocialInteractions.Settings.llmTopK > 0 ? (int?)SocialInteractions.Settings.llmTopK : null),
+                        TopP = topP ?? (SocialInteractions.Settings.llmTopP < 1.0f ? (float?)SocialInteractions.Settings.llmTopP : null),
+                        MinP = minP ?? (SocialInteractions.Settings.llmMinP > 0.0f ? (float?)SocialInteractions.Settings.llmMinP : null),
+                        RepeatPenalty = repetitionPenalty ?? (SocialInteractions.Settings.llmRepetitionPenalty != 1.0f ? (float?)SocialInteractions.Settings.llmRepetitionPenalty : null),
                         NumPredict = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
                         Stop = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
                     }
@@ -187,7 +193,7 @@ namespace SocialInteractions
             }
         }
 
-        private async Task<string> GenerateChatText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, int? topK = null, float? topP = null, float? minP = null)
+        private async Task<string> GenerateChatText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, int? topK = null, float? topP = null, float? minP = null, float? repetitionPenalty = null)
         {
             var request = new OllamaChatRequest
             {
@@ -201,8 +207,10 @@ namespace SocialInteractions
                 Options = new OllamaApiOptions
                 {
                     Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
-                    TopK = topK ?? SocialInteractions.Settings.llmTopK,
-                    TopP = topP ?? SocialInteractions.Settings.llmTopP,
+                    TopK = topK ?? (SocialInteractions.Settings.llmTopK > 0 ? (int?)SocialInteractions.Settings.llmTopK : null),
+                    TopP = topP ?? (SocialInteractions.Settings.llmTopP < 1.0f ? (float?)SocialInteractions.Settings.llmTopP : null),
+                    MinP = minP ?? (SocialInteractions.Settings.llmMinP > 0.0f ? (float?)SocialInteractions.Settings.llmMinP : null),
+                    RepeatPenalty = repetitionPenalty ?? (SocialInteractions.Settings.llmRepetitionPenalty != 1.0f ? (float?)SocialInteractions.Settings.llmRepetitionPenalty : null),
                     NumPredict = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
                     Stop = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
                 }

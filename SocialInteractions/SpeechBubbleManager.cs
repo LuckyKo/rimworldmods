@@ -108,7 +108,8 @@ namespace SocialInteractions
                             SpeakIfEnabled(bubble.ttsText, bubble.speaker);
                         }
 
-                        if (bubble.speaker != null && bubble.speaker.Map != null)
+                        bool shouldShow = bubble.useCustomMote ? SocialInteractions.Settings.showLlmBubbles : SocialInteractions.Settings.showDefaultBubbles;
+                        if (bubble.speaker != null && bubble.speaker.Map != null && shouldShow)
                         {
                             if (bubble.useCustomMote)
                             {
@@ -417,18 +418,20 @@ namespace SocialInteractions
             duration = Math.Max(1f, duration);
             pawnBubbleEndTimes[speaker] = Time.time + duration; // Set bubbleEndTime for instant bubbles
             // No clearing of speechBubbleQueue here, as it's for instant display only
-            if (speaker != null && speaker.Map != null)
+            bool shouldShow = useCustomMote ? SocialInteractions.Settings.showLlmBubbles : true; // Combat taunts (standard motes) have their own toggle
+            if (speaker != null && speaker.Map != null && shouldShow)
             {
+                string wrappedText = SocialInteractions.WrapText(text, SocialInteractions.Settings.wordsPerLineLimit);
                 if (useCustomMote)
                 {
                     // Use custom mote for LLM-generated text
                     if (color.HasValue)
                     {
-                        MakeCustomMote(speaker, text, color.Value, duration);
+                        MakeCustomMote(speaker, wrappedText, color.Value, duration);
                     }
                     else
                     {
-                        MakeCustomMote(speaker, text, Color.white, duration);
+                        MakeCustomMote(speaker, wrappedText, Color.white, duration);
                     }
                 }
                 else
@@ -436,11 +439,11 @@ namespace SocialInteractions
                     // Use standard mote for fallback text and combat dialogue
                     if (color.HasValue)
                     {
-                        MakeStandardMote(speaker, text, color.Value, duration);
+                        MakeStandardMote(speaker, wrappedText, color.Value, duration);
                     }
                     else
                     {
-                        MakeStandardMote(speaker, text, Color.white, duration);
+                        MakeStandardMote(speaker, wrappedText, Color.white, duration);
                     }
                 }
             }
@@ -469,7 +472,8 @@ namespace SocialInteractions
             duration = Math.Max(1f, duration);
             pawnBubbleEndTimes[speaker] = Time.time + duration; // Set bubbleEndTime for instant bubbles
             // No clearing of speechBubbleQueue here, as it's for instant display only
-            if (speaker != null && speaker.Map != null)
+            bool shouldShow = useCustomMote ? SocialInteractions.Settings.showLlmBubbles : true; // Combat taunts (standard motes) have their own toggle
+            if (speaker != null && speaker.Map != null && shouldShow)
             {
                 if (useCustomMote)
                 {
@@ -503,10 +507,11 @@ namespace SocialInteractions
             }
             float duration = Math.Max(1f, SocialInteractions.EstimateReadingTime(text));
             pawnBubbleEndTimes[speaker] = Time.time + duration;
-            if (speaker != null && speaker.Map != null)
+            if (speaker != null && speaker.Map != null && SocialInteractions.Settings.showDefaultBubbles)
             {
+                string wrappedText = SocialInteractions.WrapText(text, SocialInteractions.Settings.wordsPerLineLimit);
                 // Use standard mote for default bubbles
-                MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, text, new Color(0.75f, 0.75f, 0.75f));
+                MoteMaker.ThrowText(speaker.DrawPos, speaker.Map, wrappedText, new Color(0.75f, 0.75f, 0.75f));
             }
         }
         

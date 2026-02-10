@@ -36,6 +36,8 @@ namespace SocialInteractions
         public float? TopP { get; set; }
         [DataMember(Name = "top_k", EmitDefaultValue = false)]
         public int? TopK { get; set; }
+        [DataMember(Name = "repetition_penalty", EmitDefaultValue = false)]
+        public float? RepetitionPenalty { get; set; }
         [DataMember(Name = "stream", EmitDefaultValue = false)]
         public bool? Stream { get; set; }
         [DataMember(Name = "stop", EmitDefaultValue = false)]
@@ -146,7 +148,7 @@ namespace SocialInteractions
             return true;
         }
 
-        public async Task<string> GenerateText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, bool? enableXtcSampling = null, int? topK = null, float? topP = null, float? minP = null)
+        public async Task<string> GenerateText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, bool? enableXtcSampling = null, int? topK = null, float? topP = null, float? minP = null, float? repetitionPenalty = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException("DeepseekApiClient");
@@ -158,8 +160,9 @@ namespace SocialInteractions
                     Model = _modelName,
                     Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
                     MaxTokens = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
-                    TopP = topP,
-                    TopK = topK,
+                    TopP = topP ?? (SocialInteractions.Settings.llmTopP < 1.0f ? (float?)SocialInteractions.Settings.llmTopP : null),
+                    TopK = topK ?? (SocialInteractions.Settings.llmTopK > 0 ? (int?)SocialInteractions.Settings.llmTopK : null),
+                    RepetitionPenalty = repetitionPenalty ?? (SocialInteractions.Settings.llmRepetitionPenalty != 1.0f ? (float?)SocialInteractions.Settings.llmRepetitionPenalty : null),
                     Stream = false,
                     Stop = stopSequence ?? new List<string>(SocialInteractions.Settings.llmStoppingStrings.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
                 };

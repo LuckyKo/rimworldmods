@@ -24,7 +24,7 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        private const string CURRENT_VERSION = "1.5.4";
+        private const string CURRENT_VERSION = "1.5.5";
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
@@ -105,6 +105,7 @@ Current event: [pawn1] [subject]
         public int llmTopK = 40; // Default Top K (0 = disabled)
         public float llmTopP = 1.0f; // Default Top P (1.0 = disabled)
         public float llmMinP = 0.05f; // Default Min P (0.0 = disabled)
+        public float llmRepetitionPenalty = 1.0f; // Default Repetition Penalty (1.0 = disabled)
         public string ollamaModelName = "llama3.2"; // Default Ollama model name
         public string lmStudioModelName = "gemma-2-2b-it"; // Default LM Studio model name
         public string openAiModelName = "gpt-3.5-turbo"; // Default OpenAI model name
@@ -129,6 +130,8 @@ Current event: [pawn1] [subject]
         public bool enableDrama = false; // New setting for drama interactions like badmouthing
         
         public bool verboseLogging = false;
+        public bool showDefaultBubbles = true; // Toggle for default interaction bubbles
+        public bool showLlmBubbles = true; // Toggle for LLM dialogue bubbles
         public bool useBackgroundTextRendering = false; // False = drop shadow (current), True = background style
         
         // Interaction type settings
@@ -276,6 +279,8 @@ Current event: [pawn1] [subject]
         {
             base.ExposeData();
             Scribe_Values.Look(ref pawnsStopOnInteraction, "pawnsStopOnInteraction", true);
+            Scribe_Values.Look(ref showDefaultBubbles, "showDefaultBubbles", true);
+            Scribe_Values.Look(ref showLlmBubbles, "showLlmBubbles", true);
             Scribe_Values.Look(ref disableLlmThinking, "disableLlmThinking", true);
             Scribe_Values.Look(ref enableCombatTaunts, "enableCombatTaunts", true);
             Scribe_Values.Look(ref llmInteractionsEnabled, "llmInteractionsEnabled", false);
@@ -293,6 +298,7 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref llmTopK, "llmTopK", 40);
             Scribe_Values.Look(ref llmTopP, "llmTopP", 1.0f);
             Scribe_Values.Look(ref llmMinP, "llmMinP", 0.05f);
+            Scribe_Values.Look(ref llmRepetitionPenalty, "llmRepetitionPenalty", 1.0f);
             Scribe_Values.Look(ref ollamaModelName, "ollamaModelName", "llama3.2");
             Scribe_Values.Look(ref lmStudioModelName, "lmStudioModelName", "gemma-2-2b-it");
             Scribe_Values.Look(ref geminiModelName, "geminiModelName", "gemini-2.5-flash");
@@ -536,6 +542,12 @@ Current event: [pawn1] [subject]
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("SocialInteractions_PawnsStopOnInteraction".Translate(), ref SocialInteractions.Settings.pawnsStopOnInteraction, "SocialInteractions_PawnsStopOnInteractionDesc".Translate());
+
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("SocialInteractions_ShowDefaultBubbles".Translate(), ref SocialInteractions.Settings.showDefaultBubbles, "SocialInteractions_ShowDefaultBubblesDesc".Translate());
+
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("SocialInteractions_ShowLlmBubbles".Translate(), ref SocialInteractions.Settings.showLlmBubbles, "SocialInteractions_ShowLlmBubblesDesc".Translate());
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("SocialInteractions_EnableCombatTaunts".Translate(), ref SocialInteractions.Settings.enableCombatTaunts, "SocialInteractions_EnableCombatTauntsDesc".Translate());
@@ -1029,6 +1041,10 @@ Current event: [pawn1] [subject]
             listingStandard.Gap();
             listingStandard.Label(string.Format("SocialInteractions_MinP".Translate() + " {0:F3}", SocialInteractions.Settings.llmMinP));
             SocialInteractions.Settings.llmMinP = listingStandard.Slider(SocialInteractions.Settings.llmMinP, 0f, 1f);
+
+            listingStandard.Gap();
+            listingStandard.Label(string.Format("SocialInteractions_RepetitionPenalty".Translate() + " {0:F3}", SocialInteractions.Settings.llmRepetitionPenalty));
+            SocialInteractions.Settings.llmRepetitionPenalty = listingStandard.Slider(SocialInteractions.Settings.llmRepetitionPenalty, 1f, 2f);
 
             listingStandard.Gap();
             listingStandard.CheckboxLabeled("SocialInteractions_XTCSampling".Translate(), ref SocialInteractions.Settings.enableXtcSampling, "SocialInteractions_XTCSamplingDesc".Translate());

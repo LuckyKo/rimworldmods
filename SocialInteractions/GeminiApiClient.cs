@@ -40,6 +40,12 @@ namespace SocialInteractions
         public List<string> StopSequences { get; set; }
         [DataMember(Name = "temperature")]
         public float Temperature { get; set; }
+        [DataMember(Name = "topP", EmitDefaultValue = false)]
+        public float? TopP { get; set; }
+        [DataMember(Name = "topK", EmitDefaultValue = false)]
+        public int? TopK { get; set; }
+        [DataMember(Name = "repetition_penalty", EmitDefaultValue = false)]
+        public float? RepetitionPenalty { get; set; }
         [DataMember(Name = "thinkingConfig", EmitDefaultValue = false)]
         public GeminiApiThinkingConfig ThinkingConfig { get; set; }
     }
@@ -120,7 +126,7 @@ namespace SocialInteractions
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "SocialInteractionsMod/1.0");
         }
 
-        public async Task<string> GenerateText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, bool? enableXtcSampling = null, int? topK = null, float? topP = null, float? minP = null)
+        public async Task<string> GenerateText(string prompt, int? maxLength = null, float? temperature = null, List<string> stopSequence = null, bool? enableXtcSampling = null, int? topK = null, float? topP = null, float? minP = null, float? repetitionPenalty = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException("GeminiApiClient");
@@ -141,6 +147,9 @@ namespace SocialInteractions
                 {
                     MaxOutputTokens = maxLength ?? SocialInteractions.Settings.llmMaxTokens,
                     Temperature = temperature ?? SocialInteractions.Settings.llmTemperature,
+                    TopP = topP ?? (SocialInteractions.Settings.llmTopP < 1.0f ? (float?)SocialInteractions.Settings.llmTopP : null),
+                    TopK = topK ?? (SocialInteractions.Settings.llmTopK > 0 ? (int?)SocialInteractions.Settings.llmTopK : null),
+                    RepetitionPenalty = repetitionPenalty ?? (SocialInteractions.Settings.llmRepetitionPenalty != 1.0f ? (float?)SocialInteractions.Settings.llmRepetitionPenalty : null),
                     StopSequences = stopSequences
                 };
 

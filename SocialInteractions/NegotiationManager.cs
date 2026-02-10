@@ -754,53 +754,59 @@ namespace SocialInteractions
             // Use existing API client infrastructure
             var settings = SocialInteractions.Settings;
             string apiKey = settings.llmApiKey;
+
+            // Prepare sampling parameters once
+            int? topK = settings.llmTopK > 0 ? (int?)settings.llmTopK : null;
+            float? topP = settings.llmTopP < 1.0f ? (float?)settings.llmTopP : null;
+            float? minP = settings.llmMinP > 0.0f ? (float?)settings.llmMinP : null;
+            float? repPen = settings.llmRepetitionPenalty != 1.0f ? (float?)settings.llmRepetitionPenalty : null;
             
             switch (settings.llmApiType)
             {
                 case LlmApiType.KoboldCpp:
                     using (var client = new KoboldApiClient(settings.llmApiUrl, apiKey))
                     {
-                        return await client.GenerateText(prompt);
+                        return await client.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 case LlmApiType.Ollama:
                     using (var client = new OllamaApiClient(settings.llmApiUrl, settings.ollamaModelName))
                     {
-                        return await client.GenerateText(prompt);
+                        return await client.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 case LlmApiType.LMStudio:
-                    using (var client = new LMStudioApiClient(settings.llmApiUrl, apiKey))
+                    using (var client = new LMStudioApiClient(settings.llmApiUrl, settings.lmStudioModelName))
                     {
-                        return await client.GenerateText(prompt);
+                        return await client.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 case LlmApiType.OpenAI:
-                    using (var client = new OpenAiApiClient(settings.llmApiUrl, apiKey, settings.openAiModelName))
+                    using (var client = new OpenAiApiClient(settings.llmApiUrl, settings.openAiModelName, apiKey))
                     {
-                        return await client.GenerateText(prompt);
+                        return await client.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 case LlmApiType.Gemini:
                     using (var client = new GeminiApiClient(settings.llmApiUrl, apiKey))
                     {
-                        return await client.GenerateText(prompt);
+                        return await client.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 case LlmApiType.Qwen:
-                    using (var client = new QwenApiClient(settings.llmApiUrl, apiKey, settings.qwenModelName))
+                    using (var client = new QwenApiClient(settings.llmApiUrl, settings.qwenModelName, apiKey))
                     {
-                        return await client.GenerateText(prompt);
+                        return await client.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 case LlmApiType.Deepseek:
-                    using (var client = new DeepseekApiClient(settings.llmApiUrl, apiKey, settings.deepseekModelName))
+                    using (var client = new DeepseekApiClient(settings.llmApiUrl, settings.deepseekModelName, apiKey))
                     {
-                        return await client.GenerateText(prompt);
+                        return await client.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 case LlmApiType.Grok:
-                    using (var client = new GrokApiClient(settings.llmApiUrl, apiKey, settings.grokModelName))
+                    using (var client = new GrokApiClient(settings.llmApiUrl, settings.grokModelName, apiKey))
                     {
-                        return await client.GenerateText(prompt);
+                        return await client.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 case LlmApiType.Claude:
-                    using (var client = new ClaudeApiClient(settings.llmApiUrl, apiKey, settings.claudeModelName))
+                    using (var client = new ClaudeApiClient(settings.llmApiUrl, settings.claudeModelName, apiKey))
                     {
-                        return await client.GenerateText(prompt);
+                        return await client.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 default:
                     throw new Exception("Unknown API type: " + settings.llmApiType);

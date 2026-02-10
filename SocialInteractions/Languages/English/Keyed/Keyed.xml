@@ -25,6 +25,10 @@
   <SocialInteractions_UseTextBackgroundDesc>If enabled, LLM-generated text will be displayed with a background instead of a drop shadow.</SocialInteractions_UseTextBackgroundDesc>
   <SocialInteractions_EnableVerboseLogging>Enable Verbose Logging</SocialInteractions_EnableVerboseLogging>
   <SocialInteractions_EnableVerboseLoggingDesc>If enabled, detailed logs will be written to the Player.log file for debugging purposes.</SocialInteractions_EnableVerboseLoggingDesc>
+  <SocialInteractions_ShowDefaultBubbles>Show Interaction Bubbles (Default)</SocialInteractions_ShowDefaultBubbles>
+  <SocialInteractions_ShowDefaultBubblesDesc>If enabled, standard interaction bubbles and fallback summaries will be displayed above pawns.</SocialInteractions_ShowDefaultBubblesDesc>
+  <SocialInteractions_ShowLlmBubbles>Show Dialogue Bubbles (LLM)</SocialInteractions_ShowLlmBubbles>
+  <SocialInteractions_ShowLlmBubblesDesc>If enabled, LLM-generated dialogue lines will be displayed above pawns. If disabled, they will be hidden, but TTS and chat logs will still work.</SocialInteractions_ShowLlmBubblesDesc>
   <SocialInteractions_ForceChatCompletion>Force Chat Completion</SocialInteractions_ForceChatCompletion>
   <SocialInteractions_ForceChatCompletionDesc>If enabled, KoboldCpp, LM Studio, and Ollama will use OpenAI-compatible chat completion endpoints instead of text completion. This is recommended for newer models.</SocialInteractions_ForceChatCompletionDesc>
   <SocialInteractions_DisableLlmThinking>Disable Reasoning (Thoughts)</SocialInteractions_DisableLlmThinking>
@@ -97,6 +101,7 @@
   <SocialInteractions_TopK>Top K (0 = disabled, 1-100 = enabled):</SocialInteractions_TopK>
   <SocialInteractions_TopP>Top P (0.0 - 1.0, 1.0 = disabled):</SocialInteractions_TopP>
   <SocialInteractions_MinP>Min P (0.0 - 1.0, 0.0 = disabled):</SocialInteractions_MinP>
+  <SocialInteractions_RepetitionPenalty>Repetition Penalty (1.0 - 2.0, 1.0 = disabled):</SocialInteractions_RepetitionPenalty>
   <SocialInteractions_XTCSampling>XTC Sampling</SocialInteractions_XTCSampling>
   <SocialInteractions_XTCSamplingDesc>If enabled, XTC (Exclude Top Choices) sampling will be used for LLM requests to encourage more creative responses.</SocialInteractions_XTCSamplingDesc>
   

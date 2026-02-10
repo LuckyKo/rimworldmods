@@ -97,6 +97,7 @@
   <SocialInteractions_TopK>Top K（0 = 禁用，1-100 = 启用）：</SocialInteractions_TopK>
   <SocialInteractions_TopP>Top P（0.0 - 1.0，1.0 = 禁用）：</SocialInteractions_TopP>
   <SocialInteractions_MinP>Min P（0.0 - 1.0，0.0 = 禁用）：</SocialInteractions_MinP>
+  <SocialInteractions_RepetitionPenalty>重复惩罚 (1.0 - 2.0, 1.0 = 禁用)：</SocialInteractions_RepetitionPenalty>
   <SocialInteractions_XTCSampling>XTC采样</SocialInteractions_XTCSampling>
   <SocialInteractions_XTCSamplingDesc>启用后，XTC（排除顶部选择）采样将用于LLM请求以鼓励更多创意回应。</SocialInteractions_XTCSamplingDesc>
   

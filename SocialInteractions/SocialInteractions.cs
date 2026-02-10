@@ -2149,33 +2149,19 @@ namespace SocialInteractions
             IDisposable client = null;
             try
             {
+                // Prepare sampling parameters once
+                int? topK = Settings.llmTopK > 0 ? (int?)Settings.llmTopK : null;
+                float? topP = Settings.llmTopP < 1.0f ? (float?)Settings.llmTopP : null;
+                float? minP = Settings.llmMinP > 0.0f ? (float?)Settings.llmMinP : null;
+                float? repPen = Settings.llmRepetitionPenalty != 1.0f ? (float?)Settings.llmRepetitionPenalty : null;
+
                 if (Settings.llmApiType == LlmApiType.Ollama)
                 {
                     client = new OllamaApiClient(Settings.llmApiUrl, Settings.ollamaModelName);
                     OllamaApiClient ollamaClient = client as OllamaApiClient;
                     if (ollamaClient != null)
                     {
-                        // Prepare sampling parameters
-                        int? topK = null;
-                        float? topP = null;
-                        float? minP = null;
-                        
-                        if (Settings.llmTopK > 0)
-                        {
-                            topK = Settings.llmTopK;
-                        }
-                        
-                        if (Settings.llmTopP < 1.0f)
-                        {
-                            topP = Settings.llmTopP;
-                        }
-                        
-                        if (Settings.llmMinP > 0.0f)
-                        {
-                            minP = Settings.llmMinP;
-                        }
-                        
-                        return await ollamaClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                        return await ollamaClient.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 }
                 else if (Settings.llmApiType == LlmApiType.LMStudio)
@@ -2184,7 +2170,7 @@ namespace SocialInteractions
                     LMStudioApiClient lmStudioClient = client as LMStudioApiClient;
                     if (lmStudioClient != null)
                     {
-                        return await lmStudioClient.GenerateText(prompt, null, null, null, null, null, null, null);
+                        return await lmStudioClient.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 }
                 else if (Settings.llmApiType == LlmApiType.OpenAI)
@@ -2193,27 +2179,7 @@ namespace SocialInteractions
                     OpenAiApiClient openAiClient = client as OpenAiApiClient;
                     if (openAiClient != null)
                     {
-                        // Prepare sampling parameters
-                        int? topK = null;
-                        float? topP = null;
-                        float? minP = null;
-                        
-                        if (Settings.llmTopK > 0)
-                        {
-                            topK = Settings.llmTopK;
-                        }
-                        
-                        if (Settings.llmTopP < 1.0f)
-                        {
-                            topP = Settings.llmTopP;
-                        }
-                        
-                        if (Settings.llmMinP > 0.0f)
-                        {
-                            minP = Settings.llmMinP;
-                        }
-                        
-                        return await openAiClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                        return await openAiClient.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 }
                 else if (Settings.llmApiType == LlmApiType.Gemini)
@@ -2222,27 +2188,7 @@ namespace SocialInteractions
                     GeminiApiClient geminiClient = client as GeminiApiClient;
                     if (geminiClient != null)
                     {
-                        // Prepare sampling parameters
-                        int? topK = null;
-                        float? topP = null;
-                        float? minP = null;
-                        
-                        if (Settings.llmTopK > 0)
-                        {
-                            topK = Settings.llmTopK;
-                        }
-                        
-                        if (Settings.llmTopP < 1.0f)
-                        {
-                            topP = Settings.llmTopP;
-                        }
-                        
-                        if (Settings.llmMinP > 0.0f)
-                        {
-                            minP = Settings.llmMinP;
-                        }
-                        
-                        return await geminiClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                        return await geminiClient.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 }
                 else if (Settings.llmApiType == LlmApiType.Qwen)
@@ -2251,27 +2197,7 @@ namespace SocialInteractions
                     QwenApiClient qwenClient = client as QwenApiClient;
                     if (qwenClient != null)
                     {
-                        // Prepare sampling parameters
-                        int? topK = null;
-                        float? topP = null;
-                        float? minP = null;
-                        
-                        if (Settings.llmTopK > 0)
-                        {
-                            topK = Settings.llmTopK;
-                        }
-                        
-                        if (Settings.llmTopP < 1.0f)
-                        {
-                            topP = Settings.llmTopP;
-                        }
-                        
-                        if (Settings.llmMinP > 0.0f)
-                        {
-                            minP = Settings.llmMinP;
-                        }
-                        
-                        return await qwenClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                        return await qwenClient.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 }
                 else if (Settings.llmApiType == LlmApiType.Deepseek)
@@ -2280,27 +2206,7 @@ namespace SocialInteractions
                     DeepseekApiClient deepseekClient = client as DeepseekApiClient;
                     if (deepseekClient != null)
                     {
-                        // Prepare sampling parameters
-                        int? topK = null;
-                        float? topP = null;
-                        float? minP = null;
-                        
-                        if (Settings.llmTopK > 0)
-                        {
-                            topK = Settings.llmTopK;
-                        }
-                        
-                        if (Settings.llmTopP < 1.0f)
-                        {
-                            topP = Settings.llmTopP;
-                        }
-                        
-                        if (Settings.llmMinP > 0.0f)
-                        {
-                            minP = Settings.llmMinP;
-                        }
-                        
-                        return await deepseekClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                        return await deepseekClient.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 }
                 else if (Settings.llmApiType == LlmApiType.Grok)
@@ -2309,27 +2215,7 @@ namespace SocialInteractions
                     GrokApiClient grokClient = client as GrokApiClient;
                     if (grokClient != null)
                     {
-                        // Prepare sampling parameters
-                        int? topK = null;
-                        float? topP = null;
-                        float? minP = null;
-                        
-                        if (Settings.llmTopK > 0)
-                        {
-                            topK = Settings.llmTopK;
-                        }
-                        
-                        if (Settings.llmTopP < 1.0f)
-                        {
-                            topP = Settings.llmTopP;
-                        }
-                        
-                        if (Settings.llmMinP > 0.0f)
-                        {
-                            minP = Settings.llmMinP;
-                        }
-                        
-                        return await grokClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                        return await grokClient.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 }
                 else if (Settings.llmApiType == LlmApiType.Claude)
@@ -2338,27 +2224,7 @@ namespace SocialInteractions
                     ClaudeApiClient claudeClient = client as ClaudeApiClient;
                     if (claudeClient != null)
                     {
-                        // Prepare sampling parameters
-                        int? topK = null;
-                        float? topP = null;
-                        float? minP = null;
-                        
-                        if (Settings.llmTopK > 0)
-                        {
-                            topK = Settings.llmTopK;
-                        }
-                        
-                        if (Settings.llmTopP < 1.0f)
-                        {
-                            topP = Settings.llmTopP;
-                        }
-                        
-                        if (Settings.llmMinP > 0.0f)
-                        {
-                            minP = Settings.llmMinP;
-                        }
-                        
-                        return await claudeClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                        return await claudeClient.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 }
                 else
@@ -2367,27 +2233,7 @@ namespace SocialInteractions
                     KoboldApiClient koboldClient = client as KoboldApiClient;
                     if (koboldClient != null)
                     {
-                        // Prepare sampling parameters
-                        int? topK = null;
-                        float? topP = null;
-                        float? minP = null;
-                        
-                        if (Settings.llmTopK > 0)
-                        {
-                            topK = Settings.llmTopK;
-                        }
-                        
-                        if (Settings.llmTopP < 1.0f)
-                        {
-                            topP = Settings.llmTopP;
-                        }
-                        
-                        if (Settings.llmMinP > 0.0f)
-                        {
-                            minP = Settings.llmMinP;
-                        }
-                        
-                        return await koboldClient.GenerateText(prompt, null, null, null, null, topK, topP, minP);
+                        return await koboldClient.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 }
             }
