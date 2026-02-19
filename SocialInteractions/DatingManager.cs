@@ -1177,7 +1177,14 @@ namespace SocialInteractions
 
             // Social compatibility and probability check
             float baseChance = SocialInteractions.Settings.baseLovinChance;
-            float moodFactor = (initiator.needs.mood.CurLevel + partner.needs.mood.CurLevel) / 2f;
+            float initiatorMood = 1.0f;
+            float partnerMood = 1.0f;
+            if (initiator.needs != null && initiator.needs.mood != null)
+                initiatorMood = initiator.needs.mood.CurLevel;
+            if (partner.needs != null && partner.needs.mood != null)
+                partnerMood = partner.needs.mood.CurLevel;
+
+            float moodFactor = (initiatorMood + partnerMood) / 2f;
             float dateCompatibility = CalculateDateCompatibility(initiator, partner);
             float rawChance = baseChance * moodFactor * dateCompatibility;
             float finalChance = Sigmoid(rawChance);

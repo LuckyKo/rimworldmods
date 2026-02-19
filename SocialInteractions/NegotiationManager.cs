@@ -47,6 +47,23 @@ namespace SocialInteractions
         private bool isSocialFightContext = false;
         private bool isMentalStateContext = false;
         private Pawn otherFighter = null;
+
+        public string InteractionTypeLabel
+        {
+            get
+            {
+                if (raidContext != null) return "Raid Negotiation";
+                if (isTradeContext) return "Trade Negotiation";
+                if (isVisitorContext) return "Visitor Negotiation";
+                if (isSocialFightContext) return "Social Fight Intervention";
+                if (isMentalStateContext) return "Mental Break Intervention";
+                
+                if (target.Faction == Faction.OfPlayer)
+                    return "Negotiation with Colonist";
+                
+                return "Negotiation with " + target.KindLabel;
+            }
+        }
         
         public NegotiationManager(Pawn initiator, Pawn target, Dialog_PawnNegotiation dialog)
         {

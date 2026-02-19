@@ -32,9 +32,10 @@ namespace SocialInteractions
         
         // Layout constants
         // Layout constants
+        private const float InteractionTitleHeight = 30f;
         private const float TitleHeight = 40f;
         private const float InfoHeight = 30f;
-        private const float HeaderHeight = TitleHeight + InfoHeight;
+        private const float HeaderHeight = InteractionTitleHeight + TitleHeight + InfoHeight;
         private const float ChoiceButtonHeight = 32f;
         private const float ChoiceSpacing = 5f;
         private const float CustomInputHeight = 30f;
@@ -107,13 +108,21 @@ namespace SocialInteractions
             
             float halfWidth = inRect.width / 2f;
             
+            // Interaction Title (Center)
+            Text.Font = GameFont.Medium;
+            Text.Anchor = TextAnchor.UpperCenter;
+            GUI.color = new Color(1f, 1f, 1f, 0.6f);
+            Rect titleLabelRect = new Rect(0, 0, inRect.width, InteractionTitleHeight);
+            Widgets.Label(titleLabelRect, manager.InteractionTypeLabel);
+            GUI.color = Color.white;
+            
             // Left side: Initiator
-            Rect initiatorNameRect = new Rect(0, 0, halfWidth, TitleHeight);
-            Rect initiatorInfoRect = new Rect(0, TitleHeight, halfWidth, InfoHeight);
+            Rect initiatorNameRect = new Rect(0, InteractionTitleHeight, halfWidth, TitleHeight);
+            Rect initiatorInfoRect = new Rect(0, InteractionTitleHeight + TitleHeight, halfWidth, InfoHeight);
             
             // Right side: Target
-            Rect targetNameRect = new Rect(halfWidth, 0, halfWidth, TitleHeight);
-            Rect targetInfoRect = new Rect(halfWidth, TitleHeight, halfWidth, InfoHeight);
+            Rect targetNameRect = new Rect(halfWidth, InteractionTitleHeight, halfWidth, TitleHeight);
+            Rect targetInfoRect = new Rect(halfWidth, InteractionTitleHeight + TitleHeight, halfWidth, InfoHeight);
             
             // Draw initiator
             Text.Font = GameFont.Medium;
