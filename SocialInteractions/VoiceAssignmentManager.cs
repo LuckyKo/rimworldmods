@@ -73,12 +73,16 @@ namespace SocialInteractions
                 }
 
                 if (voiceForPrefixCheck.StartsWith("am_", StringComparison.OrdinalIgnoreCase) ||
-                    voiceForPrefixCheck.StartsWith("bm_", StringComparison.OrdinalIgnoreCase))
+                    voiceForPrefixCheck.StartsWith("bm_", StringComparison.OrdinalIgnoreCase) ||
+                    voiceForPrefixCheck.StartsWith("m_", StringComparison.OrdinalIgnoreCase) ||
+                    voiceForPrefixCheck.StartsWith("[Male]", StringComparison.OrdinalIgnoreCase))
                 {
                     allMaleVoices.Add(voice);
                 }
                 else if (voiceForPrefixCheck.StartsWith("af_", StringComparison.OrdinalIgnoreCase) ||
-                         voiceForPrefixCheck.StartsWith("bf_", StringComparison.OrdinalIgnoreCase))
+                         voiceForPrefixCheck.StartsWith("bf_", StringComparison.OrdinalIgnoreCase) ||
+                         voiceForPrefixCheck.StartsWith("f_", StringComparison.OrdinalIgnoreCase) ||
+                         voiceForPrefixCheck.StartsWith("[Female]", StringComparison.OrdinalIgnoreCase))
                 {
                     allFemaleVoices.Add(voice);
                 }
@@ -268,8 +272,8 @@ namespace SocialInteractions
             List<string> candidates = new List<string>();
             // Include both American and British voice variants
             string[] prefixes = pawn.gender == Gender.Female 
-                ? new string[] { "af_", "bf_" } 
-                : new string[] { "am_", "bm_" };
+                ? new string[] { "af_", "bf_", "f_", "[Female]" } 
+                : new string[] { "am_", "bm_", "m_", "[Male]" };
 
             foreach (var voice in availableVoices)
             {

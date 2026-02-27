@@ -71,6 +71,9 @@
   <SocialInteractions_Deepseek>Deepseek</SocialInteractions_Deepseek>
   <SocialInteractions_Grok>Grok</SocialInteractions_Grok>
   <SocialInteractions_Claude>Claude</SocialInteractions_Claude>
+  <SocialInteractions_Player2ModelName>Player2 Model Name:</SocialInteractions_Player2ModelName>
+  <SocialInteractions_Player2>Player2</SocialInteractions_Player2>
+  <SocialInteractions_Player2GameClientId>Game Client ID (from Player2 Dashboard):</SocialInteractions_Player2GameClientId>
   
   <!-- Model Name Labels -->
   <SocialInteractions_OllamaModelName>Ollama Model Name:</SocialInteractions_OllamaModelName>
@@ -173,6 +176,9 @@
   <SocialInteractions_RemapVoices>Remap Voices</SocialInteractions_RemapVoices>
   <SocialInteractions_AssignVoicesManually>Assign Voices Manually</SocialInteractions_AssignVoicesManually>
   <SocialInteractions_VoicesAvailable>Voices Available: {0}</SocialInteractions_VoicesAvailable>
+  <SocialInteractions_TtsApiType>TTS API Type:</SocialInteractions_TtsApiType>
+  <SocialInteractions_TtsInternalPlayback>Internal Playback (Skip Launcher)</SocialInteractions_TtsInternalPlayback>
+  <SocialInteractions_TtsInternalPlaybackDesc>If enabled, Player2 will play the audio through its own launcher. If disabled (recommended), the audio will be returned to the mod and played through RimWorld instead.</SocialInteractions_TtsInternalPlaybackDesc>
 
   <!-- Raid Negotiation -->
   <SI_NegotiateWithRaiders>Negotiate with Raiders</SI_NegotiateWithRaiders>

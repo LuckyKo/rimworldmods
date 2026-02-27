@@ -40,6 +40,14 @@ namespace SocialInteractions
             // Initialize TTS Manager (reset sequence IDs)
             TTSManager.Initialize();
             
+            // Start Player2 health heartbeat if configured
+            if (Settings != null && Settings.llmInteractionsEnabled && 
+                Settings.llmApiType == LlmApiType.Player2 && 
+                !string.IsNullOrEmpty(Settings.player2GameClientId))
+            {
+                Player2ApiClient.StartHealthHeartbeat(Settings.llmApiUrl, Settings.player2GameClientId);
+            }
+            
             // Log that patches were applied
             SLog.Message("[SocialInteractions] Harmony patches applied");
         }
@@ -2133,6 +2141,10 @@ namespace SocialInteractions
             {
                 return new ClaudeApiClient(Settings.llmApiUrl, Settings.claudeModelName, Settings.llmApiKey);
             }
+            else if (Settings.llmApiType == LlmApiType.Player2)
+            {
+                return new Player2ApiClient(Settings.llmApiUrl, Settings.player2ModelName, Settings.llmApiKey, Settings.player2GameClientId);
+            }
             else
             {
                 return new KoboldApiClient(Settings.llmApiUrl, Settings.llmApiKey);
@@ -2225,6 +2237,15 @@ namespace SocialInteractions
                     if (claudeClient != null)
                     {
                         return await claudeClient.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
+                    }
+                }
+                else if (Settings.llmApiType == LlmApiType.Player2)
+                {
+                    client = new Player2ApiClient(Settings.llmApiUrl, Settings.player2ModelName, Settings.llmApiKey, Settings.player2GameClientId);
+                    Player2ApiClient player2Client = client as Player2ApiClient;
+                    if (player2Client != null)
+                    {
+                        return await player2Client.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
                 }
                 else

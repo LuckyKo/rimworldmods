@@ -17,6 +17,8 @@ namespace SocialInteractions
         private static float pauseStartTime = -1f; // Tracks when the game was paused
         private static int currentConversationId = 0;
         private static HashSet<int> activeConversations = new HashSet<int>();
+        private static Dictionary<int, float> activeConversationStartTimes = new Dictionary<int, float>(); // Track start times for timeouts
+        private const float ConversationTimeoutSeconds = 30f; // Fail-safe timeout
         
         // --- For Job Queue ---
         private static Queue<Action> pendingJobs = new Queue<Action>();
@@ -165,6 +167,39 @@ namespace SocialInteractions
             // Note: The IsLlmCurrentlyBusy() method provides real-time queue state for spam protection
             // The queue state is checked directly when needed rather than maintaining a potentially stale flag
 
+            // --- Stale Conversation Cleanup ---
+            lock (queueLock)
+            {
+                if (activeConversations.Count > 0)
+                {
+                    List<int> conversationsToRemove = new List<int>();
+                    float currentTime = Time.time;
+                    foreach (int convId in activeConversations)
+                    {
+                        float startTime;
+                        if (activeConversationStartTimes.TryGetValue(convId, out startTime))
+                        {
+                            if (currentTime - startTime > ConversationTimeoutSeconds)
+                            {
+                                conversationsToRemove.Add(convId);
+                                SLog.Warning(string.Format("[SpeechBubbleManager] Conversation {0} timed out after {1}s and was force-removed.", convId, ConversationTimeoutSeconds));
+                            }
+                        }
+                        else
+                        {
+                            // If no start time, initialize it now (shouldn't happen with proper StartConversation call)
+                            activeConversationStartTimes[convId] = currentTime;
+                        }
+                    }
+
+                    foreach (int convId in conversationsToRemove)
+                    {
+                        EndConversation(convId);
+                    }
+                }
+            }
+            // --- End Stale Conversation Cleanup ---
+
             // Process pending jobs
             lock (queueLock)
             {
@@ -237,6 +272,7 @@ namespace SocialInteractions
             {
                 currentConversationId++;
                 activeConversations.Add(currentConversationId);
+                activeConversationStartTimes[currentConversationId] = Time.time;
             }
             return currentConversationId;
         }
@@ -260,6 +296,7 @@ namespace SocialInteractions
             lock (queueLock)
             {
                 activeConversations.Remove(conversationId);
+                activeConversationStartTimes.Remove(conversationId);
             }
         }
 

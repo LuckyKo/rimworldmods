@@ -18,6 +18,7 @@ QwenApiClient.cs
 DeepseekApiClient.cs
 GrokApiClient.cs
 ClaudeApiClient.cs
+Player2ApiClient.cs
 JobDriver_HaveDeepTalk.cs
 Job_HaveDeepTalk.cs
 JobDriver_BeTalkedTo.cs

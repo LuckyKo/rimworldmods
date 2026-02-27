@@ -25,6 +25,9 @@ namespace SocialInteractions
         private static int nextPlaybackId = 0;
         private static Dictionary<int, TTSQueueEntry> playbackBuffer = new Dictionary<int, TTSQueueEntry>();
         private static readonly object bufferLock = new object();
+        
+        // Lookup for Player2 Voice IDs: Name (Language) -> ID
+        private static Dictionary<string, string> voiceIdLookup = new Dictionary<string, string>();
 
 
         public static void Initialize()
@@ -95,9 +98,25 @@ namespace SocialInteractions
             
             // Try to deduce the voices endpoint
             string speechUrl = SocialInteractions.Settings.ttsApiUrl;
-            string voicesUrl = speechUrl.Replace("/speech", "/voices"); // Simple heuristic
-            
-            if (voicesUrl == speechUrl) voicesUrl = speechUrl + ((speechUrl.EndsWith("/")) ? "" : "/") + "v1/audio/voices"; // Fallback
+            string voicesUrl = speechUrl;
+
+            if (SocialInteractions.Settings.ttsApiType == TtsApiType.Player2)
+            {
+                if (speechUrl.Contains("/speak"))
+                {
+                    voicesUrl = speechUrl.Replace("/speak", "/voices");
+                }
+                else
+                {
+                    // If user only provided the base URL (e.g. http://127.0.0.1:4315/v1/tts)
+                    voicesUrl = speechUrl.TrimEnd('/') + "/voices";
+                }
+            }
+            else
+            {
+                voicesUrl = speechUrl.Replace("/speech", "/voices"); // Simple heuristic for OpenAI-like
+                if (voicesUrl == speechUrl) voicesUrl = speechUrl + ((speechUrl.EndsWith("/")) ? "" : "/") + "v1/audio/voices"; // Fallback
+            }
 
             SLog.Message("[SocialInteractions] TTSManager: Fetching voices from: " + voicesUrl);
 
@@ -175,13 +194,53 @@ namespace SocialInteractions
 
         private static void ParseVoiceArray(string arrayContent, ref List<string> voices)
         {
-            // Find all strings like "abc_123" or "abc_123.wav" inside the array
-            var matches = System.Text.RegularExpressions.Regex.Matches(arrayContent, "\"([a-zA-Z0-9_.]+)\"");
-            foreach (System.Text.RegularExpressions.Match match in matches)
+            // For Player2, we need to extract objects with "id" and "name"
+            if (SocialInteractions.Settings.ttsApiType == TtsApiType.Player2)
             {
-                string v = match.Groups[1].Value;
+                // Simple object parsing: find each { ... } block
+                var objectMatches = System.Text.RegularExpressions.Regex.Matches(arrayContent, @"\{([^{}]+)\}");
+                foreach (System.Text.RegularExpressions.Match objMatch in objectMatches)
+                {
+                    string objContent = objMatch.Groups[1].Value;
+                    
+                    // Extract id, name, and gender using regex
+                    var idMatch = System.Text.RegularExpressions.Regex.Match(objContent, "\"id\"\\s*:\\s*\"([a-zA-Z0-9.-]+)\"");
+                    var nameMatch = System.Text.RegularExpressions.Regex.Match(objContent, "\"name\"\\s*:\\s*\"([a-zA-Z0-9.\\s]+)\"");
+                    var langMatch = System.Text.RegularExpressions.Regex.Match(objContent, "\"language\"\\s*:\\s*\"([a-zA-Z0-9._-]+)\"");
+                    var genderMatch = System.Text.RegularExpressions.Regex.Match(objContent, "\"gender\"\\s*:\\s*\"([a-zA-Z]+)\"");
 
-                if (!voices.Contains(v)) voices.Add(v);
+                    if (idMatch.Success && nameMatch.Success)
+                    {
+                        string id = idMatch.Groups[1].Value;
+                        string name = nameMatch.Groups[1].Value;
+                        string lang = langMatch.Success ? langMatch.Groups[1].Value : "";
+                        string gender = genderMatch.Success ? genderMatch.Groups[1].Value.ToLower() : "";
+                        
+                        // Prefix name with [Male] or [Female] if found
+                        string prefix = "";
+                        if (gender == "male") prefix = "[Male] ";
+                        else if (gender == "female") prefix = "[Female] ";
+                        
+                        string displayName = prefix + name;
+                        if (!string.IsNullOrEmpty(lang)) displayName += string.Format(" ({0})", lang);
+                        
+                        if (!voices.Contains(displayName)) voices.Add(displayName);
+                        voiceIdLookup[displayName] = id;
+                    }
+                }
+            }
+            else
+            {
+                // Standard flat array parsing or simple regex for OpenAI-like
+                var matches = System.Text.RegularExpressions.Regex.Matches(arrayContent, "\"([a-zA-Z0-9_.-]+)\"");
+                foreach (System.Text.RegularExpressions.Match match in matches)
+                {
+                    string v = match.Groups[1].Value;
+                    // Skip keys if they were caught by accident
+                    if (v == "voices" || v == "id" || v == "name") continue;
+
+                    if (!voices.Contains(v)) voices.Add(v);
+                }
             }
         }
 
@@ -221,13 +280,38 @@ namespace SocialInteractions
             string voice = !string.IsNullOrEmpty(voiceName) ? voiceName : "alloy";
             float speed = Mathf.Clamp(SocialInteractions.Settings.ttsSpeed, 0.25f, 4.0f);
 
-            string json = string.Format("{{\"model\": \"{0}\", \"input\": \"{1}\", \"voice\": \"{2}\", \"speed\": {3}}}", 
-                model, 
-                text.Replace("\"", "\\\"").Replace("\n", " ").Replace("\r", ""), 
-                voice, 
-                speed.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
+            string json = "";
+            if (SocialInteractions.Settings.ttsApiType == TtsApiType.Player2)
+            {
+                // Player2 format: {"text": "...", "voice_ids": ["..."], "speed": 1.0, "audio_format": "wav", "play_in_app": false}
+                // Note: using play_in_app: false to routing audio back to mod.
+                string internalPlaybackStr = SocialInteractions.Settings.ttsInternalPlayback ? "true" : "false";
+                
+                // Lookup UUID if possible, otherwise use name as fallback
+                string voiceId = voice;
+                string foundId;
+                if (voiceIdLookup.TryGetValue(voice, out foundId))
+                {
+                    voiceId = foundId;
+                }
 
-            // Define formats to try
+                json = string.Format("{{\"text\": \"{0}\", \"voice_ids\": [\"{1}\"], \"speed\": {2}, \"audio_format\": \"wav\", \"internal_playback\": {3}, \"play_in_app\": false}}",
+                    text.Replace("\"", "\\\"").Replace("\n", " ").Replace("\r", ""),
+                    voiceId,
+                    speed.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
+                    internalPlaybackStr);
+            }
+            else
+            {
+                // OpenAI compatible format (default)
+                json = string.Format("{{\"model\": \"{0}\", \"input\": \"{1}\", \"voice\": \"{2}\", \"speed\": {3}}}", 
+                    model, 
+                    text.Replace("\"", "\\\"").Replace("\n", " ").Replace("\r", ""), 
+                    voice, 
+                    speed.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            // Define formats to try (for standard binary APIs)
             var formats = new[] 
             { 
                 new { Type = AudioType.WAV, Name = "WAV" },
@@ -235,44 +319,98 @@ namespace SocialInteractions
                 new { Type = AudioType.OGGVORBIS, Name = "OGG" }
             };
 
-            foreach (var format in formats)
+            if (SocialInteractions.Settings.ttsApiType == TtsApiType.Player2)
             {
+                // Player2 returns a JSON wrapper with base64 data
                 using (UnityWebRequest request = UnityWebRequest.Put(url, json))
                 {
                     request.method = "POST";
                     request.SetRequestHeader("Content-Type", "application/json");
-                    request.downloadHandler = new DownloadHandlerAudioClip(url, format.Type);
+                    request.downloadHandler = new DownloadHandlerBuffer();
                     if (!string.IsNullOrEmpty(apiKey)) request.SetRequestHeader("Authorization", "Bearer " + apiKey);
 
                     yield return request.SendWebRequest();
 
                     if (request.result != UnityWebRequest.Result.ConnectionError && request.result != UnityWebRequest.Result.ProtocolError)
                     {
-                        clip = DownloadHandlerAudioClip.GetContent(request);
-                        if (clip != null && clip.frequency > 0)
+                        string responseText = request.downloadHandler.text;
+                        if (!string.IsNullOrEmpty(responseText) && responseText.TrimStart().StartsWith("{"))
                         {
-                            success = true;
-                            break; // Success!
+                            // Extract "data":"..."
+                            int dataIdx = responseText.IndexOf("\"data\":");
+                            if (dataIdx != -1)
+                            {
+                                int startQuote = responseText.IndexOf('"', dataIdx + 7);
+                                int endQuote = responseText.LastIndexOf('"');
+                                if (startQuote != -1 && endQuote > startQuote)
+                                {
+                                    string base64Data = responseText.Substring(startQuote + 1, endQuote - startQuote - 1);
+                                    string tempPathStr = "";
+                                    try
+                                    {
+                                        byte[] audioBytes = Convert.FromBase64String(base64Data);
+                                        tempPathStr = Path.Combine(Path.GetTempPath(), "si_tts_" + requestId + ".wav");
+                                        File.WriteAllBytes(tempPathStr, audioBytes);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        SLog.Warning("[SocialInteractions] Player2 JSON/Base64 decode failed: " + ex.Message);
+                                    }
+
+                                    if (!string.IsNullOrEmpty(tempPathStr))
+                                    {
+                                        // Load from local file
+                                        using (UnityWebRequest localReq = UnityWebRequestMultimedia.GetAudioClip("file://" + tempPathStr, AudioType.WAV))
+                                        {
+                                            yield return localReq.SendWebRequest();
+                                            if (localReq.result != UnityWebRequest.Result.ConnectionError && localReq.result != UnityWebRequest.Result.ProtocolError)
+                                            {
+                                                clip = DownloadHandlerAudioClip.GetContent(localReq);
+                                                if (clip != null && clip.frequency > 0) success = true;
+                                            }
+                                        }
+
+                                        // Try to delete temp file
+                                        try { if (File.Exists(tempPathStr)) File.Delete(tempPathStr); } catch {}
+                                    }
+                                }
+                            }
                         }
                     }
                     else
                     {
-                        // Check if it's a fatal connection error (server down, bad URL)
-                        if (request.result == UnityWebRequest.Result.ConnectionError)
-                        {
-                            SLog.Warning("[SocialInteractions] TTSManager: Connection Error (Aborting): " + request.error);
-                            break; // Don't try other formats if we can't even connect
-                        }
-                        
-                        // Protocol error (like 404 or 400) might be format specific, but often means the URL/API is wrong
-                        // For now, we'll just log it and potentially try the next format if it's not a 401/403
-                        if (request.responseCode == 401 || request.responseCode == 403 || request.responseCode == 404)
-                        {
-                            SLog.Warning(string.Format("[SocialInteractions] TTSManager: API Error {0} (Aborting): {1}", request.responseCode, request.error));
-                            break; 
-                        }
+                        SLog.Warning(string.Format("[SocialInteractions] TTSManager: Player2 API Error {0}: {1}", request.responseCode, request.error));
+                    }
+                }
+            }
+            else
+            {
+                // Standard binary API handling (OpenAI-like)
+                foreach (var format in formats)
+                {
+                    using (UnityWebRequest request = UnityWebRequest.Put(url, json))
+                    {
+                        request.method = "POST";
+                        request.SetRequestHeader("Content-Type", "application/json");
+                        request.downloadHandler = new DownloadHandlerAudioClip(url, format.Type);
+                        if (!string.IsNullOrEmpty(apiKey)) request.SetRequestHeader("Authorization", "Bearer " + apiKey);
 
-                        // SLog.Message(string.Format("[SocialInteractions] TTSManager: {0} failed, trying next...", format.Name));
+                        yield return request.SendWebRequest();
+
+                        if (request.result != UnityWebRequest.Result.ConnectionError && request.result != UnityWebRequest.Result.ProtocolError)
+                        {
+                            clip = DownloadHandlerAudioClip.GetContent(request);
+                            if (clip != null && clip.frequency > 0)
+                            {
+                                success = true;
+                                break; // Success!
+                            }
+                        }
+                        else
+                        {
+                            if (request.result == UnityWebRequest.Result.ConnectionError) break;
+                            if (request.responseCode == 401 || request.responseCode == 403 || request.responseCode == 404) break; 
+                        }
                     }
                 }
             }

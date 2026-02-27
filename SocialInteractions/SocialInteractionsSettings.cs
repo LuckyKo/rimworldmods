@@ -16,7 +16,14 @@ namespace SocialInteractions
         Qwen,
         Deepseek,
         Grok,
-        Claude
+        Claude,
+        Player2
+    }
+
+    public enum TtsApiType
+    {
+        OpenAI,
+        Player2
     }
 
 
@@ -24,7 +31,7 @@ namespace SocialInteractions
     public class SocialInteractionsModSettings : ModSettings
     {
         // Version tracking
-        private const string CURRENT_VERSION = "1.5.5";
+        private const string CURRENT_VERSION = "1.5.7";
         public string modVersion = CURRENT_VERSION; // Current version of the mod
 
         // Default templates
@@ -115,6 +122,8 @@ Current event: [pawn1] [subject]
         public string grokModelName = "grok-3-mini"; // Default Grok model name
         public bool disableLlmThinking = true; // Whether to disable LLM thinking/reasoning
         public string claudeModelName = "claude-3-sonnet-20240229"; // Default Claude model name
+        public string player2ModelName = "p2-intelligence-v1"; // Default Player2 model name
+        public string player2GameClientId = "019c9077-e849-7348-9d91-593f91438fb3"; // Player2 Game Client ID for usage tracking
         public bool preventSpam = false;
         public bool forceChatCompletion = true; // New setting to force chat completion for local APIs
 
@@ -250,9 +259,11 @@ Current event: [pawn1] [subject]
 
         // TTS Settings
         public bool enableTTS = false;
+        public TtsApiType ttsApiType = TtsApiType.OpenAI;
         public float ttsVolume = 100f;
         public float ttsSpeed = 1.0f;
         public bool ttsMuted = false;
+        public bool ttsInternalPlayback = true; // Skip flag for Player2
 
         public string ttsApiUrl = "http://localhost:8880/v1/audio/speech";
         public string ttsApiKey = "";
@@ -306,6 +317,8 @@ Current event: [pawn1] [subject]
             Scribe_Values.Look(ref deepseekModelName, "deepseekModelName", "deepseek-chat");
             Scribe_Values.Look(ref grokModelName, "grokModelName", "grok-3-mini");
             Scribe_Values.Look(ref claudeModelName, "claudeModelName", "claude-3-sonnet-20240229");
+            Scribe_Values.Look(ref player2ModelName, "player2ModelName", "p2-intelligence-v1");
+            Scribe_Values.Look(ref player2GameClientId, "player2GameClientId", "019c9077-e849-7348-9d91-593f91438fb3");
 
             Scribe_Values.Look(ref enableChitchat, "enableChitchat", true);
             Scribe_Values.Look(ref enableManualChat, "enableManualChat", true); // New setting for manual chat
@@ -433,14 +446,15 @@ Current event: [pawn1] [subject]
 
             // TTS Settings
             Scribe_Values.Look(ref enableTTS, "enableTTS", false);
+            Scribe_Values.Look(ref ttsApiType, "ttsApiType", TtsApiType.OpenAI);
             Scribe_Values.Look(ref ttsVolume, "ttsVolume", 100f);
             Scribe_Values.Look(ref ttsSpeed, "ttsSpeed", 1.0f);
             Scribe_Values.Look(ref ttsMuted, "ttsMuted", false);
-
+            Scribe_Values.Look(ref ttsInternalPlayback, "ttsInternalPlayback", true);
             Scribe_Values.Look(ref ttsApiUrl, "ttsApiUrl", "http://localhost:8880/v1/audio/speech");
             Scribe_Values.Look(ref ttsApiKey, "ttsApiKey", "");
             Scribe_Values.Look(ref ttsModel, "ttsModel", "tts-1");
-            Scribe_Values.Look(ref ttsAudioFormat, "ttsAudioFormat", UnityEngine.AudioType.WAV);
+            Scribe_Values.Look(ref ttsAudioFormat, "ttsAudioFormat", AudioType.WAV);
 
             // Version tracking
             Scribe_Values.Look(ref modVersion, "modVersion", CURRENT_VERSION);
@@ -510,6 +524,11 @@ Current event: [pawn1] [subject]
         private string llmPromptTemplateBuffer;
         private string llmMonologuePromptTemplateBuffer;
         private string openAiModelNameBuffer;
+        
+        // TTS Buffers
+        private string ttsApiUrlBuffer;
+        private string ttsApiKeyBuffer;
+        private string ttsModelBuffer;
 
         public SocialInteractionsMod(ModContentPack content)
             : base(content)
@@ -519,6 +538,9 @@ Current event: [pawn1] [subject]
             llmApiKeyBuffer = SocialInteractions.Settings.llmApiKey;
             llmPromptTemplateBuffer = SocialInteractions.Settings.llmPromptTemplate;
             llmMonologuePromptTemplateBuffer = SocialInteractions.Settings.llmMonologuePromptTemplate;
+            ttsApiUrlBuffer = SocialInteractions.Settings.ttsApiUrl;
+            ttsApiKeyBuffer = SocialInteractions.Settings.ttsApiKey;
+            ttsModelBuffer = SocialInteractions.Settings.ttsModel;
             openAiModelNameBuffer = SocialInteractions.Settings.openAiModelName;
         }
 
@@ -693,14 +715,56 @@ Current event: [pawn1] [subject]
                 SocialInteractions.Settings.ttsSpeed = listingStandard.Slider(SocialInteractions.Settings.ttsSpeed, 0.25f, 4.0f);
                     
                 listingStandard.Gap();
+                
+                // TTS API Type Selection (Mirroring LLM style)
+                listingStandard.Label("SocialInteractions_TtsApiType".Translate());
+                string[] ttsTypeNames = new string[] {
+                    "OpenAI",
+                    "Player2"
+                };
+                TtsApiType[] ttsTypeValues = (TtsApiType[])System.Enum.GetValues(typeof(TtsApiType));
+                int currentTtsTypeIndex = System.Array.IndexOf(ttsTypeValues, SocialInteractions.Settings.ttsApiType);
+
+                Rect ttsRowRect = listingStandard.GetRect(30f);
+                float ttsButtonWidth = ttsRowRect.width / ttsTypeNames.Length;
+                for (int i = 0; i < ttsTypeNames.Length; i++)
+                {
+                    Rect buttonRect = new Rect(ttsRowRect.x + i * ttsButtonWidth, ttsRowRect.y, ttsButtonWidth, ttsRowRect.height);
+                    if (Widgets.ButtonText(buttonRect, ttsTypeNames[i]))
+                    {
+                        SocialInteractions.Settings.ttsApiType = ttsTypeValues[i];
+                        switch (ttsTypeValues[i])
+                        {
+                            case TtsApiType.OpenAI:
+                                SocialInteractions.Settings.ttsApiUrl = "http://localhost:8880/v1/audio/speech";
+                                ttsApiUrlBuffer = "http://localhost:8880/v1/audio/speech";
+                                SocialInteractions.Settings.ttsModel = "tts-1";
+                                ttsModelBuffer = "tts-1";
+                                break;
+                            case TtsApiType.Player2:
+                                SocialInteractions.Settings.ttsApiUrl = "http://127.0.0.1:4315/v1/tts/speak";
+                                ttsApiUrlBuffer = "http://127.0.0.1:4315/v1/tts/speak";
+                                SocialInteractions.Settings.ttsModel = "p2-intelligence-v1";
+                                ttsModelBuffer = "p2-intelligence-v1";
+                                break;
+                        }
+                    }
+                }
+                
+                listingStandard.Gap();
                 listingStandard.Label("SocialInteractions_TTSApiUrl".Translate());
-                SocialInteractions.Settings.ttsApiUrl = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.ttsApiUrl);
+                ttsApiUrlBuffer = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), ttsApiUrlBuffer);
+                SocialInteractions.Settings.ttsApiUrl = ttsApiUrlBuffer;
 
                 listingStandard.Label("SocialInteractions_TTSApiKey".Translate());
-                SocialInteractions.Settings.ttsApiKey = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.ttsApiKey);
+                ttsApiKeyBuffer = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), ttsApiKeyBuffer);
+                SocialInteractions.Settings.ttsApiKey = ttsApiKeyBuffer;
 
                 listingStandard.Label("SocialInteractions_TTSModel".Translate());
-                SocialInteractions.Settings.ttsModel = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.ttsModel);
+                ttsModelBuffer = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), ttsModelBuffer);
+                SocialInteractions.Settings.ttsModel = ttsModelBuffer;
+                
+
                     
                 if (listingStandard.ButtonText("SocialInteractions_RemapVoices".Translate()))
                 {
@@ -794,7 +858,8 @@ Current event: [pawn1] [subject]
                 "SocialInteractions_Qwen".Translate(),
                 "SocialInteractions_Deepseek".Translate(),
                 "SocialInteractions_Grok".Translate(),
-                "SocialInteractions_Claude".Translate()
+                "SocialInteractions_Claude".Translate(),
+                "SocialInteractions_Player2".Translate()
             };
             LlmApiType[] apiTypeValues = (LlmApiType[])System.Enum.GetValues(typeof(LlmApiType));
             int currentApiTypeIndex = System.Array.IndexOf(apiTypeValues, SocialInteractions.Settings.llmApiType);
@@ -848,6 +913,23 @@ Current event: [pawn1] [subject]
                             SocialInteractions.Settings.llmApiUrl = "https://api.anthropic.com";
                             llmApiUrlBuffer = "https://api.anthropic.com";
                             break;
+                        case LlmApiType.Player2:
+                            SocialInteractions.Settings.llmApiUrl = "http://127.0.0.1:4315";
+                            llmApiUrlBuffer = "http://127.0.0.1:4315";
+                            break;
+                    }
+
+                    // Manage Player2 health heartbeat when switching API type
+                    if (apiTypeValues[i] == LlmApiType.Player2)
+                    {
+                        if (!string.IsNullOrEmpty(SocialInteractions.Settings.player2GameClientId))
+                        {
+                            Player2ApiClient.StartHealthHeartbeat(SocialInteractions.Settings.llmApiUrl, SocialInteractions.Settings.player2GameClientId);
+                        }
+                    }
+                    else
+                    {
+                        Player2ApiClient.StopHealthHeartbeat();
                     }
                 }
             }
@@ -962,6 +1044,18 @@ Current event: [pawn1] [subject]
                 if (!string.IsNullOrEmpty(newClaudeModel))
                 {
                     SocialInteractions.Settings.claudeModelName = newClaudeModel;
+                }
+            }
+            
+            // Player2-specific settings
+            if (SocialInteractions.Settings.llmApiType == LlmApiType.Player2)
+            {
+                listingStandard.Gap();
+                listingStandard.Label("SocialInteractions_Player2ModelName".Translate());
+                string newPlayer2Model = Widgets.TextField(listingStandard.GetRect(Text.LineHeight), SocialInteractions.Settings.player2ModelName);
+                if (!string.IsNullOrEmpty(newPlayer2Model))
+                {
+                    SocialInteractions.Settings.player2ModelName = newPlayer2Model;
                 }
             }
 

@@ -825,6 +825,11 @@ namespace SocialInteractions
                     {
                         return await client.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
                     }
+                case LlmApiType.Player2:
+                    using (var client = new Player2ApiClient(settings.llmApiUrl, settings.player2ModelName, apiKey, settings.player2GameClientId))
+                    {
+                        return await client.GenerateText(prompt, null, null, null, null, topK, topP, minP, repPen);
+                    }
                 default:
                     throw new Exception("Unknown API type: " + settings.llmApiType);
             }
