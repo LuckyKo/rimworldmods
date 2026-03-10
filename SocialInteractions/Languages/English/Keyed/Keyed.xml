@@ -144,6 +144,10 @@
   <!-- Character Card Button -->
   <SocialInteractions_EditBioButtonLabel>Bio</SocialInteractions_EditBioButtonLabel>
   <SocialInteractions_EditBioButtonTooltip>Edit custom bio text for this colonist</SocialInteractions_EditBioButtonTooltip>
+  <SocialInteractions_AutoGenerateBio>Auto-Generate</SocialInteractions_AutoGenerateBio>
+  <SocialInteractions_AutoGenerateBioGenerating>Generating...</SocialInteractions_AutoGenerateBioGenerating>
+  <SocialInteractions_AutoGenerateBioTooltip>Use the configured LLM to generate a bio for this pawn based on their traits, skills, and background.</SocialInteractions_AutoGenerateBioTooltip>
+  <SocialInteractions_AutoGenerateBioDisabledTooltip>Enable LLM Interactions and set an API URL in the mod settings to use this feature.</SocialInteractions_AutoGenerateBioDisabledTooltip>
   
   <!-- UI Buttons -->
   <SocialInteractions_Done>Done</SocialInteractions_Done>

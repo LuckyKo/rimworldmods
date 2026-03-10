@@ -297,20 +297,21 @@ namespace SocialInteractions
             
             // Further sanitize to ensure only printable ASCII + common whitespace
             // This is a bit aggressive but helps with sensitive local servers
-            StringBuilder sb = new StringBuilder();
-            foreach (char c in json)
-            {
-                if (c < 128)
-                {
-                    sb.Append(c);
-                }
-                else
-                {
-                    // For non-ASCII, use a space or skip to avoid mangling the JSON structure
-                    sb.Append(' ');
-                }
-            }
-            return sb.ToString();
+            // StringBuilder sb = new StringBuilder();
+            // foreach (char c in json)
+            // {
+            //     if (c < 128)
+            //     {
+            //         sb.Append(c);
+            //     }
+            //     else
+            //     {
+            //         // For non-ASCII, use a space or skip to avoid mangling the JSON structure
+            //         sb.Append(' ');
+            //     }
+            // }
+            //return sb.ToString();
+            return json;
         }
 
         private string CleanChatResponse(string response)

@@ -1,6 +1,7 @@
 using RimWorld;
 using UnityEngine;
 using Verse;
+using System.Threading.Tasks;
 
 namespace SocialInteractions
 {
@@ -12,6 +13,7 @@ namespace SocialInteractions
         private Pawn pawn;
         private string flavorText;
         private string initialFlavorText;
+        private bool isGenerating = false;
 
         private const float WindowWidth = 600f;
         private const float WindowHeight = 400f;
@@ -40,12 +42,21 @@ namespace SocialInteractions
             Widgets.Label(new Rect(MyMargin, MyMargin, inRect.width - 2 * MyMargin, 30f), 
                 string.Format("SocialInteractions_EditBioFor".Translate(), pawn.Name.ToStringShort));
             
+            Text.Font = GameFont.Small;
+            
             // Text area for editing the flavor text
             Rect textAreaRect = new Rect(MyMargin, MyMargin + 40f, inRect.width - 2 * MyMargin, 
                 inRect.height - 2 * MyMargin - ButtonHeight - 55f);
             
-            // Create a text area using Widgets.TextFieldMultiline to allow multi-line editing
-            string newText = Widgets.TextArea(textAreaRect, flavorText);
+            Rect outRect = textAreaRect;
+            // Calculate height ensuring we have a bit of extra space for new lines, but at least the outRect height
+            float calcHeight = Text.CalcHeight(flavorText, outRect.width - 16f) + 100f;
+            float viewHeight = Mathf.Max(calcHeight, outRect.height);
+            Rect viewRect = new Rect(0f, 0f, outRect.width - 16f, viewHeight);
+            
+            Widgets.BeginScrollView(outRect, ref scrollPosition, viewRect);
+            string newText = Widgets.TextArea(new Rect(0f, 0f, viewRect.width, viewHeight), flavorText);
+            Widgets.EndScrollView();
             
             // Update the flavor text if it changed
             if (newText != flavorText)
@@ -53,46 +64,78 @@ namespace SocialInteractions
                 flavorText = newText;
             }
 
-            // Done button
-            Rect doneButtonRect = new Rect(
-                inRect.width - MyMargin - 150f, // Position from right
-                inRect.height - ButtonHeight - MyMargin, 
-                150f, 
-                ButtonHeight
-            );
+            // Calculate button layout for 4 buttons to fit within the bottom margin
+            float btnWidth = 130f;
+            float btnSpacing = (inRect.width - (MyMargin * 2) - (btnWidth * 4)) / 3f;
+            if (btnSpacing < 5f) btnSpacing = 5f; // Minimum spacing
             
+            float currentX = MyMargin;
+            float btnY = inRect.height - ButtonHeight - MyMargin;
+
+            // Cancel button
+            Rect cancelButtonRect = new Rect(currentX, btnY, btnWidth, ButtonHeight);
+            if (Widgets.ButtonText(cancelButtonRect, "SocialInteractions_Cancel".Translate()))
+            {
+                Close();
+            }
+            currentX += btnWidth + btnSpacing;
+
+            // Auto-Generate button
+            Rect autoGenButtonRect = new Rect(currentX, btnY, btnWidth, ButtonHeight);
+            
+            // Disable button if LLM is not enabled or if already generating
+            bool canGenerate = SocialInteractions.Settings.llmInteractionsEnabled && 
+                               !string.IsNullOrEmpty(SocialInteractions.Settings.llmApiUrl);
+            
+            string autoGenLabel = isGenerating ? "SocialInteractions_AutoGenerateBioGenerating".Translate() : "SocialInteractions_AutoGenerateBio".Translate();
+            
+            GUI.color = canGenerate && !isGenerating ? Color.white : Color.grey;
+            
+            if (Widgets.ButtonText(autoGenButtonRect, autoGenLabel, true, false, canGenerate && !isGenerating))
+            {
+                if (canGenerate && !isGenerating)
+                {
+                    isGenerating = true;
+                    Task.Run(async () => 
+                    {
+                        string result = await SocialInteractions.GenerateBioAsync(pawn);
+                        LongEventHandler.ExecuteWhenFinished(() => 
+                        {
+                            if (!string.IsNullOrEmpty(result))
+                            {
+                                flavorText = result;
+                            }
+                            isGenerating = false;
+                        });
+                    });
+                }
+            }
+            if (!canGenerate)
+            {
+                TooltipHandler.TipRegion(autoGenButtonRect, "SocialInteractions_AutoGenerateBioDisabledTooltip".Translate());
+            }
+            else
+            {
+                TooltipHandler.TipRegion(autoGenButtonRect, "SocialInteractions_AutoGenerateBioTooltip".Translate());
+            }
+            GUI.color = Color.white;
+            currentX += btnWidth + btnSpacing;
+
+            // Clear button
+            Rect clearButtonRect = new Rect(currentX, btnY, btnWidth, ButtonHeight);
+            if (Widgets.ButtonText(clearButtonRect, "SocialInteractions_Clear".Translate()))
+            {
+                flavorText = string.Empty;
+                SocialInteractions.SetPawnFlavorText(pawn, string.Empty);
+            }
+            
+            // Save button
+            Rect doneButtonRect = new Rect(inRect.width - MyMargin - btnWidth, btnY, btnWidth, ButtonHeight);
             if (Widgets.ButtonText(doneButtonRect, "SocialInteractions_Save".Translate()))
             {
                 // Save the flavor text
                 SocialInteractions.SetPawnFlavorText(pawn, flavorText);
                 Close();
-            }
-            
-            // Cancel button
-            Rect cancelButtonRect = new Rect(
-                MyMargin, 
-                inRect.height - ButtonHeight - MyMargin,
-                150f, 
-                ButtonHeight
-            );
-            
-            if (Widgets.ButtonText(cancelButtonRect, "SocialInteractions_Cancel".Translate()))
-            {
-                Close();
-            }
-
-            // Clear button
-            Rect clearButtonRect = new Rect(
-                inRect.width / 2f - 75f, 
-                inRect.height - ButtonHeight - MyMargin,
-                150f, 
-                ButtonHeight
-            );
-            
-            if (Widgets.ButtonText(clearButtonRect, "SocialInteractions_Clear".Translate()))
-            {
-                flavorText = string.Empty;
-                SocialInteractions.SetPawnFlavorText(pawn, string.Empty);
             }
         }
 

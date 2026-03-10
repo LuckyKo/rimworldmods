@@ -2402,5 +2402,88 @@ namespace SocialInteractions
             // Open the voice selection dialog
             Find.WindowStack.Add(new VoiceSelectionDialog(pawn));
         }
+
+        /// <summary>
+        /// Generates a brief bio/backstory for the pawn using the LLM.
+        /// </summary>
+        public static async Task<string> GenerateBioAsync(Pawn pawn)
+        {
+            if (pawn == null) return null;
+
+            if (!Settings.llmInteractionsEnabled)
+            {
+                SLog.Warning("[SocialInteractions] GenerateBioAsync called but LLM interactions are disabled.");
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(Settings.llmApiUrl))
+            {
+                SLog.Warning("[SocialInteractions] GenerateBioAsync called but LLM API URL is not set.");
+                return null;
+            }
+
+            // Base prompt instruction
+            string prompt = "Write a brief, compelling, and creative one paragraph backstory/biography for the following RimWorld character based on their traits and skills. Ensure it fits the brutal sci-fi setting of RimWorld.\n\n";
+
+            // Extract pawn data and append
+            var pawnData = ExtractPawnData(pawn, "pawn1", null);
+
+            prompt += string.Format("Name: {0}\n", pawnData.ContainsKey("pawn1") ? pawnData["pawn1"] : pawn.LabelShort);
+            prompt += string.Format("Sex: {0}\n", pawnData.ContainsKey("pawn1_sex") ? pawnData["pawn1_sex"] : pawn.gender.ToString());
+            prompt += string.Format("Age: {0}\n", pawnData.ContainsKey("pawn1_age") ? pawnData["pawn1_age"] : pawn.ageTracker.AgeBiologicalYears.ToString());
+            prompt += string.Format("Title/Role: {0}\n", pawnData.ContainsKey("pawn1_title") ? pawnData["pawn1_title"] : "Unknown");
+            prompt += string.Format("Faction: {0}\n", pawnData.ContainsKey("pawn1_faction") ? pawnData["pawn1_faction"] : "Unknown");
+            prompt += string.Format("Ideology: {0}\n", pawnData.ContainsKey("pawn1_ideology") ? pawnData["pawn1_ideology"] : "Unknown");
+            prompt += string.Format("Traits: {0}\n", pawnData.ContainsKey("pawn1_traits") ? pawnData["pawn1_traits"] : "None");
+            prompt += string.Format("Xenotype/Genes: {0}\n", pawnData.ContainsKey("pawn1_genes") ? pawnData["pawn1_genes"] : "None");
+            prompt += string.Format("Key Skills: {0}\n", pawnData.ContainsKey("pawn1_proficiencies") ? pawnData["pawn1_proficiencies"] : "None");
+            prompt += string.Format("Incapable of: {0}\n", pawnData.ContainsKey("pawn1_noskills") ? pawnData["pawn1_noskills"] : "None");
+
+            if (pawnData.ContainsKey("pawn1_family") && pawnData["pawn1_family"] != "None")
+            {
+                prompt += string.Format("Family: {0}\n", pawnData["pawn1_family"]);
+            }
+
+            // Append API specific formatting
+            bool isLocalApi = Settings.llmApiType == LlmApiType.KoboldCpp || 
+                              Settings.llmApiType == LlmApiType.LMStudio || 
+                              Settings.llmApiType == LlmApiType.Ollama;
+            bool isTextCompletion = isLocalApi && !Settings.forceChatCompletion;
+
+            if (isTextCompletion)
+            {
+                prompt += "\n<start>\nBio:";
+            }
+            else
+            {
+                prompt += "\n\nFormat the response strictly as the biography text without any conversational fillers or markdown formatting around it.";
+            }
+
+            SLog.Message(string.Format("[SocialInteractions] Requesting Auto-Generate Bio for {0}", pawn.LabelShort));
+
+            try
+            {
+                string result = await GenerateTextWithApiClient(prompt);
+                // Clean up any common prefixes an LLM might add
+                if (!string.IsNullOrEmpty(result))
+                {
+                    result = result.Trim();
+                    if (result.StartsWith("Bio:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        result = result.Substring(4).Trim();
+                    }
+                    else if (result.StartsWith("Biography:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        result = result.Substring(10).Trim();
+                    }
+                }
+                return result;
+            }
+            catch (Exception ex)
+            {
+                SLog.Error(string.Format("[SocialInteractions] Error generating bio for {0}: {1}", pawn.LabelShort, ex.Message));
+                return null;
+            }
+        }
     }
 }
